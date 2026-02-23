@@ -1,0 +1,73 @@
+###############################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\04292025_longitudinal\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Tuesday, April 29, 2025
+Time: 2:55:58 PM
+###############################################################################################################
+[2025-04-29 14-55-58] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\04292025_longitudinal\04292025.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\04292025_longitudinal\04292025_Exper_2025-04-29-14-55-58.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\04292025_longitudinal\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-3.1_02202025 (Repeats=0)
+[Blank Group 1: Sample 2] S2-3.2_02202025 (Repeats=0)
+[Blank Group 1: Sample 3] S3-3.4_02202025 (Repeats=0)
+[Blank Group 1: Sample 4] S4-5.1_02202025 (Repeats=0)
+[Blank Group 1: Sample 5] S5-5.2_02202025 (Repeats=0)
+[Blank Group 1: Sample 6] S6-5.3_02202025 (Repeats=0)
+[Blank Group 1: Sample 7] S7-5.4_02202025 (Repeats=0)
+[Blank Group 1: Sample 8] S8-5.5_02202025 (Repeats=0)
+[Blank Group 2] B2-B2
+[Blank Group 2: Sample 1] S9-6.1_02202025 (Repeats=0)
+[Blank Group 2: Sample 2] S10-6.2_02202025 (Repeats=0)
+[Blank Group 2: Sample 3] S11-6.3_02202025 (Repeats=0)
+[Blank Group 2: Sample 4] S12-9.1_02202025 (Repeats=0)
+[Blank Group 2: Sample 5] S13-9.2_02202025 (Repeats=0)
+[Blank Group 2: Sample 6] S14-9.3_02202025 (Repeats=0)
+[Blank Group 2: Sample 7] S15-9.4_02202025 (Repeats=0)
+[Blank Group 2: Sample 8] S16-9.Sam_02202025 (Repeats=0)
+[Total Number of Samples] 16
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2025-04-29 14-55-58] STARTING Aqualog SampleQ Execution
+[2025-04-29 14-55-58] Experiment 01 of 18 [Blank 1] Start Done B1
+[2025-04-29 15-02-49] Experiment 02 of 18 [Blank 1, Sample 1, Repeat 0] Start Done B1S13.1_02202025
+[2025-04-29 15-08-02] Experiment 03 of 18 [Blank 1, Sample 2, Repeat 0] Start Done B1S23.2_02202025
+[2025-04-29 15-13-15] Experiment 04 of 18 [Blank 1, Sample 3, Repeat 0] Start Done B1S33.4_02202025
+[2025-04-29 15-18-29] Experiment 05 of 18 [Blank 1, Sample 4, Repeat 0] Start Done B1S45.1_02202025
+[2025-04-29 15-28-17] Experiment 06 of 18 [Blank 1, Sample 5, Repeat 0] Start Done B1S55.2_02202025
+[2025-04-29 15-33-30] Experiment 07 of 18 [Blank 1, Sample 6, Repeat 0] Start Done B1S65.3_02202025
+[2025-04-29 15-38-43] Experiment 08 of 18 [Blank 1, Sample 7, Repeat 0] Start Done B1S75.4_02202025
+[2025-04-29 15-43-56] Experiment 09 of 18 [Blank 1, Sample 8, Repeat 0] Start Done B1S85.5_02202025
+[2025-04-29 15-53-14] Experiment 10 of 18 [Blank 2] Start Done B2
+[2025-04-29 15-57-09] Experiment 11 of 18 [Blank 2, Sample 1, Repeat 0] Start Done B2S96.1_02202025
+[2025-04-29 16-02-23] Experiment 12 of 18 [Blank 2, Sample 2, Repeat 0] Start Done B2S106.2_02202025
+[2025-04-29 16-07-36] Experiment 13 of 18 [Blank 2, Sample 3, Repeat 0] Start Done B2S116.3_02202025
+[2025-04-29 16-17-16] Experiment 14 of 18 [Blank 2, Sample 4, Repeat 0] Start Done B2S129.1_02202025
+[2025-04-29 16-22-29] Experiment 15 of 18 [Blank 2, Sample 5, Repeat 0] Start Done B2S139.2_02202025
+[2025-04-29 16-27-42] Experiment 16 of 18 [Blank 2, Sample 6, Repeat 0] Start Done B2S149.3_02202025
+[2025-04-29 16-32-55] Experiment 17 of 18 [Blank 2, Sample 7, Repeat 0] Start Done B2S159.4_02202025
+[2025-04-29 16-40-50] Experiment 18 of 18 [Blank 2, Sample 8, Repeat 0] Start Done B2S169.Sam_02202025
+[2025-04-29 16-46-03] COMPLETED Aqualog SampleQ Execution
+--------------------------------------------------------------------------------

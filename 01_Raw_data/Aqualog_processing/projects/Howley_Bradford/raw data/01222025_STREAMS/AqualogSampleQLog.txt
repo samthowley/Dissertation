@@ -1,0 +1,59 @@
+##########################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\01222025_STREAMS\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Wednesday, January 22, 2025
+Time: 5:34:15 PM
+##########################################################################################################
+[2025-01-22 17-34-15] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\01222025_STREAMS\01222025STREAMS.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\01222025_STREAMS\01222025STREAMS_Exper_2025-01-22-17-34-15.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\01222025_STREAMS\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-3_10252024 (Repeats=0)
+[Blank Group 1: Sample 2] S2-5_10252024 (Repeats=0)
+[Blank Group 1: Sample 3] S3-6_10252024 (Repeats=0)
+[Blank Group 1: Sample 4] S4-7_10252024 (Repeats=0)
+[Blank Group 1: Sample 5] S5-9_10252024 (Repeats=0)
+[Blank Group 2] B2-B2
+[Blank Group 2: Sample 1] S6-13_10252024 (Repeats=0)
+[Blank Group 2: Sample 2] S7-15_10252024 (Repeats=0)
+[Blank Group 2: Sample 3] S8-5a_10252024 (Repeats=0)
+[Blank Group 2: Sample 4] S9-6a_10252024 (Repeats=0)
+[Total Number of Samples] 9
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2025-01-22 17-34-15] STARTING Aqualog SampleQ Execution
+[2025-01-22 17-34-15] Experiment 01 of 11 [Blank 1] Start Done B1
+[2025-01-22 17-39-33] Experiment 02 of 11 [Blank 1, Sample 1, Repeat 0] Start Done B1S13_10252024
+[2025-01-22 17-44-46] Experiment 03 of 11 [Blank 1, Sample 2, Repeat 0] Start Done B1S25_10252024
+[2025-01-22 17-50-00] Experiment 04 of 11 [Blank 1, Sample 3, Repeat 0] Start Done B1S36_10252024
+[2025-01-22 17-55-13] Experiment 05 of 11 [Blank 1, Sample 4, Repeat 0] Start Done B1S47_10252024
+[2025-01-22 18-05-26] Experiment 06 of 11 [Blank 1, Sample 5, Repeat 0] Start Done B1S59_10252024
+[2025-01-22 18-10-38] Experiment 07 of 11 [Blank 2] Start Done B2
+[2025-01-22 18-14-27] Experiment 08 of 11 [Blank 2, Sample 1, Repeat 0] Start Done B2S613_10252024
+[2025-01-22 18-19-40] Experiment 09 of 11 [Blank 2, Sample 2, Repeat 0] Start Done B2S715_10252024
+[2025-01-22 18-28-00] Experiment 10 of 11 [Blank 2, Sample 3, Repeat 0] Start Done B2S85a_10252024
+[2025-01-22 18-33-13] Experiment 11 of 11 [Blank 2, Sample 4, Repeat 0] Start Done B2S96a_10252024
+[2025-01-22 18-38-26] COMPLETED Aqualog SampleQ Execution
+--------------------------------------------------------------------------------

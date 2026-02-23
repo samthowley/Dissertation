@@ -1,0 +1,59 @@
+##################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\04122024\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Friday, April 12, 2024
+Time: 1:12:00 PM
+##################################################################################################
+[2024-04-12 13-12-00] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\04122024\04122024.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\04122024\04122024_Exper_2024-04-12-13-12-00.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\04122024\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-5_4122024 (Repeats=0)
+[Blank Group 1: Sample 2] S2-3_4122024 (Repeats=0)
+[Blank Group 1: Sample 3] S3-6-93_4122024 (Repeats=0)
+[Blank Group 1: Sample 4] S4-14-500_4122024 (Repeats=0)
+[Blank Group 1: Sample 5] S5-5-161_4122024 (Repeats=0)
+[Blank Group 2] B2-B2
+[Blank Group 2: Sample 1] S6-5-321_4122024 (Repeats=0)
+[Blank Group 2: Sample 2] S7-5-573_4122024 (Repeats=0)
+[Blank Group 2: Sample 3] S8-5-510_4122024 (Repeats=0)
+[Blank Group 2: Sample 4] S9-5-582_4122024 (Repeats=0)
+[Total Number of Samples] 9
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2024-04-12 13-12-00] STARTING Aqualog SampleQ Execution
+[2024-04-12 13-12-00] Experiment 01 of 11 [Blank 1] Start Done B1
+[2024-04-12 13-16-35] Experiment 02 of 11 [Blank 1, Sample 1, Repeat 0] Start Done B1S15_4122024
+[2024-04-12 13-21-52] Experiment 03 of 11 [Blank 1, Sample 2, Repeat 0] Start Done B1S23_4122024
+[2024-04-12 13-27-10] Experiment 04 of 11 [Blank 1, Sample 3, Repeat 0] Start Done B1S36-93_4122024
+[2024-04-12 13-32-30] Experiment 05 of 11 [Blank 1, Sample 4, Repeat 0] Start Done B1S414-500_4122024
+[2024-04-12 13-42-14] Experiment 06 of 11 [Blank 1, Sample 5, Repeat 0] Start Done B1S55-161_4122024
+[2024-04-12 13-47-32] Experiment 07 of 11 [Blank 2] Start Done B2
+[2024-04-12 13-51-21] Experiment 08 of 11 [Blank 2, Sample 1, Repeat 0] Start Done B2S65-321_4122024
+[2024-04-12 13-56-39] Experiment 09 of 11 [Blank 2, Sample 2, Repeat 0] Start Done B2S75-573_4122024
+[2024-04-12 14-04-29] Experiment 10 of 11 [Blank 2, Sample 3, Repeat 0] Start Done B2S85-510_4122024
+[2024-04-12 14-09-47] Experiment 11 of 11 [Blank 2, Sample 4, Repeat 0] Start Done B2S95-582_4122024
+[2024-04-12 14-15-05] COMPLETED Aqualog SampleQ Execution
+--------------------------------------------------------------------------------

@@ -1,0 +1,47 @@
+'Program by Ingrid Ackermann
+'Program created: 11/02/2020, modified: 11/2/2020
+
+'Declare Variables and Units
+Public BattV,PTemp_C
+
+'name of each sensor wired in
+Public cDOM1  
+Public cDOM2
+
+Units cDOM1=ppbQS
+Units cDOM2=ppbQS
+
+'multiplier = x and the offset is b (y = mx + b)
+Const cDOMMult=1
+Const cDOMOffs=0
+
+'Define Data Tables (how the user sees the data)
+DataTable (Test,True,-1)
+	DataInterval (0,15,Sec,1)
+	Minimum (1,BattV,FP2,0,0)
+	Sample (1,PTemp_C,FP2)
+	Sample (1,cDOM1,IEEE4)
+	Sample (1,cDOM2,IEEE4)
+EndTable
+
+'Main Program (SE1+G,SE3+G:Thanksgiving; SW12+G,12v+G:Halloween)
+BeginProg
+	Scan(15,Sec,0,0)
+		Battery(BattV)
+		PanelTemp(PTemp_C,_60Hz)
+		
+  		'Measure cDOM with Cyclops-7
+		VoltSe(cDOM1,1,AutoRange,1,False,0,_60Hz,cDOMMult,cDOMOffs)
+				    
+  If TimeIntoInterval(0,15,Sec) Then
+      SW12(1)
+    Else
+      SW12(0)
+    EndIf
+    
+		VoltSe(cDOM2,1,AutoRange,3,False,0,_60Hz,cDOMMult,cDOMOffs)
+		
+    CallTable(Test)
+	NextScan
+EndProg
+

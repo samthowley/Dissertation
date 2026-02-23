@@ -1,0 +1,31 @@
+[Header]	
+System	TOCL-Saline	
+S/W Version	1.00	
+User		
+Date/Time	7/18/2024 11:36:33 AM	
+
+[System]	
+Instrument Options	TOC/ASI/IC Unit/	
+
+[Data]	
+Type	Anal.	Sample Name	Sample ID	Origin	Cal. Curve	Manual Dilution	Notes	Date / Time	Spl. No.	Inj. No.	Analysis(Inj.)	Area	Mean Area	Conc.	Mean Conc.	Result	Mean Result	Excluded	Inj. Vol.	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_07_17_11_23_20.cal		1.00		7/17/2024 11:31:30 AM	1	1	TC	9.829	9.754	5.000	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_07_17_11_23_20.cal		1.00		7/17/2024 11:34:22 AM	1	2	TC	9.679	9.754	5.000	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_07_17_11_23_20.cal		1.00		7/17/2024 11:41:05 AM	2	1	TC	18.39	18.39	10.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_07_17_11_23_20.cal		1.00		7/17/2024 11:44:05 AM	2	2	TC	18.38	18.39	10.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_07_17_11_23_20.cal		1.00		7/17/2024 11:50:45 AM	3	1	TC	43.99	43.92	25.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_07_17_11_23_20.cal		1.00		7/17/2024 11:53:40 AM	3	2	TC	43.85	43.92	25.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_07_17_11_23_20.cal		1.00		7/17/2024 12:01:30 PM	4	1	TC	85.41	85.70	50.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_07_17_11_23_20.cal		1.00		7/17/2024 12:04:51 PM	4	2	TC	85.99	85.70	50.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_07_17_11_23_20.cal		1.00		7/17/2024 12:11:10 PM	5	1	TC	172.3	171.2	100.0	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_07_17_11_23_20.cal		1.00		7/17/2024 12:14:32 PM	5	2	TC	170.1	171.2	100.0	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_07_17_12_14_32.cal		1.00		7/17/2024 12:22:15 PM	1	1	IC	8.985	8.919	5.000	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_07_17_12_14_32.cal		1.00		7/17/2024 12:24:36 PM	1	2	IC	8.852	8.919	5.000	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_07_17_12_14_32.cal		1.00		7/17/2024 12:30:33 PM	2	1	IC	17.67	17.71	10.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_07_17_12_14_32.cal		1.00		7/17/2024 12:32:54 PM	2	2	IC	17.74	17.71	10.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_07_17_12_14_32.cal		1.00		7/17/2024 12:38:49 PM	3	1	IC	44.36	45.00	25.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_07_17_12_14_32.cal		1.00		7/17/2024 12:41:17 PM	3	2	IC	45.63	45.00	25.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_07_17_12_14_32.cal		1.00		7/17/2024 12:48:36 PM	4	1	IC	89.00	88.06	50.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_07_17_12_14_32.cal		1.00		7/17/2024 12:50:56 PM	4	2	IC	87.12	88.06	50.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_07_17_12_14_32.cal		1.00		7/17/2024 12:56:00 PM	5	1	IC	176.3	174.8	100.0	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_07_17_12_14_32.cal		1.00		7/17/2024 12:58:30 PM	5	2	IC	173.3	174.8	100.0	 	 	 	0	50	

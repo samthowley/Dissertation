@@ -1,0 +1,121 @@
+﻿Site,Date,NaCl_g,NaCl_in,Cond_pulld,Reach_m,Q_Estimate_L/s,Reach_ft,Sensor_interval,Photos,DG_calculated,Field_crew,Time_DST,Notes,Initial_Cond from YSI sonde (µS/cm),Observed Velocity
+5,3/30/2021,,,,,na,,5 secs,,,Jules/Matt/Josh/Paul,,Jules' day 1: Paul/Josh/Matt? No record.,NA,
+8,3/30/2021,NA,NA,NA,43,na,141,5 secs,,,Jules/Matt/Josh/Paul,yes,site 8 dismantled and replaced by site 3.,NA,
+15,3/30/2021,1200,14:00,TBA,27.4,219.8558405,90,5 secs,,7/28/2021,Jules/Matt/Josh/Paul,yes,,NA,
+6,4/6/2021,2000,16:27,16:47,50,1439.787076,164,5 secs,,7/28/2021,Jules/Matt/Josh,yes,,NA,
+7,4/6/2021,250,13:04,13:42,38.1,121.2887537,125,5 secs,,4/22/2021,Jules/Matt/Josh,yes,,NA,
+14,4/6/2021,250,10:26,11:17,30.2,48.00745076,99,5 secs,,4/22/2021,Jules/Matt/Josh,yes,,NA,
+6a,4/6/2021,200,14:46,15:15,25.9,80.51203353,85,5 secs,,7/28/2021,Jules/Matt/Josh,yes,,NA,
+3,4/13/2021,400,10:23,~10:46,30.5,210.657071,100,5 secs,,7/28/2021,Jules/Matt/Josh,yes,,NA,
+13,4/13/2021,100,14:34,15:28,20.1,14.73088804,66,5 secs,,7/28/2021,Jules/Matt/Josh,yes,,NA,
+5a,4/13/2021,100,11:51,12:10,18,21.70240671,59,5 secs,,7/29/2021,Jules/Matt/Josh,yes,didn't catch the full NaCl curve this time,NA,
+9,4/16/2021,500,12:24,12:37,33.5,156.7248273,110,5 secs,,7/29/2021,Jules/Matt,yes,alternate for site 10.,NA,
+3,6/24/2021,1400,12:55,1:16,41,410.1905995,134.5,5 secs,,7/29/2021,Jules/Paul,yes,lots of water,NA,
+7,6/24/2021,600,2:14,2:33,35.1,145.6355237,115,5 secs,,7/29/2021,Jules/Paul,yes,"very foamy, turbulent",NA,
+6a,6/24/2021,1200,11:33,12:02,39,95.79989318,128,5 secs,,7/29/2021,Jules/Paul,yes,lots of water,NA,
+5,7/9/2021,2000,11:16,11:25,57.6,1605.177339,189,5 secs,Jules x 2,7/29/2021,Jules/Matt,yes,SF Drain site. High flow,NA,
+9,7/9/2021,2000,1:01,1:08,32,1449.748106,105,5 secs,Jules x 2,7/29/2021,Jules/Matt,yes,"very flooded, main stream pass sampled here. Stream up path to this point is diverged, broken, and spilling into the clearcut, so we also sampled the strongest sidestream (9s). 9 is Bradford_1 in shuttle ",NA,
+13,7/9/2021,1200,11:52,12:00,27.7,407.1184664,91,5 secs,Jules x 2,7/29/2021,Jules/Matt,yes,"need a wellcap and need to reset the well, full of sediment",NA,
+5a,7/9/2021,1000,10:21,10:28,26.8,270.6396568,88,5 secs,Jules x 2,7/29/2021,Jules/Matt,yes,"frothy, high flow. Post TS Elsa",NA,
+9s,7/9/2021,600,1:20,1:28,41.1,347.469553,135,5 secs,Jules x 2,7/29/2021,Jules/Matt,yes,9s = 9 sidestream. Also gaged a sidestream due to very high water flow. Sidestream located between largest cut pile and primary stream,NA,
+3,9/13/2021,600,1:56,2:11,16.8,41.80605368,55,5 secs,Jules,1/10/2022,Jules/Matt,yes,3 sensor in shuttle is Bradford_8. right off 100 road near blue gate,NA,
+5,9/13/2021,300,10:51,11:06,24.1,25.35128756,79,5 secs,Jules,1/10/2022,Jules/Matt,yes,aka FL Drain Up. Reset baro logger 10:58 am- make note of pressure difference,NA,
+6,9/13/2021,1000,2:36,2:42,38.1,158.6220074,125,5 secs,Jules,1/10/2022,Jules/Matt,yes,6 sensor in shuttle is Bradford,NA,
+7,9/13/2021,150,1:07,1:17,14.6,19.06265131,48,5 secs,Jules,1/10/2022,Jules/Matt,yes,put conductivity sensor on opp side of culvert this time,NA,
+14,9/13/2021,100,12:22,12:37,9.8,7.219739797,32,5 secs,Jules,1/10/2022,Jules/Matt,yes,"didn't catch full NaCl tail. Across from the bizarre wildlife track, enter through left side of stream",NA,
+15,9/13/2021,50,11:40,11:55,11.3,2.047322661,37,5 secs,,1/10/2022,Jules/Matt,yes,,NA,
+5a,9/13/2021,50,9:54,9:59,5.5,9.441156916,18,1 sec,Jules,1/10/2022,Jules/Matt,yes,5a sensor is Bradford_7 in shuttle. Very low flow above and beyond the 18 ft section that crosses the road,NA,
+6a,9/13/2021,200,3:10,3:31,14.6,9.19180896,48,5 secs,,1/10/2022,Jules/Matt,yes,6a sensor in shuttle is Bradford 8_0,NA,
+13,9/20/2021,2000,11:33,12:10,34,523.9936702,111.6,5 secs,Aaron,1/10/2022,Jules/Aaron,yes,"reset the well. Stream flowing quickly, 3 in rain weekend prior. 13 sensor is Bradford_5 in shuttle",NA,
+5,11/10/2021,1400,13:24,13:50,40.5,336.2121256,133,5 secs,,1/10/2022,Jules/Sofia,no,enter right side of stream culvert,NA,
+15,11/10/2021,450,11:56,12:11,26.8,56.41307913,88,5 secs,,1/10/2022,Jules/Sofia,no,"right by culvert, enter right side",NA,
+5a,11/10/2021,200,15:34,15:50,15.5,20.93068371,51,5 secs,,1/10/2022,Jules/Sofia,no,"didn't catch full NaCl tail, enter left side of stream road crossing. Follow creek, left side, to well. ",NA,
+3,11/17/2021,600,14:17,15:04,30.2,65.34767824,99,5 secs,Jules,1/10/2022,Jules/Sofia,no,enter through right side of stream,NA,
+7,11/17/2021,200,12:35,13:15,41.1,18.11471729,135,5 secs,Jules,1/10/2022,Jules/Sofia,no,enter through right side of stream,NA,
+14,11/17/2021,250,10:53,11:20,26.8,22.30794674,88,5 secs,,1/10/2022,Jules/Sofia,no,"didn't catch full NaCl tail, meandering today",NA,
+6a,11/17/2021,200,15:59,16:27,21.3,18.88445065,70,5 secs,,1/10/2022,Jules/Sofia,no,enter through right side of stream,NA,
+3,1/28/2022,100,9:50,10:10,12.8,18.01496034,42,5 secs,,2/3/2022,Sofia/Matt,no,"20 L/s flow guestimate, LL downloaded onto Jules' shuttle",NA,
+5,1/28/2022,200,13:03,13:18,21.3,54.50920592,70,5 secs,,2/3/2022,Sofia/Matt,no,60 L/s flow guestimate,NA,
+6,1/28/2022,500,16:04,16:18,25.6,65.28983463,84,5 secs,,2/3/2022,Sofia/Matt,no,,NA,
+7,1/28/2022,50,10:39,10:45,8.5,4.459632168,28,5 secs,,2/3/2022,Sofia/Matt,no,10 L/s flow guestimate,NA,
+9,1/28/2022,300,14:31,14:42,32,60.84242421,105,5 secs,,2/3/2022,Sofia/Matt,no,100 L/s flow guestimate,NA,
+13,1/28/2022,200,15:15,15:27,16.8,11.57458506,55,5 secs,,2/3/2022,Sofia/Matt,no,40 L/s flow guestimate,NA,
+14,1/28/2022,50,11:10,11:25,10.1,12.92228409,33,5 secs,,2/3/2022,Sofia/Matt,no,30 L/s flow guestimate,NA,
+15,1/28/2022,50,11:58,12:38,13.7,4.297421075,45,5 secs,,2/3/2022,Sofia/Matt,no,20 L/s flow guestimate,NA,
+5a,1/28/2022,100,13:47,14:02,8.2,69.25165298,27,5 secs,,2/3/2022,Sofia/Matt,no,10 L/s flow guestimate,NA,
+6a,1/28/2022,100,16:31,16:38,9.1,incomplete,30,5 secs,,2/3/2022,Sofia/Matt,no,"cond sensor was taken out prematurely, salt peak wasn't caught; cond sensor put back in at 16:43pm and taken out again at 16:50pm with the same reach as before (30ft). ",NA,
+6a,1/28/2022,,,16:50,9.1,incomplete,30,5 secs,,2/3/2022,Sofia/Matt,no,"see above, file name 2022-01-28_3",NA,
+5,4/8/2022,1200,9:54,10:13,31,516.5,101.7,5 secs,Josh,5/16/2022,Sofia/Josh,yes,"logging every 15 mins but not every hour, on the hour- fixed on 4/15/22. level logger downloaded",60,
+15,4/8/2022,300,12:23,12:37,14.3,45.49052432,46.9,5 secs,Josh,5/16/2022,Sofia/Josh,yes,"logging every 15 mins but not every hour, on the hour- fixed on 4/15/22. level logger downloaded",73,
+5a,4/8/2022,200,11:16,11:33,10,15.90773916,32.8,5 secs,Josh,5/16/2022,Sofia/Josh,yes,level logger downloaded,66,
+6,4/14/2022,600,13:32,13:46,27,152.6694249,88.5,5 secs,Josh,5/16/2022,Sofia/Josh,yes,level logger downloaded,70,
+9,4/14/2022,550,12:13,12:23,30,158.2504163,98.4,5 secs,Josh,5/16/2022,Sofia/Josh,yes,level logger downloaded,123,
+13,4/14/2022,100,11:17,11:24,23.3,20.73989578,76.4,5 secs,Josh,5/16/2022,Sofia/Josh,yes,Replaced well today (previously snapped). Level logger downloaded,85,
+6a,4/14/2022,100,14:37,14:42,12.2,5.48969296,40,5 secs,Josh,5/16/2022,Sofia/Josh,yes,level logger downloaded,69,
+3,4/15/2022,400,11:56,12:48,39.9,65.34735293,131,5 secs,Josh,5/16/2022,Sofia/Josh,yes,"water present but very low flow. logging every 15 mins but not every hour, on the hour- fixed on 4/15/22. level logger downloaded",109,
+7,4/15/2022,50,13:12,13:36,16.5,5.98626597,54,5 secs,Josh,5/16/2022,Sofia/Josh,yes,level logger downloaded,109,
+14,4/15/2022,150,14:05,15:09,8.6,9.12949455,28.2,5 secs,Josh,5/16/2022,Sofia/Josh,yes,water present but very low flow. Level logger downloaded,63,
+5,6/21/2022,400,11:25,12:01,29,22.09559464,95.1,5 secs,Josh,9/29/2022,Josh/Paul,yes,"Water did not return to initial conducitivty before pulling sensor, but it was close. Offloaded level logger, DO, and conducitivty. Pulled DO sensor for Sam and Paul.",62,
+9,6/21/2022,100,15:22,15:47,12.5,3.47605856,41,5 secs,Josh,9/29/2022,Josh/Paul,yes,offloaded level loggerand conducitivty. Could not connect to DO sensor. ,136,
+13,6/21/2022,100,14:34,15:00,18,2.91952474,59.1,5 secs,Josh,9/29/2022,Josh/Paul,yes,"offloaded level logger, DO, and conducitivty. Stream is very shallow in spots- water is flowing just over the ground surface and small rocks.",316,
+15,6/21/2022,50,13:36,14:06,10,5.90788745,32.8,5 secs,Josh,9/29/2022,Josh/Paul,yes,"offloaded level logger, DO, and conducitivty. Pulled DO sensor for Sam and Paul.",72,
+6,6/22/2022,50,10:52,12:31,22,incomplete,72.2,5 secs,Josh,9/29/2022,Josh/Katie,yes,Curve looks strange (possibly due to very low flow). Level logger string is not taught. Well may need to be vaccumed out. Offloaded level logger and conductivity. A DO logger has not yet been deployed. ,NA,
+5,9/2/2022,1000,11:20,11:43,36.9,184.22,121,5 secs,Jules,10/21/2022,Jules/Moein/Sam,yes,caught full curve,NA,
+15,9/2/2022,600,15:09,15:33,30.5,97.92008,100,5 secs,Jules,10/21/2022,Jules/Moein/Sam,yes,caught full curve,NA,
+5a,9/2/2022,800,13:37,14:15,25.3,30.98605,83,5 secs,Jules,10/21/2022,Jules/Moein/Sam,yes,"full curve caught on ""5.5aFull_checkaccuracy"" file. Partial curve on ""5.5aPartial"" file.",NA,
+6,9/13/2022,1600,15:34,16:06,42.1,1221.571735,138,1 sec,,10/20/2022,Jules/Moein,yes,caught full curve,NA,
+9,9/13/2022,450,12:51,13:29,32.9,171.308981,108,5 secs,,10/21/2022,Jules/Moein,yes,caught full curve,NA,
+13,9/13/2022,800,10:48,11:20,37.8,288.430165,124,5 secs,Jules,10/21/2022,Jules/Moein,yes,caught full curve,NA,
+3,9/14/2022,600,13:17,13:35,23.3,267.970432,78,5 secs,Jules,10/22/2022,Jules/Moein,yes,full curve caught on bBradford_cond_6a.3.7.14 file,NA,
+7,9/14/2022,800,14:43,15:05,42.4,107.83168,139,5 secs,Moein,10/22/2022,Jules/Moein,yes,full curve caught on bBradford_cond_6a.3.7.14 file,NA,
+14,9/14/2022,400,15:49,16:09,25.6,81.574136,84,5 secs,Jules,10/22/2022,Jules/Moein,yes,full curve caught on bBradford_cond_6a.3.7.14 file,NA,
+6a,9/14/2022,400,11:51,12:14,22.2,115.663431,66,5 secs,Jules,10/22/2022,Jules/Moein,yes,full curve caught on bBradford_cond_6a.3.7.14 file,NA,
+13,11/14/2022,250,12:02,12:29,20,11.2,65.6,5 secs,Moein,11/22/2022,Jules/Moein,no,full curve caught on gBradford_cond_13.9.5partial,NA,
+9,11/14/2022,350,13:17,13:27,20.3,18.8,66.6,5 secs,Moein,11/19/2022,Jules/Moein,no,full curve caught on gBradford_cond_13.9.5partial,NA,
+5,11/14/2022,450,15:09,15:31,26,67.9,85.3,5 secs,Moein,12/1/2022,Jules/Moein,no,full curve caught on rBradford_cond_13partial.9.5,NA,
+6,11/15/2022,200,14:25,15:07,19,20.7,62.3,5 secs,Moein,,Jules/Moein,no,full curve caught on bBradford_cond_6,NA,
+6,1/27/2023,100,13:08,14:02,25,5.2,82,5 secs,,2/3/2023,Jules/Sam,no,bBradford cond 6 file 2023-01-27,NA,37.5 cm/s
+9,1/27/2023,100,15:12,16:10,19.5,14.2,64,5 secs,,2/3/2023,Jules/Sam,no,bBradford cond 9 file 2023-01-28,NA,64s/m
+13,2/2/2023,50,10:29,11:07,22,5,72.2,5 secs,,2/3/2023,Jules/Josh,no,bBradford_DG_2023-02-02_13.5,NA,50s/m
+5,2/2/2023,200,13:54,14:39,27,44.6,88.6,5 secs,,2/3/2023,Jules/Josh,no,bBradford_DG_2023-02-02_13.5,NA,8.5s/m
+7,2/9/2023,50,10:44,13:35,14,13.8,45.9,5 secs,,2/17/2023,Jules/Josh/Sam,no,bBrad_DG_2023-02-09_7,NA,62s/m
+15,3/13/2023,500,9:56,10:41,15.5,5.2,50.9,5 secs,,3/24/2023,Sam/Josh,no,Missed the end of the curve (file = Bradford_DG_2023-03-13_15.14.7.6),NA,0.2m/s
+14,3/13/2023,500,11:12,12:00,20,73.1,65.6,5 secs,,3/24/2023,Sam/Josh,no,full curve caught (file = Bradford_DG_2023-03-13_15.14.7.6),NA,0.3m/s
+7,3/13/2023,500,12:36,1:01,28,124.4,91.9,5 secs,,3/24/2023,Sam/Josh,no,full curve caught (file = Bradford_DG_2023-03-13_15.14.7.6),NA,0.1m/s
+6,3/13/2023,600,2:35,3:01,24,33.3,78.7,5 secs,,3/24/2023,Sam/Josh,no,full curve caught (file = Bradford_DG_2023-03-13_15.14.7.6),NA,0.13m/s
+13,3/14/2023,150,9:53,10:15,34,30.5,111.5,5 secs,,3/24/2023,Sam/Josh,no,full curve caught (file = Bradford_DG_2023-03-14_13.9.5),NA,0.1m/s
+9,3/14/2023,200,10:59,11:52,33,20.8,108.3,5 secs,,3/24/2023,Sam/Josh,no,Missed the end of the curve (file = Bradford_DG_2023-03-14_13.9.5). Gradual decline in conductivity after eaching peak. ,NA,0.7m/s
+5,3/14/2023,600,1:14,1:46,35.4,206.2,116.1,5 secs,,3/24/2023,Sam/Josh,no,full curve caught (file = Bradford_DG_2023-03-14_13.9.5),NA,0.05m/s
+5,5/1/2023,50,2:36,5:00,25.2,14.2,82.7,5 secs,,5/15/2023,Sam/Josh,yes,Shallow but flowing and we were able to DG,,
+13,6/1/2023,50,10:34,11:10,16,5.1,52.5,5 secs,,6/7/2023,Sam/Josh/Frankie/Arthur,no,Captured entire curve,,2.2m/s
+13,8/4/2023,600,10:13,10:37,34,54.4,111.5,5 secs,,8/9/2023,Josh/Sam,no,Captured entire curve; logging ime is NDST but other sites from this round are DST,,0.65 m/s
+5a,8/2/2023,850,11:37,12:19,18,129.1,59.1,5 secs,,8/9/2023,Josh/Sam,yes,Captured entire curve,,0.38 m/s
+14,8/2/2023,1400,1:21,1:51,15,200.3,49.2,5 secs,,8/9/2023,Josh/Sam,yes,Captured entire curve,,0.35 m/s
+6,8/2/2023,1200,4:38,4:53,21,657.9,68.9,5 secs,,NA,Josh/Sam,yes,Captured entire curve,,0.33 m/s
+13,9/29/2023,50,12:29,12:53,25,0.2,82,5 secs,,9/30/2023,Josh/Frankie,yes,Captured entire curve except concentration doesn't quite make it back to original concentration (pulled sensor a little early),,0.1 m/s
+5a,9/28/2023,200,11:15,11:50,20,19.5,65.6,5 secs,,9/30/2023,Josh/Frankie/Arthur,yes,Captured entire curve,,0.1 m/s
+6,9/28/2023,100,3:31,4:00,35.2,132.9,115.5,5 secs,,9/30/2023,Josh/Frankie/Arthur,yes,Captured entire curve but points scatter just before peak curve,,0.2 m/s
+9,11/1/2023,50,3:39,3:56,15.2,29.5,49.9,5 secs,,11/8/2023,Josh/Sam,yes,Captured entire curve,,0.5 m/s
+6,11/1/2023,50,2:39,3:03,24.2,18.3,79.4,5 secs,,11/8/2023,Josh/Sam,yes,Captured entire curve but tail end never returns to baseline and seems to start increasing in NaCl concentration slightly again,,0.3 m/s
+13,12/19/2023,600,3:20,3:36,23,351.8,75.5,5 secs,,1/4/2024,Josh/Sam,No,Flowing more than usual ,,0.2 m/s
+5,12/19/2023,3600,10:20,10:28,38,1147.9,124.7,5 secs,,1/4/2024,Josh/Sam,No,Intense flow!,,0.3 m/s
+15,12/19/2023,1700,11:02,11:15,14,510.6,45.9,5 secs,,1/4/2024,Josh/Sam,No,Strong flow; stream is extended out into floodplain,,0.43 m/s
+14,12/19/2023,1200,12:16,12:26,17,630.4,82,5 secs,,1/4/2024,Josh/Sam,No,Flowing but did not DG today,,
+6a,12/19/2023,800,1:37,2:30,21,509.7,68.9,5 secs,,1/4/2024,Josh/Sam,No,Stream flowing today but usually dry,,1.5 m/s
+9,1/5/2024,400,3:39,3:56,29,331.6,95.1,5 secs,,1/9/2024,Josh/Sam,No,Flowing,Captured entire curve,0.25 m/s
+6,1/5/2024,600,2:34,3:00,57,253.8,187,5 secs,14:37,1/9/2024,Josh/Sam,No,Flowing,Captured entire curve,0.2 m/s
+6,2/8/2024,700,10:22,10:40,24,,78.74015748,5 secs,,2/10/2024,Sam/CC,,Flowing,Captured entire curve,
+9,2/8/2024,900,12:10,12:29,32.6,,107.9396325,5 secs,,2/10/2024,Sam/CC,,Flowing,Captured entire curve,
+5,3/25/2024,1500,,,38,,,,,,,,,,
+3,3/25/2024,1100,,,50,,,,,,,,,,
+9,3/25/2024,650,,,29,,,,,,,,,,
+9,8/23/2024,1000,,,60,,,,,,,,,,
+3,9/13/2024,550,,,64,,,,,,,,,,
+9,9/13/2024,1000,,,89,,,,,,,,,,
+6.3,3/11/2025,1000,,,22,,,,,,,,,,
+9.2,3/11/2025,50,,,24,,,,,,,,,,
+5.2,4/2/2025,600,10:26,,24,,,,,,,,,,
+5.1,4/2/2025,400,11:16,,24,,,,,,,,,,
+5.3,4/2/2025,2000,12:48,,41.2,,,,,,,,,,
+5.4,4/2/2025,1000,13:24,,20.4,,,,,,,,,,
+5.4,12/8/2025,100,11:50,,8.3,,,1 sec,,,,,,,

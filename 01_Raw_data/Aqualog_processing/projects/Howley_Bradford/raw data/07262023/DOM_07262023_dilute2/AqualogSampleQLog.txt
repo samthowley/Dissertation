@@ -1,0 +1,97 @@
+##############################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute2\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Wednesday, July 26, 2023
+Time: 1:24:32 PM
+##############################################################################################################
+[2023-07-26 13-24-32] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute2\DOM_07262023_2.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute2\DOM_07262023_2_Exper_2023-07-26-13-24-32.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute2\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-S1 (Repeats=0)
+[Blank Group 1: Sample 2] S2-S2 (Repeats=0)
+[Blank Group 1: Sample 3] S3-S3 (Repeats=0)
+[Blank Group 2] B2-B2
+[Blank Group 2: Sample 1] S4-S4 (Repeats=0)
+[Blank Group 2: Sample 2] S5-S5 (Repeats=0)
+[Total Number of Samples] 5
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2023-07-26 13-24-32] STARTING Aqualog SampleQ Execution
+[2023-07-26 13-24-32] Experiment 01 of 07 [Blank 1] Start
+[2023-07-26 13-24-41] ##### ABORTING: User Aborted #####
+[2023-07-26 13-24-41] ##### ABORT OCCURRED #####
+
+##############################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute2\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Wednesday, July 26, 2023
+Time: 1:26:06 PM
+##############################################################################################################
+[2023-07-26 13-26-06] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute2\DOM_07262023_2.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute2\DOM_07262023_2_Exper_2023-07-26-13-26-06.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute2\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-s3 (Repeats=0)
+[Blank Group 1: Sample 2] S2-s6 (Repeats=0)
+[Blank Group 1: Sample 3] S3-s6a (Repeats=0)
+[Blank Group 2] B2-B2
+[Blank Group 2: Sample 1] S4-s7 (Repeats=0)
+[Blank Group 2: Sample 2] S5-s9 (Repeats=0)
+[Total Number of Samples] 5
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2023-07-26 13-26-06] STARTING Aqualog SampleQ Execution
+[2023-07-26 13-26-07] Experiment 01 of 07 [Blank 1] Start Done B1
+[2023-07-26 13-34-51] Experiment 02 of 07 [Blank 1, Sample 1, Repeat 0] Start Done B1S1s3
+[2023-07-26 13-40-05] Experiment 03 of 07 [Blank 1, Sample 2, Repeat 0] Start Done B1S2s6
+[2023-07-26 13-45-19] Experiment 04 of 07 [Blank 1, Sample 3, Repeat 0] Start Done B1S3s6a
+[2023-07-26 13-50-30] Experiment 05 of 07 [Blank 2] Start Done B2
+[2023-07-26 13-56-40] Experiment 06 of 07 [Blank 2, Sample 1, Repeat 0] Start Done B2S4s7
+[2023-07-26 14-01-54] Experiment 07 of 07 [Blank 2, Sample 2, Repeat 0] Start Done B2S5s9
+[2023-07-26 14-07-08] COMPLETED Aqualog SampleQ Execution
+--------------------------------------------------------------------------------

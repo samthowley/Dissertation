@@ -1,0 +1,60 @@
+###########################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_06072023_0601\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Wednesday, June 7, 2023
+Time: 11:49:06 AM
+###########################################################################################################
+[2023-06-07 11-49-06] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_06072023_0601\DOM_06072023_06012023.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_06072023_0601\DOM_06072023_06012023_Exper_2023-06-07-11-49-05.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_06072023_0601\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-s5_06012023 (Repeats=0)
+[Blank Group 1: Sample 2] S2-s5a_06012023 (Repeats=0)
+[Blank Group 1: Sample 3] S3-s6_06012023 (Repeats=0)
+[Blank Group 1: Sample 4] S4-s6a_06012023 (Repeats=0)
+[Blank Group 1: Sample 5] S5-s7_06062023 (Repeats=0)
+[Blank Group 2] B2-B2
+[Blank Group 2: Sample 1] S6-s9_a_06062023 (Repeats=0)
+[Blank Group 2: Sample 2] S7-s9_b_060602023 (Repeats=0)
+[Blank Group 2: Sample 3] S8-s13_06062023 (Repeats=0)
+[Blank Group 2: Sample 4] S9-s14_06062023 (Repeats=0)
+[Total Number of Samples] 9
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2023-06-07 11-49-06] STARTING Aqualog SampleQ Execution
+[2023-06-07 11-49-06] Experiment 01 of 11 [Blank 1] Start Done B1
+[2023-06-07 12-04-42] Experiment 02 of 11 [Blank 1, Sample 1, Repeat 0] Start Done B1S1s5_06012023
+[2023-06-07 12-09-57] Experiment 03 of 11 [Blank 1, Sample 2, Repeat 0] Start Done B1S2s5a_06012023
+[2023-06-07 12-15-14] Experiment 04 of 11 [Blank 1, Sample 3, Repeat 0] Start
+[2023-06-07 12-20-18] ##### WARNING: CCD SATURATION OCCURRED ##### Done B1S3s6_06012023
+[2023-06-07 12-20-28] Experiment 05 of 11 [Blank 1, Sample 4, Repeat 0] Start Done B1S4s6a_06012023
+[2023-06-07 12-29-58] Experiment 06 of 11 [Blank 1, Sample 5, Repeat 0] Start Done B1S5s7_06062023
+[2023-06-07 12-35-29] Experiment 07 of 11 [Blank 2] Start Done B2
+[2023-06-07 12-39-24] Experiment 08 of 11 [Blank 2, Sample 1, Repeat 0] Start Done B2S6s9_a_06062023
+[2023-06-07 12-45-01] Experiment 09 of 11 [Blank 2, Sample 2, Repeat 0] Start Done B2S7s9_b_060602023
+[2023-06-07 12-53-15] Experiment 10 of 11 [Blank 2, Sample 3, Repeat 0] Start Done B2S8s13_06062023
+[2023-06-07 12-58-26] Experiment 11 of 11 [Blank 2, Sample 4, Repeat 0] Start Done B2S9s14_06062023
+[2023-06-07 13-03-40] COMPLETED Aqualog SampleQ Execution
+--------------------------------------------------------------------------------

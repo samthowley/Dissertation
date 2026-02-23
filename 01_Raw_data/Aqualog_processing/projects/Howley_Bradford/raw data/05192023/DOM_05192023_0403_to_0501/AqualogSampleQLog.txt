@@ -1,0 +1,69 @@
+###################################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_05192023_0403_to_0501\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Friday, May 19, 2023
+Time: 9:15:34 AM
+###################################################################################################################
+[2023-05-19 09-15-34] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_05192023_0403_to_0501\DOM_05192023-0403_to_0501.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_05192023_0403_to_0501\DOM_05192023-0403_to_0501_Exper_2023-05-19-09-15-34.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_05192023_0403_to_0501\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-S3_04032023 (Repeats=0)
+[Blank Group 1: Sample 2] S2-S5_04032023 (Repeats=0)
+[Blank Group 1: Sample 3] S3-S5_05012023 (Repeats=0)
+[Blank Group 1: Sample 4] S4-S5a_05032023 (Repeats=0)
+[Blank Group 1: Sample 5] S5-S5a_04032023 (Repeats=0)
+[Blank Group 1: Sample 6] S6-S6_04032034 (Repeats=0)
+[Blank Group 1: Sample 7] S7-S6_05012023 (Repeats=0)
+[Blank Group 2] B2-B2
+[Blank Group 2: Sample 1] S8-S7_04032023 (Repeats=0)
+[Blank Group 2: Sample 2] S9-S7_05012023 (Repeats=0)
+[Blank Group 2: Sample 3] S10-S13_04032023 (Repeats=0)
+[Blank Group 2: Sample 4] S11-S13_05012023 (Repeats=0)
+[Blank Group 2: Sample 5] S12-S14_04032023 (Repeats=0)
+[Blank Group 2: Sample 6] S13-S14_05012023 (Repeats=0)
+[Blank Group 2: Sample 7] S14-W5-560_05032023 (Repeats=0)
+[Total Number of Samples] 14
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2023-05-19 09-15-34] STARTING Aqualog SampleQ Execution
+[2023-05-19 09-15-35] Experiment 01 of 16 [Blank 1] Start Done B1
+[2023-05-19 09-28-11] Experiment 02 of 16 [Blank 1, Sample 1, Repeat 0] Start Done B1S1S3_04032023
+[2023-05-19 09-33-26] Experiment 03 of 16 [Blank 1, Sample 2, Repeat 0] Start Done B1S2S5_04032023
+[2023-05-19 09-38-38] Experiment 04 of 16 [Blank 1, Sample 3, Repeat 0] Start Done B1S3S5_05012023
+[2023-05-19 09-43-52] Experiment 05 of 16 [Blank 1, Sample 4, Repeat 0] Start Done B1S4S5a_05032023
+[2023-05-19 09-55-10] Experiment 06 of 16 [Blank 1, Sample 5, Repeat 0] Start Done B1S5S5a_04032023
+[2023-05-19 10-00-25] Experiment 07 of 16 [Blank 1, Sample 6, Repeat 0] Start Done B1S6S6_04032034
+[2023-05-19 10-05-44] Experiment 08 of 16 [Blank 1, Sample 7, Repeat 0] Start Done B1S7S6_05012023
+[2023-05-19 10-10-59] Experiment 09 of 16 [Blank 2] Start Done B2
+[2023-05-19 10-17-30] Experiment 10 of 16 [Blank 2, Sample 1, Repeat 0] Start Done B2S8S7_04032023
+[2023-05-19 10-22-45] Experiment 11 of 16 [Blank 2, Sample 2, Repeat 0] Start Done B2S9S7_05012023
+[2023-05-19 10-27-58] Experiment 12 of 16 [Blank 2, Sample 3, Repeat 0] Start Done B2S10S13_04032023
+[2023-05-19 10-33-12] Experiment 13 of 16 [Blank 2, Sample 4, Repeat 0] Start Done B2S11S13_05012023
+[2023-05-19 10-40-37] Experiment 14 of 16 [Blank 2, Sample 5, Repeat 0] Start Done B2S12S14_04032023
+[2023-05-19 10-45-52] Experiment 15 of 16 [Blank 2, Sample 6, Repeat 0] Start Done B2S13S14_05012023
+[2023-05-19 10-51-04] Experiment 16 of 16 [Blank 2, Sample 7, Repeat 0] Start Done B2S14W5-560_05032023
+[2023-05-19 10-56-16] COMPLETED Aqualog SampleQ Execution
+--------------------------------------------------------------------------------

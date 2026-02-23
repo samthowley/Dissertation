@@ -1,0 +1,6 @@
+"TOA5","5_Bradford","CR1000","68222","CR1000.Std.27.04","CPU:Bradford5_10sec_08262025.CR1","56614","Test"
+"TIMESTAMP","RECORD","BattV_Min","CO2High","CO2Low"
+"TS","RN","Volts","ppm","ppm"
+"","","Min","Smp","Smp"
+"2025-08-29 09:48:00",0,13.1,64.70941,-48.06985
+"2025-08-29 09:48:10",1,13.31,21264.95,2190.671

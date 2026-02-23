@@ -1,0 +1,45 @@
+############################################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_05192023_0403_to_0501_dilute2X\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Friday, May 19, 2023
+Time: 11:01:33 AM
+############################################################################################################################
+[2023-05-19 11-01-33] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_05192023_0403_to_0501_dilute2X\DOM_05192023-0403_to_0501_dilute2X.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_05192023_0403_to_0501_dilute2X\DOM_05192023-0403_to_0501_dilute2X_Exper_2023-05-19-11-01-33.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_05192023_0403_to_0501_dilute2X\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-S6_05012023 (Repeats=0)
+[Blank Group 1: Sample 2] S2-S6_04032023 (Repeats=0)
+[Blank Group 1: Sample 3] S3-W5-560 (Repeats=0)
+[Total Number of Samples] 3
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2023-05-19 11-01-33] STARTING Aqualog SampleQ Execution
+[2023-05-19 11-01-33] Experiment 01 of 04 [Blank 1] Start Done B1
+[2023-05-19 11-07-34] Experiment 02 of 04 [Blank 1, Sample 1, Repeat 0] Start Done B1S1S6_05012023
+[2023-05-19 11-12-48] Experiment 03 of 04 [Blank 1, Sample 2, Repeat 0] Start Done B1S2S6_04032023
+[2023-05-19 11-17-58] Experiment 04 of 04 [Blank 1, Sample 3, Repeat 0] Start Done B1S3W5-560
+[2023-05-19 11-23-07] COMPLETED Aqualog SampleQ Execution
+--------------------------------------------------------------------------------

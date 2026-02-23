@@ -1,0 +1,49 @@
+[Header]	
+System	TOCL-Saline	
+S/W Version	1.00	
+User		
+Date/Time	11/21/2024 2:22:15 PM	
+
+[System]	
+Instrument Options	TOC/ASI/IC Unit/	
+
+[Data]	
+Type	Anal.	Sample Name	Sample ID	Origin	Cal. Curve	Manual Dilution	Notes	Date / Time	Spl. No.	Inj. No.	Analysis(Inj.)	Area	Mean Area	Conc.	Mean Conc.	Result	Mean Result	Excluded	Inj. Vol.	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:02:10 AM	1	1	TC	15.45	17.30	5.000	 	 	 	1	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:06:09 AM	1	2	TC	17.30	17.30	5.000	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:09:58 AM	1	3	TC	17.29	17.30	5.000	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:17:01 AM	2	1	TC	34.09	34.08	10.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:20:12 AM	2	2	TC	34.06	34.08	10.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:27:13 AM	3	1	TC	84.63	84.78	25.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:30:26 AM	3	2	TC	84.94	84.78	25.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:37:22 AM	4	1	TC	168.7	168.4	50.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:40:38 AM	4	2	TC	168.1	168.4	50.00	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:47:02 AM	5	1	TC	336.5	335.1	100.0	 	 	 	0	50	
+Standard	TC	Untitled	Untitled	C:\TOC-L\CalCurves\TC_Saline_100mgL.2024_11_21_10_52_29.cal		1.00		11/21/2024 11:50:36 AM	5	2	TC	333.6	335.1	100.0	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 12:01:07 PM	1	1	NPOC	8.576	7.633	2.000	 	 	 	1	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 12:03:51 PM	1	2	NPOC	7.503	7.633	2.000	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 12:06:49 PM	1	3	NPOC	7.762	7.633	2.000	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 12:16:37 PM	2	1	NPOC	33.37	33.39	10.00	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 12:19:35 PM	2	2	NPOC	33.41	33.39	10.00	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 12:29:29 PM	3	1	NPOC	84.05	83.69	25.00	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 12:33:00 PM	3	2	NPOC	83.32	83.69	25.00	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 12:43:12 PM	4	1	NPOC	168.2	169.0	50.00	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 12:46:32 PM	4	2	NPOC	169.7	169.0	50.00	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 12:56:50 PM	5	1	NPOC	257.6	254.4	75.00	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 1:00:12 PM	5	2	NPOC	251.1	254.4	75.00	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 1:10:00 PM	6	1	NPOC	334.8	335.6	100.0	 	 	 	0	50	
+Standard	NPOC	NPOC_Saline_100mgL	Untitled	C:\TOC-L\CalCurves\NPOC_Saline_100mgL.2024_11_21_11_50_37.cal		1.00		11/21/2024 1:13:25 PM	6	2	NPOC	336.3	335.6	100.0	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:21:17 PM	1	1	IC	13.56	12.91	5.000	 	 	 	1	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:23:42 PM	1	2	IC	12.94	12.91	5.000	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:25:57 PM	1	3	IC	12.88	12.91	5.000	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:32:49 PM	2	1	IC	31.02	26.27	10.00	 	 	 	1	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:35:17 PM	2	2	IC	26.32	26.27	10.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:37:39 PM	2	3	IC	26.22	26.27	10.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:44:47 PM	3	1	IC	74.27	65.37	25.00	 	 	 	1	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:47:13 PM	3	2	IC	65.67	65.37	25.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:49:39 PM	3	3	IC	65.06	65.37	25.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:56:48 PM	4	1	IC	149.2	132.7	50.00	 	 	 	1	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 1:59:19 PM	4	2	IC	132.9	132.7	50.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 2:02:13 PM	4	3	IC	132.4	132.7	50.00	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 2:07:34 PM	5	1	IC	268.9	269.7	100.0	 	 	 	0	50	
+Standard	IC	Untitled	Untitled	C:\TOC-L\CalCurves\IC_Saline_100mgL.2024_11_21_13_13_26.cal		1.00		11/21/2024 2:10:35 PM	5	2	IC	270.5	269.7	100.0	 	 	 	0	50	

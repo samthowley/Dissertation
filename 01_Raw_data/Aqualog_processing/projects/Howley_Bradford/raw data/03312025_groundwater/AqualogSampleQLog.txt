@@ -1,0 +1,89 @@
+###############################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\03312025_SamandSunita\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Monday, March 31, 2025
+Time: 1:51:32 PM
+###############################################################################################################
+[2025-03-31 13-51-32] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\03312025_SamandSunita\03312025.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\03312025_SamandSunita\03312025_Exper_2025-03-31-13-51-32.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\03312025_SamandSunita\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-5GW1_01302025 (Repeats=0)
+[Blank Group 1: Sample 2] S2-5GW2_01302025 (Repeats=0)
+[Blank Group 1: Sample 3] S3-5GW3_01302025 (Repeats=0)
+[Blank Group 1: Sample 4] S4-5GW4_01302025 (Repeats=0)
+[Blank Group 1: Sample 5] S5-5GW5_01302025 (Repeats=0)
+[Blank Group 1: Sample 6] S6-5GW6_01302025 (Repeats=0)
+[Blank Group 1: Sample 7] S7-5GW8_01302025 (Repeats=0)
+[Blank Group 1: Sample 8] S8-6GW1_01302025 (Repeats=0)
+[Blank Group 1: Sample 9] S9-6GW2_01302025 (Repeats=0)
+[Blank Group 1: Sample 10] S10-6GW4_01302025 (Repeats=0)
+[Blank Group 1: Sample 11] S11-9GW1_01302025 (Repeats=0)
+[Blank Group 1: Sample 12] S12-9GW2_01302025 (Repeats=0)
+[Blank Group 2] B2-B2
+[Blank Group 2: Sample 1] S13-9GW3_01302025 (Repeats=0)
+[Blank Group 2: Sample 2] S14-9GW4_01302025 (Repeats=0)
+[Blank Group 2: Sample 3] S15-6_01272025 (Repeats=0)
+[Blank Group 2: Sample 4] S16-6a_01272025 (Repeats=0)
+[Blank Group 2: Sample 5] S17-7_01302025 (Repeats=0)
+[Blank Group 2: Sample 6] S18-9_01272025 (Repeats=0)
+[Blank Group 2: Sample 7] S19-13_01272025 (Repeats=0)
+[Blank Group 2: Sample 8] S20-15_01272025 (Repeats=0)
+[Blank Group 2: Sample 9] S21-FishCove_11072024 (Repeats=0)
+[Blank Group 2: Sample 10] S22-Surprise_11072024 (Repeats=0)
+[Blank Group 2: Sample 11] S23-BrantleyNorth_11072024 (Repeats=0)
+[Total Number of Samples] 23
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2025-03-31 13-51-32] STARTING Aqualog SampleQ Execution
+[2025-03-31 13-51-33] Experiment 01 of 25 [Blank 1] Start Done B1
+[2025-03-31 13-58-56] Experiment 02 of 25 [Blank 1, Sample 1, Repeat 0] Start Done B1S15GW1_01302025
+[2025-03-31 14-04-09] Experiment 03 of 25 [Blank 1, Sample 2, Repeat 0] Start Done B1S25GW2_01302025
+[2025-03-31 14-09-22] Experiment 04 of 25 [Blank 1, Sample 3, Repeat 0] Start Done B1S35GW3_01302025
+[2025-03-31 14-14-36] Experiment 05 of 25 [Blank 1, Sample 4, Repeat 0] Start Done B1S45GW4_01302025
+[2025-03-31 14-24-46] Experiment 06 of 25 [Blank 1, Sample 5, Repeat 0] Start Done B1S55GW5_01302025
+[2025-03-31 14-29-59] Experiment 07 of 25 [Blank 1, Sample 6, Repeat 0] Start Done B1S65GW6_01302025
+[2025-03-31 14-35-12] Experiment 08 of 25 [Blank 1, Sample 7, Repeat 0] Start Done B1S75GW8_01302025
+[2025-03-31 14-40-25] Experiment 09 of 25 [Blank 1, Sample 8, Repeat 0] Start Done B1S86GW1_01302025
+[2025-03-31 14-49-52] Experiment 10 of 25 [Blank 1, Sample 9, Repeat 0] Start Done B1S96GW2_01302025
+[2025-03-31 14-55-05] Experiment 11 of 25 [Blank 1, Sample 10, Repeat 0] Start Done B1S106GW4_01302025
+[2025-03-31 15-00-18] Experiment 12 of 25 [Blank 1, Sample 11, Repeat 0] Start
+[2025-03-31 15-05-23] ##### WARNING: CCD SATURATION OCCURRED ##### Done B1S119GW1_01302025
+[2025-03-31 15-05-32] Experiment 13 of 25 [Blank 1, Sample 12, Repeat 0] Start
+[2025-03-31 15-14-54] ##### WARNING: CCD SATURATION OCCURRED ##### Done B1S129GW2_01302025
+[2025-03-31 15-15-03] Experiment 14 of 25 [Blank 2] Start Done B2
+[2025-03-31 15-18-52] Experiment 15 of 25 [Blank 2, Sample 1, Repeat 0] Start Done B2S139GW3_01302025
+[2025-03-31 15-24-05] Experiment 16 of 25 [Blank 2, Sample 2, Repeat 0] Start Done B2S149GW4_01302025
+[2025-03-31 15-29-19] Experiment 17 of 25 [Blank 2, Sample 3, Repeat 0] Start Done B2S156_01272025
+[2025-03-31 15-40-41] Experiment 18 of 25 [Blank 2, Sample 4, Repeat 0] Start Done B2S166a_01272025
+[2025-03-31 15-45-54] Experiment 19 of 25 [Blank 2, Sample 5, Repeat 0] Start Done B2S177_01302025
+[2025-03-31 15-51-07] Experiment 20 of 25 [Blank 2, Sample 6, Repeat 0] Start Done B2S189_01272025
+[2025-03-31 15-56-42] Experiment 21 of 25 [Blank 2, Sample 7, Repeat 0] Start Done B2S1913_01272025
+[2025-03-31 16-06-16] Experiment 22 of 25 [Blank 2, Sample 8, Repeat 0] Start Done B2S2015_01272025
+[2025-03-31 16-11-28] Experiment 23 of 25 [Blank 2, Sample 9, Repeat 0] Start Done B2S21FishCove_11072024
+[2025-03-31 16-16-41] Experiment 24 of 25 [Blank 2, Sample 10, Repeat 0] Start Done B2S22Surprise_11072024
+[2025-03-31 16-21-55] Experiment 25 of 25 [Blank 2, Sample 11, Repeat 0] Start Done B2S23BrantleyNorth_11072024
+[2025-03-31 16-29-35] COMPLETED Aqualog SampleQ Execution
+--------------------------------------------------------------------------------

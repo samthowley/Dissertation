@@ -1,0 +1,73 @@
+######################################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\12052024 (samples 9.18.2024)\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Thursday, December 5, 2024
+Time: 2:27:45 PM
+######################################################################################################################
+[2024-12-05 14-27-45] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\12052024 (samples 9.18.2024)\12052024.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\12052024 (samples 9.18.2024)\12052024_Exper_2024-12-05-14-27-45.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\12052024 (samples 9.18.2024)\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-3.1_09182024 (Repeats=0)
+[Blank Group 1: Sample 2] S2-3.4_09182024 (Repeats=0)
+[Blank Group 1: Sample 3] S3-5.1_09182024 (Repeats=0)
+[Blank Group 1: Sample 4] S4-5.2_09182024 (Repeats=0)
+[Blank Group 1: Sample 5] S5-5.3_09182024 (Repeats=0)
+[Blank Group 1: Sample 6] S6-5.4_09182024 (Repeats=0)
+[Blank Group 1: Sample 7] S7-5.L_09182024 (Repeats=0)
+[Blank Group 1: Sample 8] S8-5.6_09182024 (Repeats=0)
+[Blank Group 2] B2-B2
+[Blank Group 2: Sample 1] S9-6.2_09182024 (Repeats=0)
+[Blank Group 2: Sample 2] S10-6.3_09182024 (Repeats=0)
+[Blank Group 2: Sample 3] S11-9_09182024 (Repeats=0)
+[Blank Group 2: Sample 4] S12-9.2_09182024 (Repeats=0)
+[Blank Group 2: Sample 5] S13-9.2_09182024 (Repeats=0)
+[Blank Group 2: Sample 6] S14-9.Sam_09182024 (Repeats=0)
+[Blank Group 2: Sample 7] S15-9.3_09182024 (Repeats=0)
+[Blank Group 2: Sample 8] S16-9.4_09182024 (Repeats=0)
+[Total Number of Samples] 16
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2024-12-05 14-27-45] STARTING Aqualog SampleQ Execution
+[2024-12-05 14-27-46] Experiment 01 of 18 [Blank 1] Start Done B1
+[2024-12-05 14-43-52] Experiment 02 of 18 [Blank 1, Sample 1, Repeat 0] Start Done B1S13.1_09182024
+[2024-12-05 14-49-05] Experiment 03 of 18 [Blank 1, Sample 2, Repeat 0] Start Done B1S23.4_09182024
+[2024-12-05 14-54-18] Experiment 04 of 18 [Blank 1, Sample 3, Repeat 0] Start Done B1S35.1_09182024
+[2024-12-05 14-59-31] Experiment 05 of 18 [Blank 1, Sample 4, Repeat 0] Start Done B1S45.2_09182024
+[2024-12-05 15-07-36] Experiment 06 of 18 [Blank 1, Sample 5, Repeat 0] Start Done B1S55.3_09182024
+[2024-12-05 15-12-48] Experiment 07 of 18 [Blank 1, Sample 6, Repeat 0] Start Done B1S65.4_09182024
+[2024-12-05 15-18-01] Experiment 08 of 18 [Blank 1, Sample 7, Repeat 0] Start Done B1S75.L_09182024
+[2024-12-05 15-23-18] Experiment 09 of 18 [Blank 1, Sample 8, Repeat 0] Start Done B1S85.6_09182024
+[2024-12-05 15-31-27] Experiment 10 of 18 [Blank 2] Start Done B2
+[2024-12-05 15-35-22] Experiment 11 of 18 [Blank 2, Sample 1, Repeat 0] Start Done B2S96.2_09182024
+[2024-12-05 15-40-34] Experiment 12 of 18 [Blank 2, Sample 2, Repeat 0] Start Done B2S106.3_09182024
+[2024-12-05 15-45-47] Experiment 13 of 18 [Blank 2, Sample 3, Repeat 0] Start Done B2S119_09182024
+[2024-12-05 15-54-06] Experiment 14 of 18 [Blank 2, Sample 4, Repeat 0] Start Done B2S129.2_09182024
+[2024-12-05 15-59-18] Experiment 15 of 18 [Blank 2, Sample 5, Repeat 0] Start Done B2S139.2_09182024
+[2024-12-05 16-04-30] Experiment 16 of 18 [Blank 2, Sample 6, Repeat 0] Start Done B2S149.Sam_09182024
+[2024-12-05 16-09-43] Experiment 17 of 18 [Blank 2, Sample 7, Repeat 0] Start Done B2S159.3_09182024
+[2024-12-05 16-16-06] Experiment 18 of 18 [Blank 2, Sample 8, Repeat 0] Start Done B2S169.4_09182024
+[2024-12-05 16-21-18] COMPLETED Aqualog SampleQ Execution
+--------------------------------------------------------------------------------

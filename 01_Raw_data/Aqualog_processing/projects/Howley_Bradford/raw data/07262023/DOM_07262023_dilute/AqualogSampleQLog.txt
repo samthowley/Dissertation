@@ -1,0 +1,57 @@
+#############################################################################################################
+Log File: C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute\AqualogSampleQLog.txt
+JYAqualogSampleQ.dll Version: 4.3.0.27
+Date: Wednesday, July 26, 2023
+Time: 12:23:10 PM
+#############################################################################################################
+[2023-07-26 12-23-10] 
+Aqualog Sample Q Experimental Parameters:
+[Aqualog Sample Q File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute\DOM_07262023.aqu
+[Aqualog Experiment File] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute\DOM_07262023_Exper_2023-07-26-12-23-10.xml
+[Output Destination Folder] C:\Users\Public\Documents\Jobin Yvon\Data\Howley\Bradford\DOM_07262023_dilute\
+
+Aqualog Sample Q Notes:
+
+Dilution Factor: 0
+
+Blank & Sample Setup:
+[Blank Group 1] B1-B1
+[Blank Group 1: Sample 1] S1-s7 (Repeats=0)
+[Blank Group 1: Sample 2] S2-s6a (Repeats=0)
+[Blank Group 1: Sample 3] S3-s9 (Repeats=0)
+[Blank Group 1: Sample 4] S4-s6 (Repeats=0)
+[Blank Group 2] B2-B2
+[Blank Group 2: Sample 1] S5-s3 (Repeats=0)
+[Blank Group 2: Sample 2] S6-s5a (Repeats=0)
+[Blank Group 2: Sample 3] S7-s14 (Repeats=0)
+[Blank Group 2: Sample 4] S8-s15 (Repeats=0)
+[Total Number of Samples] 8
+
+Post Processing Options:
+
+Export Options:
+ABS = True
+OGW = True
+ASCII = True
+PCT = True
+BEM = True
+SEM = True
+
+Delay Options:
+Single Cell Kinetics = False
+Delay Before First Blank = 0 Seconds
+Delay Between Each Experiment = 0 Seconds
+################################################################################
+[2023-07-26 12-23-10] STARTING Aqualog SampleQ Execution
+[2023-07-26 12-23-10] Experiment 01 of 10 [Blank 1] Start Done B1
+[2023-07-26 12-29-04] Experiment 02 of 10 [Blank 1, Sample 1, Repeat 0] Start Done B1S1s7
+[2023-07-26 12-34-15] Experiment 03 of 10 [Blank 1, Sample 2, Repeat 0] Start Done B1S2s6a
+[2023-07-26 12-39-25] Experiment 04 of 10 [Blank 1, Sample 3, Repeat 0] Start Done B1S3s9
+[2023-07-26 12-44-35] Experiment 05 of 10 [Blank 1, Sample 4, Repeat 0] Start Done B1S4s6
+[2023-07-26 12-52-15] Experiment 06 of 10 [Blank 2] Start Done B2
+[2023-07-26 12-56-10] Experiment 07 of 10 [Blank 2, Sample 1, Repeat 0] Start Done B2S5s3
+[2023-07-26 13-01-26] Experiment 08 of 10 [Blank 2, Sample 2, Repeat 0] Start Done B2S6s5a
+[2023-07-26 13-06-37] Experiment 09 of 10 [Blank 2, Sample 3, Repeat 0] Start Done B2S7s14
+[2023-07-26 13-14-02] Experiment 10 of 10 [Blank 2, Sample 4, Repeat 0] Start Done B2S8s15
+[2023-07-26 13-19-43] COMPLETED Aqualog SampleQ Execution
+--------------------------------------------------------------------------------
