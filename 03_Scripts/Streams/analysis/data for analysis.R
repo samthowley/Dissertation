@@ -44,7 +44,7 @@ theme_set(theme(axis.text.x = element_text(12),
                 legend.position ="bottom",
 
                 panel.background = element_rect(fill = 'white'),
-                strip.text = element_text(size = 10),
+                strip.text = element_text(size = 13),
 
                 axis.line.x = element_line(size = 0.5, linetype = "solid", colour = "gray"),
                 axis.line.y = element_line(size = 0.5, linetype = "solid", colour = "gray")))

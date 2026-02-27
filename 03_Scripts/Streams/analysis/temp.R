@@ -65,17 +65,17 @@ ncol=1
 )
 
 temp.impacts%>%
-  filter(ID %in% c('6','7'))%>%
+  filter(ID %in% c('5','7'))%>%
   ggplot(
     aes(x= TempC,
         y= int.ext.ratio)) +
   geom_point() +
-  geom_hline(yintercept = 1, color='red')+
+  geom_hline(yintercept = 1, color= 'red')+
   scale_y_log10()+
   facet_wrap(~ID, ncol = 4, scales = "free") +
   ggtitle(expression('Internal:External'~'Response'~'to'~'Temperature'))+
   xlab('Temperature (\u00B0C)')+
-  ylab("Internal / External") +
+  ylab("Internal/External") +
   stat_poly_line(formula = y ~ x, se = FALSE)+
   stat_poly_eq(
     aes(label = paste(..p.value.label..,  sep = " ~~ ")),
@@ -83,6 +83,29 @@ temp.impacts%>%
     size = 5, label.x = "left", label.y = "top", vstep = 0.1
   )
 
+temp.impacts%>%
+  filter(ID==3)%>%
+  pivot_longer(
+    cols=c(internal, external, CO2_flux),
+    names_to = 'Pathway',
+    values_to = 'Flux'
+  )%>%  ggplot(
+    aes(x= TempC,
+        y= Flux,
+        group=Pathway, 
+        color=Pathway)) +
+  geom_point() +
+  scale_color_manual(values=c('darkgray','black', 'darkred'))+
+  scale_y_log10()+
+  ggtitle(expression(CO[2]~"Pathway"~'Response'~'to'~'Temperature'))+
+  xlab('Temperature (\u00B0C)')+
+  ylab(expression(CO[2]~'g'/m^2/'day')) +
+  stat_poly_line(formula = y ~ x, se = FALSE)+
+  stat_poly_eq(
+    aes(label = paste(..p.value.label..,  sep = " ~~ ")),
+    formula = y ~ x, parse = TRUE,
+    size = 5, label.x = "right", label.y = "bottom", vstep = 0.07
+  )+facet_wrap(~ID, scales='free')
 
 #boxplots#############
 
@@ -117,8 +140,7 @@ temp.impacts%>%
   scale_fill_manual(values=c('white', 'darkred', 'darkgray'))+
   geom_boxplot()+
   scale_y_log10()+
-  ggtitle("Mean Pathway Response to Temperature")+
-  common.list
+  ggtitle("Mean Pathway Response to Temperature")
 
 #means########
 
