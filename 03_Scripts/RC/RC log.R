@@ -1,6 +1,7 @@
 library(tidyverse)
 library(readxl)
 library(cowplot)
+library(measurements)
 
 WTdepth<-read_excel("01_Raw_data/RW.log.xlsx", sheet = "log")%>%
   mutate(WT.distance.from.surface=as.numeric(WT.distance.from.surface))
@@ -42,115 +43,83 @@ RC<-left_join(RC.regime, read_excel("01_Raw_data/RW.log.xlsx",
 
 #check WT###########
 
-well.dims <- read_excel("01_Raw_data/RW.log.xlsx",
-                     sheet = "well dims")%>%
-  select(Site, below.ground)
 
-well.bottom<-left_join(
-  read_excel("01_Raw_data/RW.log.xlsx", sheet = "well dims"),
-  read_excel("01_Raw_data/RW.log.xlsx",sheet = "scope elevations"),
-  by=c('Site')
-  )%>%select(Site, below.ground, surface.elevation)%>%
-  mutate(bottom.elevation=surface.elevation-below.ground)
+well.measurements<-read_excel("01_Raw_data/RW.log.xlsx",
+           sheet = "well dims")%>%
+  select(-surface.elevation, -well.bottom.elevation)
 
-library(plotly)
+scope.elevations<-read_excel("01_Raw_data/RW.log.xlsx",
+           sheet = "scope elevations")
+
+WTdepth<-read_excel("01_Raw_data/RW.log.xlsx", sheet = "log")%>%
+  mutate(WT.distance.from.surface=as.numeric(WT.distance.from.surface))%>%
+  select(Date, Site, WT.distance.from.surface, Sampled)
+
+RC.elevations<-full_join(scope.elevations, well.measurements)%>%
+  separate(Site, into = c("ID", "Well"), sep = "GW", remove = FALSE)%>%
+  mutate(
+    distance.from.stream=if_else(is.na(distance.from.stream), 0, distance.from.stream))%>%
+  group_by(ID)%>%
+  mutate(
+    stream.bed.elevation = elevation.ft[Well == "0"],
+    
+    datum.surface.elevation=(elevation.ft*-1)+stream.bed.elevation,
+    datum.surface.elevation=conv_unit(datum.surface.elevation, 'ft', 'm'),
+
+    
+    well.bottom.elevation=datum.surface.elevation- below.ground,
+    screen.extent=well.bottom.elevation+screen.extent)
 
 
-
-
-ggplot(
-  RC %>% filter(Site != "5GW7", !is.na(Sampled)),
-  aes(x = distance.from.stream, y = scope.surface.elevation, color = Well)) +
-  geom_point(size=2) +
+RC.elevations%>%
+  drop_na(Well)%>%
+  ggplot(aes(x = distance.from.stream, y = elevation.ft, color=Well)) +
   geom_line(color='black')+
+  geom_point(size=2)+
+  ylab("Scope Elevations (ft)")+
+  facet_wrap(~ID, scales = "free")+theme_minimal()
 
+
+full_join(WTdepth, RC.elevations)%>%
+  drop_na(Well)%>%
+  mutate(
+    WT.elevation=datum.surface.elevation+WT.distance.from.surface)%>%
+  
+  ggplot(aes(x = distance.from.stream, y = datum.surface.elevation, color=Well)) +
+  geom_linerange(aes(ymin = well.bottom.elevation,
+                     ymax = screen.extent),
+                 color = "gray60",
+                 size = 2)+
+  geom_hline(yintercept = 0, color='blue')+
+  geom_line(color='black')+
+  geom_point(size=2)+
+  ylab("Surface Elevations; Datum: Stream Bed (m)")+
+  facet_wrap(~ID, scales = "free")+theme_minimal()
+
+
+
+full_join(WTdepth, RC.elevations)%>%
+  drop_na(Well, Sampled)%>%
+  mutate(
+    WT.elevation=datum.surface.elevation+WT.distance.from.surface,
+         Sampled)%>%
+  
+  ggplot(aes(x = distance.from.stream, y = datum.surface.elevation)) +
+  geom_point(size=3)+
+  geom_linerange(aes(ymin = well.bottom.elevation,
+                     ymax = screen.extent),
+                 color = "black",
+                 size = 2)+
+  geom_point(aes(y=WT.elevation, color=Sampled)) +
+  geom_hline(yintercept = 0, color='blue')+
+  geom_line(color='black')+
+  ylab("Surface Elevations; Datum: Stream Bed (m)")+
   facet_wrap(~ID, scales = "free")+theme_minimal()
 
 
 
 
 
-
-
-
-
-checking<-read_excel("01_Raw_data/RW.log.xlsx",sheet = "scope elevations")%>%
-
-  full_join(RC.dims%>%select(Site, distance.from.stream))%>%
-  left_join(RC.regime%>%select(Site, distance.from.stream, WT.distance.from.surface))%>%
-  group_by(ID)%>%
-  mutate(
-    distance.from.stream=if_else(is.na(distance.from.stream), 0, distance.from.stream),
-    stream.datum=(elevation.ft*-1)+max(elevation.ft, na.rm = T),
-    WT.height=stream.datum+WT.distance.from.surface)%>%
-  separate(Site, into = c("ID", "Well"), sep = "GW", remove = FALSE)%>%
-  arrange(ID, distance.from.stream)%>%ungroup%>%
-  full_join(
-    RC.regime%>%select(Site, distance.from.stream, WT.distance.from.surface))%>%
-  full_join(
-
-    RC.regime%>%select(Site, distance.from.stream, stream.depth)%>%
-      mutate(distance.from.stream=0)%>%
-      separate(Site, into = c("ID", "Well"), sep = "GW", remove = FALSE)%>%
-      select(ID, distance.from.stream, stream.depth)%>%
-      distinct(ID, distance.from.stream, stream.depth)
-  )
-
-
-plot_grid(
-
-  ggplot(checking%>% filter(!is.na(ID)), aes(x=distance.from.stream,  color=Well))+
-  geom_point(aes(y=stream.datum), size=3)+
-  geom_path(aes(y=stream.datum),color='gray')+
-  geom_point(aes(y=stream.depth),color='lightblue')+
-  geom_point(aes(y=WT.height),color='pink')+
-  ylab('Stream Datum Elevations (ft)')+
-  xlab("Distance from stream (ft)")+
-  facet_wrap(~ID)
-  ,
-  ggplot(checking%>% filter(!is.na(ID)), aes(x=distance.from.stream, y=elevation.ft, color=Well))+
-    geom_point(size=3)+
-    geom_path(color='gray')+
-    ylab('Raw Elevations from Scopeb (ft)')+
-    xlab("Distance from stream (ft)")+
-    facet_wrap(~ID)
-  ,
-  nrow=2)
-
-
-
-
-
-
-
-
-ggplot(checking, aes(x=distance.from.stream, y=stream.datum, color=Well))+
-  geom_point(size=3)+
-  geom_path(color='gray')+
-  ylab('Stream Datum Elevations (ft)')+
-  xlab("Distance from stream (ft)")+
-  facet_wrap(~ID)
-
-
-
-
-
-  ggplot(checking, aes(x=distance.from.stream, y=stream.datum, color=Well))+
-  geom_point(size=3)+
-  geom_path(color='gray')+
-  ylab('Stream Datum Elevations (ft)')+
-  xlab("Distance from stream (ft)")+
-  facet_wrap(~ID)
-
-
-
-
-# geom_hline(
-#   data = chk.elevations,
-#   aes(yintercept = bottom.elevation, group = Site),
-#   inherit.aes = FALSE,
-#   color = "gray", size = 0.8) +
-#   geom_hline(yintercept = 0,color='blue')+
 
 
 

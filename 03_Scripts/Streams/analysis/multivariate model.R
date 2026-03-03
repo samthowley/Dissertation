@@ -141,84 +141,93 @@ fit_noT <- brm(
   cores = 4,
   file = "04_Output/stream/models/noT.rds"
 )
-# Extract LOO values#######
-loo_df <- map_dfr(models, ~ {
-  loo_val <- .x$criteria$loo
-  data.frame(
-    looic     = loo_val$estimates["looic", "Estimate"],
-    looic_se  = loo_val$estimates["looic", "SE"]
-  )
-}, .id = "model")
 
-#call in models#####
-int_noT<- readRDS("04_Output/stream/models/int_noT.rds")
-ext_noT<- readRDS("04_Output/stream/models/ext_noT.rds")
-int_noQ<- readRDS("04_Output/stream/models/int_noQ.rds")
-ext_noQ<- readRDS("04_Output/stream/models/ext_noQ.rds")
-fit<- readRDS("04_Output/stream/models/fit.rds")
-noQ<- readRDS("04_Output/stream/models/noQ.rds")
-noT<- readRDS("04_Output/stream/models/noT.rds")
+library(tidyverse)
+library(purrr)
 
+## --- 1.  Load the models ---------------------------------------------------
+int_noT  <- readRDS("04_Output/stream/models/int_noT.rds")
+ext_noT  <- readRDS("04_Output/stream/models/ext_noT.rds")
+int_noQ  <- readRDS("04_Output/stream/models/int_noQ.rds")
+ext_noQ  <- readRDS("04_Output/stream/models/ext_noQ.rds")
+fit      <- readRDS("04_Output/stream/models/fit.rds")
+noQ      <- readRDS("04_Output/stream/models/noQ.rds")
+noT      <- readRDS("04_Output/stream/models/noT.rds")
 
 models <- list(
-  "full"       = fit,
-  "int_noT"    =int_noT,
-  "ext_noT"    = ext_noT,
-  "int_noQ"    = int_noQ,
-  "ext_noQ"    = ext_noQ,
-  "noQ"        = noQ,
-  "noT"        = noT
+  full      = fit,
+  int_noT   = int_noT,
+  ext_noT   = ext_noT,
+  int_noQ   = int_noQ,
+  ext_noQ   = ext_noQ,
+  noQ       = noQ,
+  noT       = noT
 )
 
-
-
-# Parameters to extract
 params_to_keep <- c(
-  "lint_Intercept", "lint_lQ", "lint_TempC",
-  "lext_Intercept", "lext_lQ", "lext_TempC",
-  "rescor(lint,lext)", "sigma_lint", "sigma_lext"
+  "lint_Intercept",  "lint_lQ",      "lint_TempC",
+  "lext_Intercept",  "lext_lQ",      "lext_TempC",
+  "rescor(lint,lext)",
+  "sigma_lint",      "sigma_lext"
 )
 
-# Extract posterior summaries
-model_comparison_df <- map_dfr(models, function(mod) {
-  as.data.frame(summary(mod)$fixed) %>%
-    tibble::rownames_to_column("parameter") %>%
-    bind_rows(
-      as.data.frame(summary(mod)$cor_pars) %>%
-        tibble::rownames_to_column("parameter")
-    ) %>%
-    filter(parameter %in% params_to_keep) %>%
-    select(parameter, Estimate, Est.Error, `l-95% CI`, `u-95% CI`, Rhat, Bulk_ESS, Tail_ESS)
-}, .id = "model") %>%
-  left_join(loo_df, by = "model")
+## 3. Pull the fixed, correlation and σ columns -------------------------------
 
-# Compute delta LOOIC relative to best model
+model_comparison_df <- map_dfr(models,
+                               function(mod) {
+                                 ## Fixed effects
+                                 fix_df <- as.data.frame(summary(mod)$fixed) %>%
+                                   tibble::rownames_to_column("parameter") %>%
+                                   select(parameter, Estimate, Est.Error, `l-95% CI`, `u-95% CI`,
+                                          Rhat, Bulk_ESS, Tail_ESS)
+                                 
+                                 ## Correlation / random-effect covariance
+                                 cor_df <- as.data.frame(summary(mod)$cor_pars) %>%
+                                   tibble::rownames_to_column("parameter") %>%
+                                   select(parameter, Estimate, Est.Error, `l-95% CI`, `u-95% CI`,
+                                          Rhat, Bulk_ESS, Tail_ESS)
+                                 
+                                 ## sigma -- now correctly pulled from $spec_pars
+                                 sig_df <- as.data.frame(summary(mod)$spec_pars) %>%
+                                   tibble::rownames_to_column("parameter") %>%
+                                   select(parameter, Estimate, Est.Error, `l-95% CI`, `u-95% CI`,
+                                          Rhat, Bulk_ESS, Tail_ESS) %>%
+                                   filter(parameter %in% c("sigma_lint", "sigma_lext"))  # drop nu rows
+                                 
+                                 bind_rows(fix_df, cor_df, sig_df) %>%
+                                   filter(parameter %in% params_to_keep)
+                               },
+                               .id = "model"
+) %>% relocate(model, .before = parameter)
+
+sigma_df <- map_dfr(models,
+                    function(mod) {
+                      as.data.frame(summary(mod)$spec_pars) %>%
+                        tibble::rownames_to_column("parameter") %>%
+                        filter(parameter %in% c("sigma_lint", "sigma_lext")) %>%
+                        select(parameter, Estimate) %>%
+                        pivot_wider(names_from = parameter, values_from = Estimate)
+                    },
+                    .id = "model"
+)
+
 model_comparison_df <- model_comparison_df %>%
-  group_by(parameter) %>%
-  mutate(delta_looic = looic - min(looic)) %>%
-  ungroup()
+  left_join(sigma_df, by = "model")
 
-# --- Figure ---
-#filter(parameter %in% c('lint_lQ',  'lint_TempC', 'lext_lQ', 'lext_TempC'),
-       
-#external pathway
-model_comparison_df%>%
-  filter(parameter %in% c('lext_lQ', 'lext_TempC'))%>%
-  mutate(parameter='external')%>%
-ggplot(aes(x = Estimate, y = model, color = delta_looic)) +
+ggplot(model_comparison_df,
+       aes(x = Estimate, y = factor(model), color = sigma_lint)) +
   geom_point(size = 3) +
-  geom_errorbarh(aes(xmin = `l-95% CI`, xmax = `u-95% CI`), height = 0.2) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
+  geom_errorbarh(aes(xmin = `l-95% CI`, xmax = `u-95% CI`),
+                 height = 0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
   facet_wrap(~ parameter, scales = "free") +
-  scale_color_viridis_c(name = "ΔLOOIC", option = "plasma") +
+  scale_color_viridis_c(name = "σ_lint", option = "plasma") +
   labs(
     x = "Posterior Estimate",
     y = "Model",
-    title = "Model Comparison: Posterior Estimates with ΔLOOIC"
+    title = "Model Comparison: Posterior Estimates coloured by σ"
   ) +
-  theme_bw() +
-  theme(
-    strip.text = element_text(size = 9),
-    axis.text.y = element_text(size = 9)
-  )
-                                                                                                                                                                                                                                                                                                                                                                                                                                              
+  theme_bw(base_size = 12) +
+  theme(strip.text = element_text(size = 9),
+        axis.text.y = element_text(size = 9))
+
