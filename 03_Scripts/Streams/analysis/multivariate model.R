@@ -3,7 +3,7 @@ library(posterior)
 library(patchwork)
 library(brms)
 
-
+#call in data###########
 df2<-int.ext%>%
   left_join(DO%>%
               mutate(Date=as.Date(Date),
@@ -29,7 +29,11 @@ df2 <- df2 %>%
     is.finite(lQ), is.finite(TempC), is.finite(lint), is.finite(lext)) %>%
   droplevels()
 
+pri <- tryCatch(prior_summary(fit_full), error = function(e) NULL)
+
 #formulas##########
+
+#patwhay
 bf_int_full <- bf(lint ~ lQ + TempC + (1 | ID))
 bf_ext_full <- bf(lext ~ lQ + TempC + (1 | ID))
 
@@ -42,28 +46,53 @@ bf_int_noQ  <- bf(lint ~ TempC + (1 | ID))
 bf_ext_noQ  <- bf(lext ~ TempC + (1 | ID))
 
 # models
-pri <- tryCatch(prior_summary(fit_full), error = function(e) NULL)
 
 fit <- brm(
-  bf_int_full + bf_ext_full + set_rescor(TRUE),
+  bf_CO2flux_full +  + set_rescor(TRUE),
   data = df2,
   family = student(),
   prior = pri,
   cores = 4,
-  file = "04_Output/stream/models"
+  file = "04_Output/stream/CO2flux"
 )
 
+#CO2 flux######
+bf_CO2flux_full <- bf(CO2_flux ~ lQ + TempC + (1 | ID))
 
-#remove temp######
+fit_int_noT <- brm(
+  bf_CO2flux_full,
+  data = df2,
+  family = student(),
+  prior = pri,
+  cores = 4,
+  control = list(adapt_delta = 0.95),
+  file = "04_Output/stream/models/CO2flux.rds"
+)
+
+#int.ext#############
+bf_ratio_full <- bf(int.ext.ratio ~ lQ + TempC + (1 | ID))
+
+fit_ratio <- brm(
+  bf_ratio_full,
+  data = df2,
+  family = student(),
+  prior = pri,
+  cores = 4,
+  control = list(adapt_delta = 0.95),
+  file = "04_Output/stream/models/int.ext.ratio.rds"
+)
+
+#remove one temp######
 fit_int_noT <- brm(
   bf_int_noT + bf_ext_full + set_rescor(TRUE),
   data = df2,
   family = student(),
   prior = pri,
   cores = 4,
-  iterations =1000,
-  file = "04_Output/stream/models"
+  control = list(adapt_delta = 0.95),
+  file = "04_Output/stream/models/int_noT.rds"
 )
+
 
 fit_ext_noT <- brm(
   bf_ext_noT + bf_int_full + set_rescor(TRUE),
@@ -71,20 +100,18 @@ fit_ext_noT <- brm(
   family = student(),
   prior = pri,
   cores = 4,
-  iterations =1000,
-  file = "04_Output/stream/models"
+  file = "04_Output/stream/models/ext_noT.rds"
 )
 
 
-#remove Q############
+#remove one Q############
 fit_int_noQ <- brm(
   bf_int_noQ + bf_ext_full + set_rescor(TRUE),
-  data = df2c,
+  data = df2,
   family = student(),
   prior = pri,
   cores = 4,
-  iterations =1000,
-  file = "04_Output/stream/models"
+  file = "04_Output/stream/models/int_noQ.rds"
 )
 
 fit_ext_noQ <- brm(
@@ -93,238 +120,105 @@ fit_ext_noQ <- brm(
   family = student(),
   prior = pri,
   cores = 4,
-  file = "04_Output/stream/models"
+  file = "04_Output/stream/models/ext_noQ.rds"
+)
+#remove both Q##########
+fit_noQ <- brm(
+  bf_int_noQ + bf_ext_noQ + set_rescor(TRUE),
+  data = df2,
+  family = student(),
+  prior = pri,
+  cores = 4,
+  file = "04_Output/stream/models/noQ.rds"
 )
 
-# 3) Compute Bayes R² draws per response#######
-R2 <- function(fit, resp) {
-  as.numeric(bayes_R2(fit, resp = resp))
-}
-
-R2_int_full <- R2(fit_full, "lint")
-R2_ext_full <- R2(fit_full, "lext")
-
-R2_int_noT  <- R2(fit_int_noT, "lint")
-R2_int_noQ  <- R2(fit_int_noQ, "lint")
-
-R2_ext_noT  <- R2(fit_ext_noT, "lext")
-R2_ext_noQ  <- R2(fit_ext_noQ, "lext")
-
-# ----------------------------
-# 4) Unique + shared variance decomposition (posterior draws)
-# ----------------------------
-# Unique contribution = R²_full - R²_reduced
-unique_T_int <- pmax(0, R2_int_full - R2_int_noT)
-unique_Q_int <- pmax(0, R2_int_full - R2_int_noQ)
-
-unique_T_ext <- pmax(0, R2_ext_full - R2_ext_noT)
-unique_Q_ext <- pmax(0, R2_ext_full - R2_ext_noQ)
-
-# Shared contribution (overlap due to predictor covariance)
-shared_int <- pmax(0, R2_int_full - unique_T_int - unique_Q_int)
-shared_ext <- pmax(0, R2_ext_full - unique_T_ext - unique_Q_ext)
-
-# Bundle into long draws dataframe for plotting
-draws_long <- bind_rows(
-  tibble(pathway = "Internal", component = "Unique log(Q)", value = unique_Q_int),
-  tibble(pathway = "Internal", component = "Unique Temp",   value = unique_T_int),
-  tibble(pathway = "Internal", component = "Shared",        value = shared_int),
-  tibble(pathway = "External", component = "Unique log(Q)", value = unique_Q_ext),
-  tibble(pathway = "External", component = "Unique Temp",   value = unique_T_ext),
-  tibble(pathway = "External", component = "Shared",        value = shared_ext)
-) %>%
-  mutate(
-    component = factor(component, levels = c("Unique log(Q)", "Unique Temp", "Shared")),
-    pathway = factor(pathway, levels = c("Internal", "External"))
+#remove both T############
+fit_noT <- brm(
+  bf_int_noT + bf_ext_noT + set_rescor(TRUE),
+  data = df2,
+  family = student(),
+  prior = pri,
+  cores = 4,
+  file = "04_Output/stream/models/noT.rds"
+)
+# Extract LOO values#######
+loo_df <- map_dfr(models, ~ {
+  loo_val <- .x$criteria$loo
+  data.frame(
+    looic     = loo_val$estimates["looic", "Estimate"],
+    looic_se  = loo_val$estimates["looic", "SE"]
   )
+}, .id = "model")
 
-# Also compute full R² for reference
-R2_full_long <- bind_rows(
-  tibble(pathway = "Internal", component = "Total R²", value = R2_int_full),
-  tibble(pathway = "External", component = "Total R²", value = R2_ext_full)
-) %>%
-  mutate(pathway = factor(pathway, levels = c("Internal", "External")))
+#call in models#####
+int_noT<- readRDS("04_Output/stream/models/int_noT.rds")
+ext_noT<- readRDS("04_Output/stream/models/ext_noT.rds")
+int_noQ<- readRDS("04_Output/stream/models/int_noQ.rds")
+ext_noQ<- readRDS("04_Output/stream/models/ext_noQ.rds")
+fit<- readRDS("04_Output/stream/models/fit.rds")
+noQ<- readRDS("04_Output/stream/models/noQ.rds")
+noT<- readRDS("04_Output/stream/models/noT.rds")
 
-# ----------------------------
-# 5) Summaries table (mean + 95% CrI)
-# ----------------------------
-summ_ci <- function(x) {
-  tibble(
-    mean = mean(x),
-    q2.5 = quantile(x, 0.025),
-    q97.5 = quantile(x, 0.975)
-  )
-}
 
-summary_table <- draws_long %>%
-  group_by(pathway, component) %>%
-  summarise(
-    mean = mean(value),
-    q2.5 = quantile(value, 0.025),
-    q97.5 = quantile(value, 0.975),
-    .groups = "drop"
-  ) %>%
-  arrange(pathway, component)
+models <- list(
+  "full"       = fit,
+  "int_noT"    =int_noT,
+  "ext_noT"    = ext_noT,
+  "int_noQ"    = int_noQ,
+  "ext_noQ"    = ext_noQ,
+  "noQ"        = noQ,
+  "noT"        = noT
+)
 
-print(summary_table)
 
-# ----------------------------
-# 6) Conference-ready figure
-#    Panel A: Stacked bars (means) with error bars for each component
-#    Panel B: Total R² per pathway (point + interval)
-# ----------------------------
 
-# Data for stacked means
-means_df <- draws_long %>%
-  group_by(pathway, component) %>%
-  summarise(
-    mean = mean(value),
-    q2.5 = quantile(value, 0.025),
-    q97.5 = quantile(value, 0.975),
-    .groups = "drop"
-  ) %>%
-  group_by(pathway) %>%
-  arrange(component, .by_group = TRUE) %>%
-  mutate(
-    ymin_stack = cumsum(lag(mean, default = 0)),
-    ymax_stack = ymin_stack + mean
-  ) %>%
+# Parameters to extract
+params_to_keep <- c(
+  "lint_Intercept", "lint_lQ", "lint_TempC",
+  "lext_Intercept", "lext_lQ", "lext_TempC",
+  "rescor(lint,lext)", "sigma_lint", "sigma_lext"
+)
+
+# Extract posterior summaries
+model_comparison_df <- map_dfr(models, function(mod) {
+  as.data.frame(summary(mod)$fixed) %>%
+    tibble::rownames_to_column("parameter") %>%
+    bind_rows(
+      as.data.frame(summary(mod)$cor_pars) %>%
+        tibble::rownames_to_column("parameter")
+    ) %>%
+    filter(parameter %in% params_to_keep) %>%
+    select(parameter, Estimate, Est.Error, `l-95% CI`, `u-95% CI`, Rhat, Bulk_ESS, Tail_ESS)
+}, .id = "model") %>%
+  left_join(loo_df, by = "model")
+
+# Compute delta LOOIC relative to best model
+model_comparison_df <- model_comparison_df %>%
+  group_by(parameter) %>%
+  mutate(delta_looic = looic - min(looic)) %>%
   ungroup()
 
-p_stack <- ggplot(means_df, aes(x = pathway, y = mean, fill = component)) +
-  geom_col(width = 0.7, color = "black") +
-  # Optional: show component-level 95% CrI as error bars at the top of each stack segment
-  geom_errorbar(
-    aes(ymin = ymin_stack + q2.5, ymax = ymin_stack + q97.5),
-    width = 0.15,
-    linewidth = 0.7
-  ) +
-  labs(
-    title = "Unique vs shared variance explained (ΔBayes R²)",
-    subtitle = "Unique contributions from dropped-model comparisons; Shared reflects overlap due to predictor covariance",
-    x = NULL, y = "Proportion of variance explained (R² decomposition)",
-    fill = NULL
-  ) +
-  coord_cartesian(ylim = c(0, 1)) +
-  theme_classic(base_size = 15) +
-  theme(
-    plot.title = element_text(face = "bold"),
-    axis.text.x = element_text(face = "bold")
-  )
-
-# Total R² intervals
-R2_summ <- R2_full_long %>%
-  group_by(pathway) %>%
-  summarise(
-    mean = mean(value),
-    q2.5 = quantile(value, 0.025),
-    q97.5 = quantile(value, 0.975),
-    .groups = "drop"
-  )
-
-p_total <- ggplot(R2_summ, aes(x = pathway, y = mean)) +
+# --- Figure ---
+#filter(parameter %in% c('lint_lQ',  'lint_TempC', 'lext_lQ', 'lext_TempC'),
+       
+#external pathway
+model_comparison_df%>%
+  filter(parameter %in% c('lext_lQ', 'lext_TempC'))%>%
+  mutate(parameter='external')%>%
+ggplot(aes(x = Estimate, y = model, color = delta_looic)) +
   geom_point(size = 3) +
-  geom_errorbar(aes(ymin = q2.5, ymax = q97.5), width = 0.15, linewidth = 0.8) +
-  coord_cartesian(ylim = c(0, 1)) +
+  geom_errorbarh(aes(xmin = `l-95% CI`, xmax = `u-95% CI`), height = 0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
+  facet_wrap(~ parameter, scales = "free") +
+  scale_color_viridis_c(name = "ΔLOOIC", option = "plasma") +
   labs(
-    title = "Total explained variance",
-    subtitle = "Bayesian R² (posterior mean ± 95% CrI)",
-    x = NULL, y = "Total R²"
+    x = "Posterior Estimate",
+    y = "Model",
+    title = "Model Comparison: Posterior Estimates with ΔLOOIC"
   ) +
-  theme_classic(base_size = 15) +
+  theme_bw() +
   theme(
-    plot.title = element_text(face = "bold"),
-    axis.text.x = element_text(face = "bold")
+    strip.text = element_text(size = 9),
+    axis.text.y = element_text(size = 9)
   )
-
-final_fig <- p_stack | p_total
-final_fig
-
-ggsave(
-  filename = "FIG_R2_decomposition_internal_external.png",
-  plot = final_fig,
-  width = 14, height = 6.5, units = "in", dpi = 320
-)
-
-# ----------------------------
-# 7) OPTIONAL: also report predictor covariance (simple correlation)
-# ----------------------------
-cov_overall <- cor(df2c$lQ, df2c$TempC, use = "complete.obs")
-cov_by_site <- df2c %>%
-  group_by(ID) %>%
-  summarise(n = n(), r = cor(lQ, TempC, use = "complete.obs"), .groups = "drop")
-
-print(paste("Overall cor(logQ, TempC) =", round(cov_overall, 3)))
-print(cov_by_site)
-
-
-
-#poster figure##########
-df<-left_join(int.ext, temperature)%>%
-  mutate(
-    TempC=fahrenheit.to.celsius(Temp_PT),
-    ID = factor(as.character(ID), levels = facet_order)
-  )%>%
-  drop_na(TempC, Q, internal, external)%>%
-  group_by(ID)%>%
-  mutate(
-    class=
-      case_when(
-        Q>mean(Q, na.rm=T) & TempC>mean(TempC, na.rm=T)~'high flow, warm',
-        Q<mean(Q, na.rm=T) & TempC<mean(TempC, na.rm=T)~'low flow, cool',
-        Q>mean(Q, na.rm=T) & TempC<mean(TempC, na.rm=T)~'high flow, cool',
-        Q<mean(Q, na.rm=T) & TempC>mean(TempC, na.rm=T)~'low flow, warm'
-      ),
-    temp.class=
-      case_when(
-        TempC>mean(TempC, na.rm=T)~'warm',
-        TempC<mean(TempC, na.rm=T)~'cool')
-  )%>%ungroup()%>%
-  group_by(class, ID)%>%
-  summarise(
-    Internal=mean(internal, na.rm=T),
-    External=mean(external, na.rm=T),
-    Total=mean(CO2_flux, na.rm=T))#%>%
-pivot_longer(
-  cols      = c(Internal, External, Total),
-  names_to  = "Pathway",
-  values_to = "flux"
-)
-
-
-df$class <- factor(df$class, levels = c('high flow, warm', 'low flow, warm', 'high flow, cool', 'low flow, cool'))
-
-df$class <- factor(df$class, levels = c('high flow, warm', 'high flow, cool', 'low flow, warm', 'low flow, cool'))
-
-common.list<-list(
-  geom_jitter(),
-  ylab(expression(C~'g'/m^2/'day')),
-  theme(
-    axis.title.x = element_blank(),
-    axis.text.x = element_text(size=13, color='black')
-  ),
-  scale_fill_manual(values=c('white', 'darkred', 'darkgray')),
-  scale_y_log10()
-)
-
-plot_grid(
-  df%>%
-    ggplot(aes(
-      x=class,
-      y = flux,
-      fill=Pathway)) +
-    geom_boxplot()+
-    ggtitle("Mean Internal Pathway Response to Flow and Temperature")+
-    common.list
-  ,
-  df%>%
-    ggplot(aes(
-      x=class,
-      y = flux,
-      fill = Pathway)) +
-    geom_boxplot()+
-    ggtitle("Mean External Pathway Response to Flow and Temperature")+
-    common.list,
-  ncol=1
-)
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                              
