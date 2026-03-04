@@ -74,7 +74,9 @@ labels_vec_wetperc <- setNames(
 watershed_inundation <- read_csv("01_Raw_data/wetland cover/watershed.inundation.csv")%>%
   select(day, Basin, AREA, watershed.inundation)
 
-temperature <- read_csv("02_Clean_data/temperature.csv")
+temperature <- read_csv("02_Clean_data/temperature.csv")%>%
+  mutate(
+    TempC=fahrenheit.to.celsius(Temp_PT))
 
 discharge <- read_csv("02_Clean_data/discharge.csv")
 

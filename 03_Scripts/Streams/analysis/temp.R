@@ -2,15 +2,13 @@ source("03_Scripts/Streams/analysis/data for analysis.R")
 
 temp.impacts<-left_join(int.ext, temperature)%>%
   mutate(
-    TempC=fahrenheit.to.celsius(Temp_PT),
     ID = factor(as.character(ID), levels = facet_order),
     facet_label = paste0(ID, "\n", round(wetland.perc, 1), "% wetland"),
     facet_label = factor(
       facet_label,
       levels = paste0(facet_order, "\n",
                       round(wetland.perc[match(facet_order, ID)], 1),
-                      "% wetland")
-    ))
+                      "% wetland")))
 
 #scatter plots############
 

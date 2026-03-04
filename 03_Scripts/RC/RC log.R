@@ -2,6 +2,7 @@ library(tidyverse)
 library(readxl)
 library(cowplot)
 library(measurements)
+library(plotly)
 
 WTdepth<-read_excel("01_Raw_data/RW.log.xlsx", sheet = "log")%>%
   mutate(WT.distance.from.surface=as.numeric(WT.distance.from.surface))
@@ -45,8 +46,7 @@ RC<-left_join(RC.regime, read_excel("01_Raw_data/RW.log.xlsx",
 
 
 well.measurements<-read_excel("01_Raw_data/RW.log.xlsx",
-           sheet = "well dims")%>%
-  select(-surface.elevation, -well.bottom.elevation)
+           sheet = "well dims")
 
 scope.elevations<-read_excel("01_Raw_data/RW.log.xlsx",
            sheet = "scope elevations")
@@ -55,68 +55,93 @@ WTdepth<-read_excel("01_Raw_data/RW.log.xlsx", sheet = "log")%>%
   mutate(WT.distance.from.surface=as.numeric(WT.distance.from.surface))%>%
   select(Date, Site, WT.distance.from.surface, Sampled)
 
+
 RC.elevations<-full_join(scope.elevations, well.measurements)%>%
   separate(Site, into = c("ID", "Well"), sep = "GW", remove = FALSE)%>%
   mutate(
     distance.from.stream=if_else(is.na(distance.from.stream), 0, distance.from.stream))%>%
   group_by(ID)%>%
   mutate(
+
     stream.bed.elevation = elevation.ft[Well == "0"],
-    
     datum.surface.elevation=(elevation.ft*-1)+stream.bed.elevation,
     datum.surface.elevation=conv_unit(datum.surface.elevation, 'ft', 'm'),
 
     
-    well.bottom.elevation=datum.surface.elevation- below.ground,
-    screen.extent=well.bottom.elevation+screen.extent)
+    well.bottom.elevation=datum.surface.elevation-below.ground,
+    
+    well.height=if_else(is.na(well.height), 0, well.height),
+    well.height=well.height+datum.surface.elevation,
+    
+    screen.extent=screen.extent+datum.surface.elevation
+    )
 
 
-RC.elevations%>%
-  drop_na(Well)%>%
-  ggplot(aes(x = distance.from.stream, y = elevation.ft, color=Well)) +
-  geom_line(color='black')+
-  geom_point(size=2)+
-  ylab("Scope Elevations (ft)")+
-  facet_wrap(~ID, scales = "free")+theme_minimal()
-
-
-full_join(WTdepth, RC.elevations)%>%
-  drop_na(Well)%>%
-  mutate(
-    WT.elevation=datum.surface.elevation+WT.distance.from.surface)%>%
-  
-  ggplot(aes(x = distance.from.stream, y = datum.surface.elevation, color=Well)) +
-  geom_linerange(aes(ymin = well.bottom.elevation,
-                     ymax = screen.extent),
-                 color = "gray60",
-                 size = 2)+
-  geom_hline(yintercept = 0, color='blue')+
-  geom_line(color='black')+
-  geom_point(size=2)+
-  ylab("Surface Elevations; Datum: Stream Bed (m)")+
-  facet_wrap(~ID, scales = "free")+theme_minimal()
+# RC.elevations%>%
+#   drop_na(Well)%>%
+#   ggplot(aes(x = distance.from.stream, y = elevation.ft, color=Well)) +
+#   geom_line(color='black')+
+#   geom_point(size=2)+
+#   geom_text(aes(label = Well), nudge_x = 0.1, nudge_y = 0.15, size = 5)+
+#   ylab("Scope Elevations (ft)")+xlab("Distance from Stream (ft)")+
+#   facet_wrap(~ID, scales = "free")+theme_minimal()
 
 
 
-full_join(WTdepth, RC.elevations)%>%
+
+# full_join(WTdepth, RC.elevations)%>%
+#   drop_na(Well)%>%
+#   mutate(
+#     WT.elevation=datum.surface.elevation+WT.distance.from.surface)%>%
+#   ggplot(aes(x = distance.from.stream, y = datum.surface.elevation)) +
+#   geom_linerange(aes(ymin = well.bottom.elevation,
+#                      ymax = well.height),
+#                  color = "gray60",
+#                  size = 3)+
+#   
+#   geom_linerange(aes(ymin = well.bottom.elevation,
+#                      ymax = screen.extent),
+#                  color = "black",
+#                  size = 1)+
+#   geom_text(aes(label = Well), nudge_x = 0.2, nudge_y = 0.2, size = 5)+
+#   geom_hline(yintercept = 0, color='blue')+
+#   geom_line(color='darkgreen', size=1)+
+#   geom_point(size=2)+
+#   ylab("Surface Elevations; Datum: Stream Bed (m)")+
+#   facet_wrap(~ID, scales = "free")+theme_minimal()
+# 
+
+
+
+
+test<-full_join(WTdepth, RC.elevations)%>%
   drop_na(Well, Sampled)%>%
   mutate(
     WT.elevation=datum.surface.elevation+WT.distance.from.surface,
-         Sampled)%>%
+    Sampled=if_else(WT.distance.from.surface>=below.ground & Sampled=='N', 'DID NOT PUMP', Sampled)
+    )
+
+
+test%>%
   
   ggplot(aes(x = distance.from.stream, y = datum.surface.elevation)) +
-  geom_point(size=3)+
+  geom_linerange(aes(ymin = well.bottom.elevation,
+                     ymax = well.height),
+                 color = "gray90",
+                 size = 3)+
+  
   geom_linerange(aes(ymin = well.bottom.elevation,
                      ymax = screen.extent),
-                 color = "black",
-                 size = 2)+
-  geom_point(aes(y=WT.elevation, color=Sampled)) +
+                 color = "gray70",
+                 size = 1)+
+  geom_point(aes(y=WT.elevation, color=as.factor(Sampled))) +
+  
+  geom_text(aes(label = Well), nudge_x = 0.2, nudge_y = 0.2, size = 5)+
   geom_hline(yintercept = 0, color='blue')+
-  geom_line(color='black')+
+  geom_line(color='darkgreen', size=1)+
+  geom_point(size=3)+
   ylab("Surface Elevations; Datum: Stream Bed (m)")+
   facet_wrap(~ID, scales = "free")+theme_minimal()
-
-
 
 
 

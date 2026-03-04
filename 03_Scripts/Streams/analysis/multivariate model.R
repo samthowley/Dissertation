@@ -141,11 +141,7 @@ fit_noT <- brm(
   cores = 4,
   file = "04_Output/stream/models/noT.rds"
 )
-
-library(tidyverse)
-library(purrr)
-
-## --- 1.  Load the models ---------------------------------------------------
+#model comparison###########
 int_noT  <- readRDS("04_Output/stream/models/int_noT.rds")
 ext_noT  <- readRDS("04_Output/stream/models/ext_noT.rds")
 int_noQ  <- readRDS("04_Output/stream/models/int_noQ.rds")
@@ -153,6 +149,9 @@ ext_noQ  <- readRDS("04_Output/stream/models/ext_noQ.rds")
 fit      <- readRDS("04_Output/stream/models/fit.rds")
 noQ      <- readRDS("04_Output/stream/models/noQ.rds")
 noT      <- readRDS("04_Output/stream/models/noT.rds")
+int.ext.ratio<- readRDS("04_Output/stream/models/int.ext.ratio.rds")
+CO2flux<- readRDS("04_Output/stream/models/CO2flux.rds")
+
 
 models <- list(
   full      = fit,
@@ -171,7 +170,6 @@ params_to_keep <- c(
   "sigma_lint",      "sigma_lext"
 )
 
-## 3. Pull the fixed, correlation and σ columns -------------------------------
 
 model_comparison_df <- map_dfr(models,
                                function(mod) {
@@ -200,6 +198,9 @@ model_comparison_df <- map_dfr(models,
                                .id = "model"
 ) %>% relocate(model, .before = parameter)
 
+## --------------------------------------------------------------------------- ##
+## 4. Pull out σ estimates per model for colour scale ------------------------
+## --------------------------------------------------------------------------- ##
 sigma_df <- map_dfr(models,
                     function(mod) {
                       as.data.frame(summary(mod)$spec_pars) %>%
@@ -211,23 +212,58 @@ sigma_df <- map_dfr(models,
                     .id = "model"
 )
 
+## Join σ values back for colour scale
 model_comparison_df <- model_comparison_df %>%
   left_join(sigma_df, by = "model")
 
-ggplot(model_comparison_df,
-       aes(x = Estimate, y = factor(model), color = sigma_lint)) +
+## --------------------------------------------------------------------------- ##
+## 5. Plot -------------------------------------------------------------------
+## --------------------------------------------------------------------------- ##
+
+
+# Parameters without intercepts
+params_to_plot <- c(
+  "lint_lQ", "lint_TempC", 
+  "lext_lQ", "lext_TempC"
+)
+
+# Clean parameter labels for the strip
+plot_df <- model_comparison_df %>%
+  filter(parameter %in% params_to_plot) %>%
+  mutate(model = factor(model, levels = rev(c(
+    "full",
+    "int_noQ", "ext_noQ",
+    "int_noT", "ext_noT",
+    "noQ",     "noT"
+  ))))%>%
+  mutate(
+    pathway = case_when(
+      grepl("^lint|sigma_lint", parameter) ~ "Internal",
+      grepl("^lext|sigma_lext", parameter) ~ "External"
+    ),
+    param_label = case_when(
+      grepl("lQ",    parameter) ~ "lQ",
+      grepl("TempC", parameter) ~ "TempC",
+      grepl("sigma", parameter) ~ "σ"
+    ),
+    pathway = factor(pathway, levels = c("External", "Internal")),
+    sigma=if_else(pathway=='Internal', sigma_lint, sigma_lext)
+  )
+
+ggplot(plot_df, aes(x = Estimate, y = factor(model), color = sigma)) +
   geom_point(size = 3) +
-  geom_errorbarh(aes(xmin = `l-95% CI`, xmax = `u-95% CI`),
-                 height = 0.2) +
+  geom_errorbarh(aes(xmin = `l-95% CI`, xmax = `u-95% CI`), height = 0.2) +
+  geom_text(aes(label = round(Estimate, 2)), vjust = -0.8, size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
-  facet_wrap(~ parameter, scales = "free") +
-  scale_color_viridis_c(name = "σ_lint", option = "plasma") +
+  facet_grid(pathway ~ param_label, scales = "free_x") +
+  scale_color_viridis_c(name = "σ", option = "plasma") +
   labs(
     x = "Posterior Estimate",
     y = "Model",
     title = "Model Comparison: Posterior Estimates coloured by σ"
   ) +
   theme_bw(base_size = 12) +
-  theme(strip.text = element_text(size = 9),
-        axis.text.y = element_text(size = 9))
-
+  theme(
+    strip.text  = element_text(size = 9),
+    axis.text.y = element_text(size = 9)
+  )
