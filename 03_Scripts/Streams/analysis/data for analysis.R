@@ -16,39 +16,32 @@ library(partR2)
 library(weathermetrics)
 
 
-r2_nakagawa <- function(model) {
-  var_fixed <- var(fitted(model))
-  var_random <- VarCorr(model)$ID[1]
-  var_resid <- sigma(model)^2
-  r2_marg <- var_fixed / (var_fixed + var_random + var_resid)
-  r2_cond <- (var_fixed + var_random) / (var_fixed + var_random + var_resid)
-  return(c(marginal = r2_marg, conditional = r2_cond))
-}
+
 
 facet_order <- c("15","5","5a","6", "3", "13", "7","9")  # EDIT THIS
 
 col<-c("internal" ='red', "external"='black', 'CO2_flux'='darkgray')
 
-theme_set(theme(axis.text.x = element_text(12),
-                axis.text.y = element_text(size = 12),
-
-                axis.title.x = element_text(size=14, angle=360),
-                axis.title.y = element_text(size=14, angle=90),
-                plot.title = element_text(size = 14),
-
-                legend.key.size = unit(0.5, "cm"),
-                legend.key.height = unit(1, "cm"),
-                legend.key.width = unit(1, "cm"),
-                legend.text = element_text(size = 12),
-                legend.title = element_text(size = 12),
-                legend.position ="bottom",
-
-                panel.background = element_rect(fill = 'white'),
-                strip.text = element_text(size = 13),
-
-                axis.line.x = element_line(size = 0.5, linetype = "solid", colour = "gray"),
-                axis.line.y = element_line(size = 0.5, linetype = "solid", colour = "gray")))
-
+# theme_set(theme(axis.text.x = element_text(12),
+#                 axis.text.y = element_text(size = 12),
+# 
+#                 axis.title.x = element_text(size=14, angle=360),
+#                 axis.title.y = element_text(size=14, angle=90),
+#                 plot.title = element_text(size = 14),
+# 
+#                 legend.key.size = unit(0.5, "cm"),
+#                 legend.key.height = unit(1, "cm"),
+#                 legend.key.width = unit(1, "cm"),
+#                 legend.text = element_text(size = 12),
+#                 legend.title = element_text(size = 12),
+#                 legend.position ="bottom",
+# 
+#                 panel.background = element_rect(fill = 'white'),
+#                 strip.text = element_text(size = 13),
+# 
+#                 axis.line.x = element_line(size = 0.5, linetype = "solid", colour = "gray"),
+#                 axis.line.y = element_line(size = 0.5, linetype = "solid", colour = "gray")))
+# 
 
 
 
@@ -120,3 +113,4 @@ site_lm_table_fun <- function(data, response, id_col = ID, x_col = Q) {
     select(!!id_col, intercept, slope, r2, p_slope) %>%
     ungroup()
 }
+

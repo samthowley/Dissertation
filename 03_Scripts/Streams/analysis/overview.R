@@ -79,8 +79,31 @@ plot_grid(
 
 
 
+int.ext%>%
+  ggplot(aes(
+    x=Q,
+    y = K600)) +
+  geom_point(size=1)+
+  ylab(expression("Discharge"~m^3/s))+
+  ggtitle(expression("Discharge Mean:"~0.106~m^3/sec))+
+  scale_y_log10()+scale_x_log10()+
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size=17, color='black')
+  )+facet_wrap(~ID, scales='free')
 
 
+int.ext%>%
+  group_by(ID)%>%
+  summarise(
+    external=median(external, na.rm=T)
+  )
+
+int.ext%>%
+  group_by(ID)%>%
+  summarise(
+    internal=median(internal/CO2_flux, na.rm=T)
+  )
 
 #External v Internal Violin Plots###########
 mean(int.ext$internal, na.rm=T)
