@@ -1,11 +1,12 @@
 source("03_Scripts/Streams/analysis/data for analysis.R")
+names(int.ext)
 
-
-a<-int.ext %>%
-  mutate(ratio = avg.internal / avg.external) %>%
-  filter(ratio > 0.001, ratio < 10^4) %>%
-  ggplot(aes(x = ID, y = ratio)) +
-  common_layers_violin +
+int.ext %>%
+  mutate(ratio = internal / external) %>%
+  ggplot(aes(x = reorder(ID, contrib.wetland.area), y = ratio)) +
+  geom_violin() +
+  scale_y_log10() +
+  geom_hline(yintercept = 1)+
   xlab("Stream Sites") +
   ylab("Average Internal / External")
 

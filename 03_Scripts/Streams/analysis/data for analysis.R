@@ -54,18 +54,24 @@ theme_set(theme(axis.text.x = element_text(12),
 
 wetland_cover <- read_csv("01_Raw_data/wetland cover/wetland_cover.csv")%>%
   rename(Basin=Basin_Name)%>%
-  select(Basin, PERCENTAGE)%>%
-  rename(wetland.perc=PERCENTAGE)
+  select(Basin, PERCENTAGE, AREA)%>%
+  rename(basin.wetland.perc=PERCENTAGE, basin.area=AREA)
+
+contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>%
+  select(Wetland.area, ID)%>%
+  rename(contrib.wetland.area=Wetland.area)
 
 int.ext <- read_csv("04_Output/stream/external-internal.csv")%>%
   mutate(
     Basin=as.factor(Basin),
     day=as.Date(Date))%>%
   left_join(wetland_cover)%>%
-  mutate(
-    wetland.perc=round(wetland.perc, 2),
-    ID_wetland.perc=paste0(ID, "_", wetland.perc)
-         )
+  # mutate(
+  #   wetland.perc=round(wetland.perc, 2),
+  #   ID_wetland.perc=paste0(ID, "_", wetland.perc)
+  #        )%>%
+  left_join(contrib_wetlands)
+
 
 labels_vec_wetperc <- setNames(
   paste0(int.ext$ID, "\n", int.ext$wetland.perc),
