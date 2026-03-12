@@ -10,6 +10,16 @@ temp.impacts<-left_join(int.ext, temperature)%>%
                       round(wetland.perc[match(facet_order, ID)], 1),
                       "% wetland")))
 
+
+temp.impacts%>%
+  group_by(ID)%>%
+  summarise(
+    TempC=median(TempC, na.rm=T)
+  )%>%
+  summarise(
+    TempC=median(TempC, na.rm=T))
+
+
 #scatter plots############
 
 common.layers<-list(
