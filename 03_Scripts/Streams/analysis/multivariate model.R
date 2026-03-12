@@ -45,7 +45,7 @@ bf_ext_noT  <- bf(lext ~ lQ + (1 | ID))
 bf_int_noQ  <- bf(lint ~ TempC + (1 | ID))
 bf_ext_noQ  <- bf(lext ~ TempC + (1 | ID))
 
-# models
+# models############
 
 fit <- brm(
   bf_CO2flux_full +  + set_rescor(TRUE),
@@ -56,7 +56,7 @@ fit <- brm(
   file = "04_Output/stream/CO2flux"
 )
 
-#CO2 flux######
+#CO2 flux#
 bf_CO2flux_full <- bf(CO2_flux ~ lQ + TempC + (1 | ID))
 
 fit_int_noT <- brm(
@@ -69,7 +69,7 @@ fit_int_noT <- brm(
   file = "04_Output/stream/models/CO2flux.rds"
 )
 
-#int.ext#############
+#int.ext#
 bf_ratio_full <- bf(int.ext.ratio ~ lQ + TempC + (1 | ID))
 
 fit_ratio <- brm(
@@ -82,7 +82,7 @@ fit_ratio <- brm(
   file = "04_Output/stream/models/int.ext.ratio.rds"
 )
 
-#remove one temp######
+#remove one temp#
 fit_int_noT <- brm(
   bf_int_noT + bf_ext_full + set_rescor(TRUE),
   data = df2,
@@ -104,7 +104,7 @@ fit_ext_noT <- brm(
 )
 
 
-#remove one Q############
+#remove one Q#
 fit_int_noQ <- brm(
   bf_int_noQ + bf_ext_full + set_rescor(TRUE),
   data = df2,
@@ -122,7 +122,7 @@ fit_ext_noQ <- brm(
   cores = 4,
   file = "04_Output/stream/models/ext_noQ.rds"
 )
-#remove both Q##########
+#remove both Q#
 fit_noQ <- brm(
   bf_int_noQ + bf_ext_noQ + set_rescor(TRUE),
   data = df2,
@@ -132,7 +132,7 @@ fit_noQ <- brm(
   file = "04_Output/stream/models/noQ.rds"
 )
 
-#remove both T############
+#remove both T#
 fit_noT <- brm(
   bf_int_noT + bf_ext_noT + set_rescor(TRUE),
   data = df2,
@@ -147,6 +147,7 @@ ext_noT  <- readRDS("04_Output/stream/models/ext_noT.rds")
 int_noQ  <- readRDS("04_Output/stream/models/int_noQ.rds")
 ext_noQ  <- readRDS("04_Output/stream/models/ext_noQ.rds")
 fit      <- readRDS("04_Output/stream/models/fit.rds")
+bayes_R2(fit)
 noQ      <- readRDS("04_Output/stream/models/noQ.rds")
 noT      <- readRDS("04_Output/stream/models/noT.rds")
 int.ext.ratio<- readRDS("04_Output/stream/models/int.ext.ratio.rds")
