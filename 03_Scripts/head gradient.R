@@ -1,8 +1,23 @@
 well.measurements<-read_excel("01_Raw_data/RW.log.xlsx",
                               sheet = "well dims")
 
-scope.elevations<-read_excel("01_Raw_data/RW.log.xlsx",
-                             sheet = "scope elevations")
+scope.elevations.raw<-read_excel("01_Raw_data/RW.log.xlsx",
+                             sheet = "scope elevations")%>%
+  select(-scope.height.ft, -notes, -scope.surface.elevation)
+
+
+bed.elevations<-scope.elevations.raw%>%filter(Site %in% c('5GW0', '6GW0', '9GW0'))%>%
+  rename(bed.elevation=elevation.ft)%>%
+  select(-Site)%>%
+  mutate(datum.elevation=(elevation.ft*-1))
+
+
+scope.elevations.m<-left_join(scope.elevations.raw, bed.elevations)%>%
+  mutate(datum.elevation=(elevation.ft*-1)+bed.elevation,
+         datum.elevation=conv_unit(datum.elevation, 'ft', 'm'))
+
+
+
 
 RC.elevations<-full_join(scope.elevations, well.measurements)%>%
   separate(Site, into = c("ID", "Well"), sep = "GW", remove = FALSE)%>%
