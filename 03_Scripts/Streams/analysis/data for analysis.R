@@ -70,8 +70,6 @@ labels_vec_wetperc <- setNames(
   paste0(int.ext$ID, "\n", int.ext$wetland.perc),
   int.ext$ID_wetland.perc)
 
-watershed_inundation <- read_csv("01_Raw_data/wetland cover/watershed.inundation.csv")%>%
-  select(day, Basin, AREA, watershed.inundation)
 
 temperature <- read_csv("02_Clean_data/temperature.csv")%>%
   mutate(
@@ -92,9 +90,11 @@ master_metabolism <- read_csv("04_Output/stream/master_metabolism.csv")%>%
   select(date, K600, ID)%>%
   rename(day=date)
 
-gw_corrected_metabolism <- read_csv("04_Output/stream/gw_corrected_metabolism.csv")%>%
+gw_corrected_metabolism <- read_csv("04_Output/gw_corrected_metabolism.csv")%>%
   mutate(day=as.Date(Date))%>%
   select(ID, day, NEP_corrected)
+
+watershed.inundation <- read_csv("01_Raw_data/wetland cover/watershed.inundation.csv")
 
 #site function############
 
