@@ -2,7 +2,7 @@ source("03_Scripts/Streams/analysis/data for analysis.R")
 
 wetland_cover <- read_csv("01_Raw_data/wetland cover/wetland_cover.csv")%>%
   select(Basin_Name, AREA, PERCENTAGE)%>%
-  rename(Basin='Basin_Name')
+  rename(Basin='Basin_Name', total.wetland.area=AREA, total.wetland.perc=PERCENTAGE)
 
 wetland_stage <- read_csv("01_Raw_data/wetland cover/wetland stage.csv")%>%
   separate(well_id, "_", into=c("Basin", "wetland"))%>%
@@ -11,12 +11,34 @@ wetland_stage <- read_csv("01_Raw_data/wetland cover/wetland stage.csv")%>%
   mutate(
     well.depth.m=mean(well_depth_m, na.rm=T),
   )%>%
-  select(date, Basin, well.depth.m)%>%
+  select(date, Basin, well.depth.m)
+
+
+
+
+
+
+
+  
+  
+  #%>%
   left_join(wetland_cover, by=c('Basin'))%>%
   mutate(
     watershed.inundation=round((AREA*well.depth.m),2),
          day=mdy(date))%>%
   select(-date)
+
+
+
+
+
+
+
+
+
+
+
+
 
 write_csv(wetland_stage, "01_Raw_data/wetland cover/watershed.inundation.csv")
 
