@@ -2,8 +2,11 @@ source("03_Scripts/Streams/analysis/data for analysis.R")
 library(posterior)
 library(patchwork)
 library(brms)
+library(corrplot)
 
 #call in data###########
+inun<-watershed.inundation%>%select(Date, Basin, contrib.basin.inundation, total.basin.inundation)
+
 df2<-int.ext%>%
   left_join(DO%>%
               mutate(Date=as.Date(Date),
@@ -21,15 +24,42 @@ df2<-int.ext%>%
     lQ=log10(Q),
     lext=log10(external),
     lint=log10(internal)
-  )
+  )%>%
+  left_join(inun)
 
 
 df2 <- df2 %>%
   filter(
-    is.finite(lQ), is.finite(TempC), is.finite(lint), is.finite(lext)) %>%
+    is.finite(lQ), is.finite(TempC), is.finite(lint), is.finite(lext), is.finite(contrib.basin.inundation)) %>%
   droplevels()
 
 pri <- tryCatch(prior_summary(fit_full), error = function(e) NULL)
+
+
+resid_df <- df2 %>%
+  select(ID, CO2_flux, lQ, TempC, lint, lext, contrib.basin.inundation) %>%
+  drop_na() %>%
+  group_by(ID) %>%
+  mutate(across(where(is.numeric), ~ . - mean(., na.rm = TRUE))) %>%
+  ungroup() %>%
+  select(-ID)
+
+# Compute correlation matrix on within-site residuals
+cor_matrix <- cor(resid_df, use = "pairwise.complete.obs")
+
+# Plot
+corrplot(cor_matrix,
+         method   = "ellipse",
+         type     = "upper",
+         addCoef.col = "black",
+         tl.col   = "black",
+         tl.srt   = 45,
+         col      = COL2("RdBu", 200),
+         title    = "Within-site Correlations",
+         mar      = c(0, 0, 1, 0))
+
+df2 <- df2 %>%
+  mutate(inund_resid = residuals(lm(contrib.basin.inundation ~ lQ, data = df2)))
 
 #formulas##########
 
