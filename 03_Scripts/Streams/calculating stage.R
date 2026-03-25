@@ -46,6 +46,9 @@ master<-master %>% mutate(depth=sensor_depth-(PL-PG)/100)%>% distinct(Date, ID, 
 
 
 master<-master%>% mutate(depth=if_else(depth<0, NA, depth))
+for.james<-master%>%select(Date, ID, PT, PTbaro, Water_press, sensor_depth, PL, PG, depth)%>%
+  filter(ID != '14')
+write_csv(for.james, "04_Output/RC/carbon mapping/stream depths.csv")
 
 
 ggplot(master, aes(x=Date)) + geom_line(aes(y=depth))+facet_wrap(~ ID, ncol=5)+

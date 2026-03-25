@@ -90,9 +90,9 @@ master_metabolism <- read_csv("04_Output/stream/master_metabolism.csv")%>%
   select(date, K600, ID)%>%
   rename(day=date)
 
-gw_corrected_metabolism <- read_csv("04_Output/gw_corrected_metabolism.csv")%>%
-  mutate(day=as.Date(Date))%>%
-  select(ID, day, NEP_corrected)
+# gw_corrected_metabolism <- read_csv("04_Output/gw_corrected_metabolism.csv")%>%
+#   mutate(day=as.Date(Date))%>%
+#   select(ID, day, NEP_corrected)
 
 watershed.inundation <- read_csv("01_Raw_data/wetland cover/watershed.inundation.csv")
 

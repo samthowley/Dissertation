@@ -11,7 +11,7 @@ int.ext <- int.ext %>%
   distinct(ID, Date, .keep_all = T)
 
 watershed.inundation<-watershed.inundation%>%
-  select(ID, Basin, total.basin.inundation, date)%>%
+  select(ID, Basin, total.basin.inundation, contrib.basin.inundation, date)%>%
   mutate(date=mdy(date))
 #figure#####
 
@@ -50,7 +50,7 @@ plot_lme_results <- function(model,        # fitted lme model
     scale_y_log10() + #scale_x_log10() +
     # annotate("text", x=0.05, y = 30, label = stats_label,
     #          hjust = 0, vjust = 1.5, size = 3.5, fontface = "italic") +
-    annotate("text", x=-25, y = Inf, label = stats_label,
+    annotate("text", x=0, y = Inf, label = stats_label,
              hjust = 0, vjust = 1.5, size = 3.5, fontface = "italic") +    
     
     labs(title = title, x = x_lab, y = y_lab) +
@@ -291,8 +291,6 @@ c<-plot_lme_results(
 plot_grid(a,b,c, ncol=1)
 #int.ext.ratio~total.basin.inundation#################
 
-
-
 int.ext.inun<-int.ext%>%
   select(ID, Basin, external, internal,int.ext.ratio, day, hour_index)%>%
   rename(date=day)%>%
@@ -375,6 +373,65 @@ c<-plot_lme_results(
   y_var     = "external",
   group_var = "ID",
   fixed_var = "log10(total.basin.inundation)",
+  x_lab     = expression('Watershed Inundation'~'(Wetland Percent * Mean Watertable Depth)'),
+  y_lab     = expression(CO[2] ~ "g/" ~ m^2 / "day"),
+  title     = expression("External Pathway Response to Watershed Inundation")
+)
+
+
+plot_grid(a, b, c, ncol=1)
+
+
+#internal~contrib.basin.inundation#################
+
+model <- lme(
+  fixed       = log10(internal) ~ contrib.basin.inundation,
+  random      = ~ 1 | ID,
+  correlation = corAR1(form = ~ hour_index | ID),
+  data        = int.ext.inun,
+  method      = "REML"
+)
+
+summary(model)
+anova(model)
+r2(model)
+
+plot_lme_results(
+  model     = model,
+  data      = int.ext.inun,
+  x_var     = "contrib.basin.inundation",
+  y_var     = "internal",
+  group_var = "ID",
+  fixed_var = "contrib.basin.inundation",
+  x_lab     = expression('Watershed Inundation'~'(Wetland Percent * Mean Watertable Depth)'),
+  y_lab     = expression(CO[2] ~ "g/" ~ m^2 / "day"),
+  title     = expression("Internal Pathway Response to Watershed Inundation")
+)
+
+
+#external~contrib.basin.inundation#################
+
+model <- lme(
+  fixed       = log10(external) ~ contrib.basin.inundation,
+  random      = ~ 1 | ID,
+  correlation = corAR1(form = ~ hour_index | ID),
+  data        = int.ext.inun,
+  method      = "REML"
+)
+
+summary(model)
+anova(model)
+r2(model)
+
+
+
+plot_lme_results(
+  model     = model,
+  data      = int.ext.inun,
+  x_var     = "contrib.basin.inundation",
+  y_var     = "external",
+  group_var = "ID",
+  fixed_var = "contrib.basin.inundation",
   x_lab     = expression('Watershed Inundation'~'(Wetland Percent * Mean Watertable Depth)'),
   y_lab     = expression(CO[2] ~ "g/" ~ m^2 / "day"),
   title     = expression("External Pathway Response to Watershed Inundation")

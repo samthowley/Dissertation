@@ -32,7 +32,9 @@ watershed.innundation<-left_join(wetland_stage, wetland_cover)%>%
   select(-year, -date)%>%
   distinct(Date, Basin, .keep_all = T)
 
-inundation<-left_join(int.ext, watershed.innundation)#%>%
+inundation<-left_join(int.ext%>%mutate(Date=as.Date(Date)), 
+                      watershed.innundation%>%select(Date, Basin, total.basin.inundation, contrib.basin.inundation), 
+                      by=c('Date', 'Basin'))#%>%
 
 write_csv(watershed.innundation, "01_Raw_data/wetland cover/watershed.inundation.csv")
 #total wetland cover####################
@@ -177,17 +179,109 @@ contrib.wetland.impact %>%
 
 
 #scatter plots##########
-ggplot(inundation, aes(x = total.basin.inundation, y = external)) +
-  geom_point(color='black') +
-  ylab(expression(CO[2]~'g'/m^2/'day')) +
-  xlab(expression('Watershed Inundation'~'(Wetland Percent*Water Table depth)'))+
-  ggtitle(expression(CO[2]~'Pathway'~'Responses'~'to'~'Watershed'~'Inundation'))+
-  facet_wrap(~ID, scales='free')
+
+common.layers<-list(  
+  geom_point(color='black'),
+                  ylab(expression(CO[2]~'g'/m^2/'day')),
+                  scale_y_log10(),
+                stat_poly_line(formula = y ~ x, se = FALSE),
+                  stat_poly_eq(
+                    aes(label = paste(..p.value.label..,  sep = " ~~ ")),
+                    formula = log10(y) ~ x, parse = TRUE,
+                    size = 5, label.x = "left", label.y = "top", vstep = 0.1
+                  ),
+                facet_wrap(~ID, scales='free')
+                
+)
+
+#Basin Wetland Percent#
+plot_grid(
+  inundation%>%filter(ID%in% c('3','9'))%>%
+ggplot(aes(x = total.basin.inundation, y = external)) +
+  xlab(expression('Watershed Inundation'~'(Basin Wetland Percent*Mean Watertable Depth)'))+
+  ggtitle(expression('External'~'Pathway'~'Responses'~'to'~'Watershed'~'Inundation'))+
+  common.layers
+ 
+,
+inundation%>%filter(ID%in% c('3','9'))%>%
+ggplot(aes(x = total.basin.inundation, y = internal)) +
+  xlab(expression('Watershed Inundation'~'(Basin Wetland Percent*Mean Watertable Depth)'))+
+  ggtitle(expression('Internal'~'Pathway'~'Responses'~'to'~'Watershed'~'Inundation'))+
+  common.layers,
+ncol = 2)
+
+#Contributing Area
+plot_grid(
+  inundation%>%filter(ID%in% c('3','9'))%>%
+  ggplot(aes(x = contrib.basin.inundation, y = external)) +
+    xlab(expression('Watershed Inundation'~'(Contributing Area Wetland Percent*Mean Watertable Depth)'))+
+    ggtitle(expression('External'~'Pathway'~'Responses'~'to'~'Watershed'~'Inundation'))+
+    common.layers
+  
+  ,
+  inundation%>%filter(ID%in% c('3','9'))%>%
+  ggplot(aes(x = contrib.basin.inundation, y = internal)) +
+    xlab(expression('Watershed Inundation'~'(Contributing Area Wetland Percent*Mean Watertable Depth)'))+
+    ggtitle(expression('Internal'~'Pathway'~'Responses'~'to'~'Watershed'~'Inundation'))+
+    common.layers,
+  ncol = 2)
 
 
-ggplot(inundation, aes(x = contrib.basin.inundation, y = external)) +
-  geom_point(color='black') +
-  ylab(expression(CO[2]~'g'/m^2/'day')) +
-  xlab(expression('Watershed Inundation'~'(Wetland Percent*Water Table depth)'))+
-  ggtitle(expression(CO[2]~'Pathway'~'Responses'~'to'~'Watershed'~'Inundation'))+
-  facet_wrap(~ID, scales='free')
+
+
+
+
+#extract slopes###########
+
+
+
+
+slopes<-rbind(
+site_lm_table_fun(inundation, log10(internal), ID, internal) %>%
+  mutate(pathway = "Internal") %>%
+  rename(slope = slope, p = p_slope)
+,
+site_lm_table_fun(inundation, log10(internal), ID, external) %>%
+  mutate(pathway = "External") %>%
+  rename(slope = slope, p = p_slope))%>%
+  mutate(
+    Basin=case_when(ID=='5'~'5',ID=='5a'~'5',ID=='15'~'15',
+                    ID=='3'~'6',ID=='7'~'7',ID=='6'~'6',ID=='6a'~'6',
+                    ID=='9'~'9', ID=='13'~'13')
+  )%>%
+  left_join(wetland_cover)%>%
+  mutate(
+    significance=if_else(p<=0.005, "significant", "insignificant")
+  )
+
+slopes%>%
+  ggplot(aes(
+    x=contrib.wetland.perc,
+    y = slope,
+    color=pathway)) +
+  geom_point(aes(shape=significance), size=5)+
+  labs(fill='Pathway', shape="p-value", color="Sites")+
+  geom_hline(yintercept = 0, linetype="dashed", color='green', size=3)+
+  ggtitle("Pathway Response to Watershed Inundation")+
+  xlab("Contributing Area Wetland Percent")+
+  theme(
+    axis.title.x = element_text(size=17, color='black'),
+    axis.text.x = element_text(size=17, color='black')
+  )
+
+
+slopes%>%
+  ggplot(aes(
+    x=total.wetland.perc,
+    y = slope,
+    color=pathway)) +
+  geom_point(aes(shape=significance), size=5)+
+  labs(fill='Pathway', shape="p-value", color="Sites")+
+  geom_hline(yintercept = 0, linetype="dashed", color='green', size=3)+
+  ggtitle("Pathway Response to Watershed Inundation")+
+  xlab("Basin Wetland Percent")+
+  theme(
+    axis.title.x = element_text(size=17, color='black'),
+    axis.text.x = element_text(size=17, color='black')
+  )
+
