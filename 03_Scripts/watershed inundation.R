@@ -14,7 +14,14 @@ watershed<-left_join(basin_area, totalbasinwetland)%>%
     total.wetland.area=sum(total.wetland.area),
     basin.area=mean(basin.area, na.rm=T)
   )%>%
-  mutate(basin.wetland.perc=total.wetland.area/basin.area)
+  mutate(basin.wetland.perc=total.wetland.area/basin.area)%>%
+  rename(ID=Basin)
+
+watershed%>%
+  ggplot(aes(x=Basin))+
+  geom_point(aes(y=total.wetland.area))+
+  geom_point(aes(y=basin.area), color='red')
+  geom_point()
 
 
 
@@ -27,27 +34,32 @@ for(i in file.names){
   DO_all<-rbind(DO_all, DO)
   DO_all[order(as.Date(DO_all$date, format="%Y-%m-%d %H:%M:%S")),]
 }
+unique(DO_all$ID)
+names(DO_all)
 
 wetland.contrib<-DO_all%>%
-group_by(ID)%>%
+  select(ID, Shape_Area_overlay, SHAPE_Area)%>%
+  group_by(ID)%>%
   summarise(
-    contrib.wetland.area=sum(SHAPE_Area),
-    subbasin.area=mean(Shape_Area_overlay, na.rm=T)
+    subbasin.area=mean(Shape_Area_overlay, na.rm=T),
+    contrib.wetland.area=sum(SHAPE_Area, na.rm=T)
   )%>%
-  mutate(
-    Basin=case_when(ID=='5'~'5',ID=='5a'~'5',ID=='15'~'15',
-                    ID=='3'~'6',ID=='7'~'7',ID=='6'~'6',ID=='6a'~'6',
-                    ID=='9'~'9', ID=='13'~'13'),
-    contrib.wetland.perc=contrib.wetland.area/subbasin.area
-  ) 
+  mutate(contrib.wetland.perc=contrib.wetland.area/ subbasin.area)
+
+wetland.contrib%>%
+  ggplot(aes(x=ID))+
+  geom_point(aes(y=contrib.wetland.area))+
+  geom_point(aes(y=subbasin.area), color='red')
 
 
-wetland.cover<-left_join(wetland.contrib, watershed)
+
+wetland.cover<-left_join(watershed, wetland.contrib)
+
 
 wetland_stage <- read_csv("01_Raw_data/wetland cover/wetland stage.csv")%>%
   separate(well_id, into = c("ID", "wetland"), sep = "_")%>%
   mutate(Date=mdy(date))%>%
-  filter(flag==0)%>%
+  filter(flag==0, !ID %in% c('14', 'dry', 'wet'))%>%
   group_by(ID, Date)%>%
   summarise(
     well_depth_m=mean(well_depth_m,na.rm=T)
@@ -55,10 +67,14 @@ wetland_stage <- read_csv("01_Raw_data/wetland cover/wetland stage.csv")%>%
   left_join(wetland.cover)%>%
   drop_na(well_depth_m)%>%
   mutate(
-    contrib.wetland.perc=contrib.wetland.perc*well_depth_m,
-    total.wetland.perc=basin.wetland.perc*well_depth_m
+    contrib.wetland.inun=contrib.wetland.perc*well_depth_m,
+    total.wetland.inun=basin.wetland.perc*well_depth_m
   )
 
+wetland_stage%>%
+  ggplot(aes(x=Date, y=total.wetland.inun))+
+  geom_point()+
+  facet_wrap(~ID, scales='free')
   
 write_csv(wetland_stage, "04_Output/watershed.inundation.csv")
 

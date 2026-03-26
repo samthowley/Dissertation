@@ -45,25 +45,10 @@ col<-c("internal" ='red', "external"='black', 'CO2_flux'='darkgray')
 
 
 
-wetland_cover <- read_csv("01_Raw_data/wetland cover/wetland_cover.csv")%>%
-  rename(Basin=Basin_Name)%>%
-  select(Basin, PERCENTAGE, AREA)%>%
-  rename(basin.wetland.perc=PERCENTAGE, basin.area=AREA)
-
-contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>%
-  select(Wetland.area, ID)%>%
-  rename(contrib.wetland.area=Wetland.area)
-
 int.ext <- read_csv("04_Output/stream/external-internal.csv")%>%
   mutate(
     Basin=as.factor(Basin),
-    day=as.Date(Date))%>%
-  left_join(wetland_cover)%>%
-  # mutate(
-  #   wetland.perc=round(wetland.perc, 2),
-  #   ID_wetland.perc=paste0(ID, "_", wetland.perc)
-  #        )%>%
-  left_join(contrib_wetlands)
+    day=as.Date(Date))
 
 
 labels_vec_wetperc <- setNames(
@@ -90,11 +75,11 @@ master_metabolism <- read_csv("04_Output/stream/master_metabolism.csv")%>%
   select(date, K600, ID)%>%
   rename(day=date)
 
-# gw_corrected_metabolism <- read_csv("04_Output/gw_corrected_metabolism.csv")%>%
-#   mutate(day=as.Date(Date))%>%
-#   select(ID, day, NEP_corrected)
+gw_corrected_metabolism <- read_csv("04_Output/stream/gw_corrected_metabolism.csv")%>%
+  mutate(day=as.Date(Date))%>%
+  select(ID, day, NEP_corrected)
 
-watershed.inundation <- read_csv("01_Raw_data/wetland cover/watershed.inundation.csv")
+watershed.inundation <- read_csv("04_Output/watershed.inundation.csv")
 
 #site function############
 

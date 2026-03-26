@@ -1,81 +1,51 @@
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
-#calculate inundation#############
-contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>%
-  rename(contrib.wetland.area=Wetland.area, contrib.wetland.perc=PERCENTAGE, Basin=ID)
+names(wetland.impact)
 
-wetland_cover <- read_csv("01_Raw_data/wetland cover/wetland_cover.csv")%>%
-  select(Basin_Name, AREA, PERCENTAGE)%>%
-  rename(Basin='Basin_Name', total.wetland.area=AREA, total.wetland.perc=PERCENTAGE)%>%
-  left_join(contrib_wetlands)
+wetland_cover <- watershed_inundation%>%
+  select(ID, total.wetland.area, basin.wetland.perc,
+         contrib.wetland.area, contrib.wetland.perc)%>%
+  mutate(basin.wetland.perc=round(basin.wetland.perc, 2),
+         contrib.wetland.perc=round(contrib.wetland.perc, 2)
+  )
 
-wetland_stage <- read_csv("01_Raw_data/wetland cover/wetland stage.csv")%>%
-  separate(well_id, "_", into=c("Basin", "wetland"))%>%
-  filter(flag==0)%>%
-  group_by(Basin, date)%>%
-  mutate(
-    well.depth.m=mean(well_depth_m, na.rm=T),
-  )%>%
-  select(date, Basin, well.depth.m)
+wetland.impact<-int.ext%>%
+  select(ID, Date, int.ext.ratio, internal, external)%>%
+  left_join(wetland_cover)%>%
+  distinct(ID, Date,.keep_all = T)
 
-
-watershed.innundation<-left_join(wetland_stage, wetland_cover)%>%
-  mutate(
-    basin.area=total.wetland.area/(total.wetland.perc/100),
-    total.basin.inundation=total.wetland.perc*well.depth.m,
-    contrib.basin.inundation=(contrib.wetland.area/basin.area)*well.depth.m,
-    Date=mdy(date),
-    year=year(Date)
-    )%>%
-  filter(!Basin %in% c('14', '14.9', 'dry', 'wet'), 
-         year %in% c('2023', '2024', '2025', '2026'))%>%
-  select(-year, -date)%>%
-  distinct(Date, Basin, .keep_all = T)
-
-inundation<-left_join(int.ext%>%mutate(Date=as.Date(Date)), 
-                      watershed.innundation%>%select(Date, Basin, total.basin.inundation, contrib.basin.inundation), 
-                      by=c('Date', 'Basin'))#%>%
-
-write_csv(watershed.innundation, "01_Raw_data/wetland cover/watershed.inundation.csv")
 #total wetland cover####################
-wetland_cover <- read_csv("01_Raw_data/wetland cover/wetland_cover.csv")%>%
-  select(Basin_Name, AREA, PERCENTAGE)%>%
-  rename(Basin='Basin_Name', total.wetland.area=AREA, total.wetland.perc=PERCENTAGE)%>%
-  mutate(total.wetland.perc=round(total.wetland.perc, 2))
-
-total.wetland.impact<-int.ext%>%
-  select(ID, Date, int.ext.ratio, Basin)%>%
-  left_join(wetland_cover)
-
+names(wetland.impact)
+total.wetland.impact<-wetland.impact%>%select(-contrib.wetland.area, -contrib.wetland.perc)
 
 labs_df <- total.wetland.impact %>%
-  distinct(ID, total.wetland.perc) %>%
-  arrange(total.wetland.perc)
+  distinct(ID, basin.wetland.perc) %>%
+  arrange(basin.wetland.perc)
 
 id_levels <- labs_df$ID
-x_labs <- setNames(paste0(labs_df$ID, "\n", labs_df$total.wetland.perc), labs_df$ID)
+x_labs <- setNames(paste0(labs_df$ID, "\n", labs_df$basin.wetland.perc), labs_df$ID)
 
 # 2) Means (for stars + trend line)
 means_df <- total.wetland.impact %>%
   mutate(
-    total.wetland.perc = as.numeric(total.wetland.perc),
+    basin.wetland.perc = as.numeric(basin.wetland.perc),
     ID = factor(ID, levels = id_levels)
   ) %>%
   group_by(ID) %>%
   summarise(
     mean_ratio = mean(int.ext.ratio, na.rm = TRUE),
-    total.wetland.perc = first(total.wetland.perc),
+    basin.wetland.perc = first(basin.wetland.perc),
     .groups = "drop"
   )
 
-for.lm<-inundation%>%
-  group_by(ID, Basin)%>%
-  summarise(mean.ratio=mean(int.ext.ratio, na.rm=T))%>%
-  left_join(wetland_cover)
-summary(lm(mean.ratio ~ total.wetland.perc, data = for.lm))
+for.lm<-total.wetland.impact%>%
+  group_by(ID, basin.wetland.perc)%>%
+  summarise(mean.ratio=mean(int.ext.ratio, na.rm=T))
 
-model <- lm(mean.ratio ~ total.wetland.perc, data = for.lm)
-p_val <- summary(model)$coefficients["total.wetland.perc", "Pr(>|t|)"]
+summary(lm(mean.ratio ~ basin.wetland.perc, data = for.lm))
+
+model <- lm(mean.ratio ~ basin.wetland.perc, data = for.lm)
+p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
 p_label <- paste0("p = ", signif(p_val, 3))
 
 # 3) Plot
@@ -180,6 +150,7 @@ contrib.wetland.impact %>%
 
 #scatter plots##########
 
+watershed_inundation.df<-left_join(int.ext, watershed.inundation)
 common.layers<-list(  
   geom_point(color='black'),
                   ylab(expression(CO[2]~'g'/m^2/'day')),
@@ -195,22 +166,28 @@ common.layers<-list(
 )
 
 #Basin Wetland Percent#
+names(watershed_inundation.df)
+
 plot_grid(
-  inundation%>%filter(ID%in% c('3','9'))%>%
-ggplot(aes(x = total.basin.inundation, y = external)) +
+  
+  watershed_inundation.df%>%
+    #filter(ID%in% c('3','9'))%>%
+ggplot(aes(x = total.wetland.inun, y = external)) +
   xlab(expression('Watershed Inundation'~'(Basin Wetland Percent*Mean Watertable Depth)'))+
   ggtitle(expression('External'~'Pathway'~'Responses'~'to'~'Watershed'~'Inundation'))+
   common.layers
  
 ,
-inundation%>%filter(ID%in% c('3','9'))%>%
-ggplot(aes(x = total.basin.inundation, y = internal)) +
+watershed_inundation.df%>%
+  #filter(ID%in% c('3','9'))%>%
+ggplot(aes(x = total.wetland.inun, y = internal)) +
   xlab(expression('Watershed Inundation'~'(Basin Wetland Percent*Mean Watertable Depth)'))+
   ggtitle(expression('Internal'~'Pathway'~'Responses'~'to'~'Watershed'~'Inundation'))+
   common.layers,
 
-inundation%>%filter(ID%in% c('3','9'))%>%
-  ggplot(aes(x = total.basin.inundation, y = int.ext.ratio)) +
+watershed_inundation.df%>%
+  #filter(ID%in% c('3','9'))%>%
+  ggplot(aes(x = total.wetland.inun, y = int.ext.ratio)) +
   xlab(expression('Watershed Inundation'~'(Basin Wetland Percent*Mean Watertable Depth)'))+
   ggtitle(expression('Pathway'~'Ratio'~'Responses'~'to'~'Watershed'~'Inundation'))+
   common.layers,
@@ -289,7 +266,7 @@ slopes%>%
 
 slopes%>%
   ggplot(aes(
-    x=total.wetland.perc,
+    x=basin.wetland.perc,
     y = slope,
     color=pathway)) +
   geom_point(aes(shape=significance), size=5)+
