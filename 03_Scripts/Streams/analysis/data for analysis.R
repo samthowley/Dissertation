@@ -47,9 +47,9 @@ col<-c("internal" ='red', "external"='black', 'CO2_flux'='darkgray')
 
 
 
-contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>%
-  select(Wetland.area, ID)%>%
-  rename(contrib.wetland.area=Wetland.area)
+# contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>%
+#   select(Wetland.area, ID)%>%
+#   rename(contrib.wetland.area=Wetland.area)
 
 int.ext <- read_csv("04_Output/stream/external-internal.csv")%>%
   mutate(
