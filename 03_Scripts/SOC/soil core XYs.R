@@ -65,10 +65,11 @@ AJ<-left_join(BradfordFebSOC_AJ, WetlandElevation_AJ)%>%
   
 soil.samples<-rbind(Forest_plot_master_file, Bradford_Data_Faith, AJ)%>%
   separate(Increment, into = c("Upper", "Lower"), sep = "_", remove = FALSE)
-  
+write_csv(soil.samples, "04_Output/carbon mapping/LOI.csv")
+
 
 soil.samples.XY<-soil.samples%>%select(Site_ID, person, Lat, Long)
-write_csv(soil.samples.XY, "04_Output/RC/carbon mapping/soil.samples.XY.csv")
+write_csv(soil.samples.XY, "04_Output/carbon mapping/soil.samples.XY.csv")
 
 
 #my streams#####
@@ -76,7 +77,7 @@ write_csv(soil.samples.XY, "04_Output/RC/carbon mapping/soil.samples.XY.csv")
 stream_depths <- read_csv("04_Output/RC/carbon mapping/stream depths.csv")%>%
   rename(Site_ID=ID)%>%
   left_join(Bradford_coords_all)
-write_csv(stream_depths, "04_Output/RC/carbon mapping/stream_depths.csv")
+write_csv(stream_depths, "04_Output/carbon mapping/stream_depths.csv")
 
 #figure##########
 surfaceelevations <- read_csv("04_Output/RC/carbon mapping/surfaceelevations.csv")

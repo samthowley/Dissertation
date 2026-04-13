@@ -11,8 +11,8 @@ int.ext <- int.ext %>%
   distinct(ID, Date, .keep_all = T)
 
 watershed.inundation<-watershed.inundation%>%
-  select(ID, Basin, total.basin.inundation, contrib.basin.inundation, date)%>%
-  mutate(date=mdy(date))
+  select(ID, total.wetland.inun, contrib.wetland.inun, Date)
+         
 #figure#####
 
 plot_lme_results <- function(model,        # fitted lme model
@@ -50,8 +50,13 @@ plot_lme_results <- function(model,        # fitted lme model
     scale_y_log10() + #scale_x_log10() +
     # annotate("text", x=0.05, y = 30, label = stats_label,
     #          hjust = 0, vjust = 1.5, size = 3.5, fontface = "italic") +
+<<<<<<< HEAD
     annotate("text", x=-0.20, y = Inf, label = stats_label,
              hjust = 0, vjust = 1.5, size = 3.5, fontface = "italic") +    
+=======
+    annotate("text", x=-0.5, y = Inf, label = stats_label,
+             hjust = 0, vjust = 1.5, size = 3.5, fontface = "italic") +
+>>>>>>> a8500a1ec5520abcdef8a9d032c8701d8b6d3db7
     
     labs(title = title, x = x_lab, y = y_lab) +
     theme_classic()
@@ -292,15 +297,15 @@ plot_grid(a,b,c, ncol=1)
 #int.ext.ratio~total.basin.inundation#################
 
 int.ext.inun<-int.ext%>%
-  select(ID, Basin, external, internal,int.ext.ratio, day, hour_index)%>%
-  rename(date=day)%>%
+  select(ID, external, internal,int.ext.ratio, Date, hour_index)%>%
+  mutate(Date=as.Date(Date))%>%
   left_join(watershed.inundation)%>%
-  arrange(ID, date)%>%
-  drop_na(total.basin.inundation)
+  arrange(ID, Date)%>%
+  drop_na(total.wetland.inun)
 
 
 model <- lme(
-  fixed       = log10(int.ext.ratio) ~ log10(total.basin.inundation),
+  fixed       = log10(int.ext.ratio) ~ log10(total.wetland.inun),
   random      = ~ 1 | ID,
   correlation = corAR1(form = ~ hour_index | ID),
   data        = int.ext.inun,
@@ -315,11 +320,11 @@ r2(model)
 a<-plot_lme_results(
   model     = model,
   data      = int.ext.inun,
-  x_var     = "total.basin.inundation",
+  x_var     = "total.wetland.inun",
   y_var     = "int.ext.ratio",
   group_var = "ID",
-  fixed_var = "log10(total.basin.inundation)",
-  x_lab     = expression('Watershed Inundation'~'(Wetland Percent * Mean Watertable Depth)'),
+  fixed_var = "log10(total.wetland.inun)",
+  x_lab     = expression('Watershed Inundation'~'(Basin Wetland Percent * Mean Watertable Depth)'),
   y_lab     = expression(CO[2] ~ "g/" ~ m^2 / "day"),
   title     = expression("Internal-External Ratio Response to Watershed Inundation")
 )
@@ -327,7 +332,7 @@ a<-plot_lme_results(
 #internal~total.basin.inundation#################
 
 model <- lme(
-  fixed       = internal ~ log10(total.basin.inundation),
+  fixed       = log10(internal) ~ total.wetland.inun,
   random      = ~ 1 | ID,
   correlation = corAR1(form = ~ hour_index | ID),
   data        = int.ext.inun,
@@ -341,11 +346,11 @@ r2(model)
 b<-plot_lme_results(
   model     = model,
   data      = int.ext.inun,
-  x_var     = "total.basin.inundation",
+  x_var     = "total.wetland.inun",
   y_var     = "internal",
   group_var = "ID",
-  fixed_var = "log10(total.basin.inundation)",
-  x_lab     = expression('Watershed Inundation'~'(Wetland Percent * Mean Watertable Depth)'),
+  fixed_var = "total.wetland.inun",
+  x_lab     = expression('Watershed Inundation'~'(Basin Wetland Percent * Mean Watertable Depth)'),
   y_lab     = expression(CO[2] ~ "g/" ~ m^2 / "day"),
   title     = expression("Internal Pathway Response to Watershed Inundation")
 )
@@ -353,7 +358,7 @@ b<-plot_lme_results(
 
 #external~total.basin.inundation#################
 model <- lme(
-  fixed       = external ~ log10(total.basin.inundation),
+  fixed       = log10(external) ~ total.wetland.inun,
   random      = ~ 1 | ID,
   correlation = corAR1(form = ~ hour_index | ID),
   data        = int.ext.inun,
@@ -369,11 +374,11 @@ r2(model)
 c<-plot_lme_results(
   model     = model,
   data      = int.ext.inun,
-  x_var     = "total.basin.inundation",
+  x_var     = "total.wetland.inun",
   y_var     = "external",
   group_var = "ID",
-  fixed_var = "log10(total.basin.inundation)",
-  x_lab     = expression('Watershed Inundation'~'(Wetland Percent * Mean Watertable Depth)'),
+  fixed_var = "total.wetland.inun",
+  x_lab     = expression('Watershed Inundation'~'(Basin Wetland Percent * Mean Watertable Depth)'),
   y_lab     = expression(CO[2] ~ "g/" ~ m^2 / "day"),
   title     = expression("External Pathway Response to Watershed Inundation")
 )
@@ -403,7 +408,7 @@ a<-plot_lme_results(
   y_var     = "internal",
   group_var = "ID",
   fixed_var = "contrib.basin.inundation",
-  x_lab     = expression('Watershed Inundation'~'(Wetland Percent * Mean Watertable Depth)'),
+  x_lab     = expression('Watershed Inundation'~'(Contributing Area Wetland Percent * Mean Watertable Depth)'),
   y_lab     = expression(CO[2] ~ "g/" ~ m^2 / "day"),
   title     = expression("Internal Pathway Response to Watershed Inundation")
 )
@@ -424,7 +429,10 @@ anova(model)
 r2(model)
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> a8500a1ec5520abcdef8a9d032c8701d8b6d3db7
 b<-plot_lme_results(
   model     = model,
   data      = int.ext.inun,
@@ -432,19 +440,24 @@ b<-plot_lme_results(
   y_var     = "external",
   group_var = "ID",
   fixed_var = "contrib.basin.inundation",
-  x_lab     = expression('Watershed Inundation'~'(Wetland Percent * Mean Watertable Depth)'),
+  x_lab     = expression('Watershed Inundation'~'(Contributing Area Wetland Percent * Mean Watertable Depth)'),
   y_lab     = expression(CO[2] ~ "g/" ~ m^2 / "day"),
   title     = expression("External Pathway Response to Watershed Inundation")
 )
 
 
-plot_grid(a, b, c, ncol=1)
+#int.ext.ratio~contrib.basin.inundation#################
 
+<<<<<<< HEAD
 
 #ratio~contrib.basin.inundation#################
 
 model <- lme(
   fixed       = log10(int.ext.ratio) ~ contrib.basin.inundation,
+=======
+model <- lme(
+  fixed       = log10(int.ext.ratio) ~contrib.basin.inundation,
+>>>>>>> a8500a1ec5520abcdef8a9d032c8701d8b6d3db7
   random      = ~ 1 | ID,
   correlation = corAR1(form = ~ hour_index | ID),
   data        = int.ext.inun,
@@ -456,6 +469,7 @@ anova(model)
 r2(model)
 
 
+<<<<<<< HEAD
 
 c<-plot_lme_results(
   model     = model,
@@ -472,3 +486,18 @@ c<-plot_lme_results(
 
 plot_grid(a, b, c, ncol=1)
 
+=======
+c<-plot_lme_results(
+  model     = model,
+  data      = int.ext.inun,
+  x_var     = "total.basin.inundation",
+  y_var     = "int.ext.ratio",
+  group_var = "ID",
+  fixed_var = "contrib.basin.inundation",
+  x_lab     = expression('Watershed Inundation'~'(Contributing Area Wetland Percent * Mean Watertable Depth)'),
+  y_lab     = expression(CO[2] ~ "g/" ~ m^2 / "day"),
+  title     = expression("Internal-External Ratio Response to Watershed Inundation")
+)
+
+plot_grid(a, b, c, ncol=1)
+>>>>>>> a8500a1ec5520abcdef8a9d032c8701d8b6d3db7

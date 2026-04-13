@@ -1,5 +1,6 @@
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
+<<<<<<< HEAD
 #calculate inundation#############
 contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>%
   rename(contrib.wetland.area=Wetland.area, contrib.wetland.perc=PERCENTAGE)
@@ -7,74 +8,53 @@ contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>
 wetland_cover <- read_csv("01_Raw_data/wetland cover/wetland_cover.csv")%>%
   select(Basin_Name, AREA, PERCENTAGE)%>%
   rename(Basin='Basin_Name', total.wetland.area=AREA, total.wetland.perc=PERCENTAGE)
+=======
 
-wetland_stage <- read_csv("01_Raw_data/wetland cover/wetland stage.csv")%>%
-  separate(well_id, "_", into=c("Basin", "wetland"))%>%
-  filter(flag==0)%>%
-  group_by(Basin, date)%>%
-  mutate(
-    well.depth.m=mean(well_depth_m, na.rm=T),
-  )%>%
-  select(date, Basin, well.depth.m)
+wetland_cover <- watershed.inundation%>%
+  select(ID, total.wetland.area, basin.wetland.perc,
+         contrib.wetland.area, contrib.wetland.perc)%>%
+  mutate(basin.wetland.perc=round(basin.wetland.perc, 2),
+         contrib.wetland.perc=round(contrib.wetland.perc, 2)
+  )
+>>>>>>> a8500a1ec5520abcdef8a9d032c8701d8b6d3db7
 
+wetland.impact<-int.ext%>%
+  select(ID, Date, int.ext.ratio, internal, external)%>%
+  left_join(wetland_cover)%>%
+  distinct(ID, Date,.keep_all = T)
 
-watershed.innundation<-left_join(wetland_stage, wetland_cover)%>%
-  mutate(
-    basin.area=total.wetland.area/(total.wetland.perc/100),
-    total.basin.inundation=total.wetland.perc*well.depth.m,
-    contrib.basin.inundation=(contrib.wetland.area/basin.area)*well.depth.m,
-    Date=mdy(date),
-    year=year(Date)
-    )%>%
-  filter(!Basin %in% c('14', '14.9', 'dry', 'wet'), 
-         year %in% c('2023', '2024', '2025', '2026'))%>%
-  select(-year, -date)%>%
-  distinct(Date, Basin, .keep_all = T)
-
-inundation<-left_join(int.ext%>%mutate(Date=as.Date(Date)), 
-                      watershed.innundation%>%select(Date, Basin, total.basin.inundation, contrib.basin.inundation), 
-                      by=c('Date', 'Basin'))#%>%
-
-write_csv(watershed.innundation, "01_Raw_data/wetland cover/watershed.inundation.csv")
 #total wetland cover####################
-wetland_cover <- read_csv("01_Raw_data/wetland cover/wetland_cover.csv")%>%
-  select(Basin_Name, AREA, PERCENTAGE)%>%
-  rename(Basin='Basin_Name', total.wetland.area=AREA, total.wetland.perc=PERCENTAGE)%>%
-  mutate(total.wetland.perc=round(total.wetland.perc, 2))
-
-total.wetland.impact<-int.ext%>%
-  select(ID, Date, int.ext.ratio, Basin)%>%
-  left_join(wetland_cover)
-
+names(wetland.impact)
+total.wetland.impact<-wetland.impact%>%select(-contrib.wetland.area, -contrib.wetland.perc)
 
 labs_df <- total.wetland.impact %>%
-  distinct(ID, total.wetland.perc) %>%
-  arrange(total.wetland.perc)
+  distinct(ID, basin.wetland.perc) %>%
+  arrange(basin.wetland.perc)
 
 id_levels <- labs_df$ID
-x_labs <- setNames(paste0(labs_df$ID, "\n", labs_df$total.wetland.perc), labs_df$ID)
+x_labs <- setNames(paste0(labs_df$ID, "\n", labs_df$basin.wetland.perc), labs_df$ID)
 
 # 2) Means (for stars + trend line)
 means_df <- total.wetland.impact %>%
   mutate(
-    total.wetland.perc = as.numeric(total.wetland.perc),
+    basin.wetland.perc = as.numeric(basin.wetland.perc),
     ID = factor(ID, levels = id_levels)
   ) %>%
   group_by(ID) %>%
   summarise(
     mean_ratio = mean(int.ext.ratio, na.rm = TRUE),
-    total.wetland.perc = first(total.wetland.perc),
+    basin.wetland.perc = first(basin.wetland.perc),
     .groups = "drop"
   )
 
-for.lm<-inundation%>%
-  group_by(ID, Basin)%>%
-  summarise(mean.ratio=mean(int.ext.ratio, na.rm=T))%>%
-  left_join(wetland_cover)
-summary(lm(mean.ratio ~ total.wetland.perc, data = for.lm))
+for.lm<-total.wetland.impact%>%
+  group_by(ID, basin.wetland.perc)%>%
+  summarise(mean.ratio=mean(int.ext.ratio, na.rm=T))
 
-model <- lm(mean.ratio ~ total.wetland.perc, data = for.lm)
-p_val <- summary(model)$coefficients["total.wetland.perc", "Pr(>|t|)"]
+summary(lm(mean.ratio ~ basin.wetland.perc, data = for.lm))
+
+model <- lm(mean.ratio ~ basin.wetland.perc, data = for.lm)
+p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
 p_label <- paste0("p = ", signif(p_val, 3))
 
 # 3) Plot
@@ -179,6 +159,8 @@ contrib.wetland.impact %>%
 
 #scatter plots##########
 
+watershed_inundation.df<-left_join(int.ext, watershed.inundation)
+
 common.layers<-list(  
   geom_point(color='black'),
                   ylab(expression(CO[2]~'g'/m^2/'day')),
@@ -194,22 +176,28 @@ common.layers<-list(
 )
 
 #Basin Wetland Percent#
+names(watershed_inundation.df)
+
 plot_grid(
-  inundation%>%filter(ID%in% c('3','9'))%>%
-ggplot(aes(x = total.basin.inundation, y = external)) +
+  
+  watershed_inundation.df%>%
+    filter(ID%in% c('3','9'))%>%
+ggplot(aes(x = total.wetland.inun, y = external)) +
   xlab(expression('Watershed Inundation'~'(Basin Wetland Percent*Mean Watertable Depth)'))+
   ggtitle(expression('External'~'Pathway'~'Responses'~'to'~'Watershed'~'Inundation'))+
   common.layers
  
 ,
-inundation%>%filter(ID%in% c('3','9'))%>%
-ggplot(aes(x = total.basin.inundation, y = internal)) +
+watershed_inundation.df%>%
+  filter(ID%in% c('3','9'))%>%
+ggplot(aes(x = total.wetland.inun, y = internal)) +
   xlab(expression('Watershed Inundation'~'(Basin Wetland Percent*Mean Watertable Depth)'))+
   ggtitle(expression('Internal'~'Pathway'~'Responses'~'to'~'Watershed'~'Inundation'))+
   common.layers,
 
-inundation%>%filter(ID%in% c('3','9'))%>%
-  ggplot(aes(x = total.basin.inundation, y = int.ext.ratio)) +
+watershed_inundation.df%>%
+  filter(ID%in% c('3','9'))%>%
+  ggplot(aes(x = total.wetland.inun, y = int.ext.ratio)) +
   xlab(expression('Watershed Inundation'~'(Basin Wetland Percent*Mean Watertable Depth)'))+
   ggtitle(expression('Pathway'~'Ratio'~'Responses'~'to'~'Watershed'~'Inundation'))+
   common.layers,
@@ -243,62 +231,80 @@ plot_grid(
 names(inundation)
 
 #extract slopes###########
-
+names(wetland_cover)
 slopes<-rbind(
-site_lm_table_fun(inundation, log10(internal), ID, contrib.basin.inundation) %>%
+site_lm_table_fun(watershed_inundation.df, log10(internal), ID, total.wetland.inun) %>%
   mutate(pathway = "Internal") %>%
   rename(slope = slope, p = p_slope)
 ,
-site_lm_table_fun(inundation, log10(external), ID, contrib.basin.inundation) %>%
+site_lm_table_fun(watershed_inundation.df, log10(external), ID, total.wetland.inun) %>%
   mutate(pathway = "External") %>%
   rename(slope = slope, p = p_slope)
 ,
-site_lm_table_fun(inundation, log10(int.ext.ratio), ID, contrib.basin.inundation) %>%
+site_lm_table_fun(watershed_inundation.df, log10(int.ext.ratio), ID, total.wetland.inun) %>%
   mutate(pathway = "Ratio") %>%
   rename(slope = slope, p = p_slope)
 )%>%
-  mutate(
-    Basin=case_when(ID=='5'~'5',ID=='5a'~'5',ID=='15'~'15',
-                    ID=='3'~'6',ID=='7'~'7',ID=='6'~'6',ID=='6a'~'6',
-                    ID=='9'~'9', ID=='13'~'13')
-  )%>%
   left_join(wetland_cover)%>%
   mutate(
     significance=if_else(p<=0.005, "significant", "insignificant")
   )
 
+names(slopes)
 
+common.layers<-list(
+  geom_point(aes(shape=significance, color=ID), size=3),
+    labs(fill='Pathway', shape="p-value", color="Sites"),
+    geom_hline(yintercept = 0, linetype="dashed"),
+  xlab("Contributing Area Wetland Percent"),
+    #geom_smooth(method=lm, se=F)+
+    theme(
+      axis.title.x = element_text(size=17, color='black'),
+      axis.text.x = element_text(size=17, color='black')
+    )+theme_minimal()
+)
 
+names(slopes)
+plot_grid(
+  
 slopes%>%
+  filter(pathway=="Internal")%>%
   ggplot(aes(
-    x=contrib.wetland.perc,
-    y = slope,
-    color=pathway)) +
-  geom_point(aes(shape=significance), size=5)+
-  labs(fill='Pathway', shape="p-value", color="Sites")+
-  geom_hline(yintercept = 0, linetype="dashed", color='green', size=3)+
-  ggtitle("Pathway Response to Watershed Inundation")+
-  xlab("Contributing Area Wetland Percent")+
-  #geom_smooth(method=lm, se=F)+
-  theme(
-    axis.title.x = element_text(size=17, color='black'),
-    axis.text.x = element_text(size=17, color='black')
-  )+theme_minimal()
-
-
+    x=basin.wetland.perc,
+    y = slope)) +
+  ggtitle("Internal Pathway Response to Watershed Inundation")+
+  common.layers
+,
 slopes%>%
+  filter(pathway=="External")%>%
   ggplot(aes(
-    x=total.wetland.perc,
-    y = slope,
-    color=pathway)) +
-  geom_point(aes(shape=significance), size=5)+
-  labs(fill='Pathway', shape="p-value", color="Sites")+
-  geom_hline(yintercept = 0, linetype="dashed", color='black', size=3)+
-  ggtitle("Pathway Response to Watershed Inundation")+
-  xlab("Basin Wetland Percent")+
-  theme(
-    axis.title.x = element_text(size=17, color='black'),
-    axis.text.x = element_text(size=17, color='black'))+
+    x=basin.wetland.perc,
+    y = slope)) +
+  ggtitle("External Pathway Response to Watershed Inundation")+
+  common.layers
+,
+slopes%>%
+  filter(pathway=="Ratio")%>%
+  ggplot(aes(
+    x=basin.wetland.perc,
+    y = slope)) +
+  ggtitle("Pathway Ratio Response to Watershed Inundation")+
+  common.layers,
+
+int.ext%>%
+  group_by(ID)%>%
+  summarise(Q=mean(Q, na.rm=T))%>%
+  arrange(Q)%>%
+  ggplot(aes(
+    x=ID,
+    y = Q)) +
+  ggtitle("Mean Q")+
+  geom_point(aes(color=ID), size=3)+
   theme_minimal()
+
+
+)
+
+
 
 

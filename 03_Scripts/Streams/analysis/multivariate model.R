@@ -1,73 +1,119 @@
+
+
+#call in data###########
 source("03_Scripts/Streams/analysis/data for analysis.R")
 library(posterior)
 library(patchwork)
 library(brms)
 library(corrplot)
 
-#call in data###########
-inun<-watershed.inundation%>%select(Date, Basin, contrib.basin.inundation, total.basin.inundation)
-
-df2<-int.ext%>%
-  left_join(DO%>%
-              mutate(Date=as.Date(Date),
-                     TempC=fahrenheit.to.celsius(Temp_DO),
-                     )%>%
+# Call in data ###########
+df <- int.ext %>%
+  left_join(DO %>%
+              mutate(Date = as.Date(Date),
+                     TempC = fahrenheit.to.celsius(Temp_DO)) %>%
               group_by(Date, ID) %>%
               summarise(
                 across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
                 .groups = "drop"
               ) %>%
               select(Date, ID, TempC),
-            by=c('Date','ID'))%>%
-  drop_na(CO2_flux, Q)%>%
+            by = c('Date', 'ID')) %>%
+  left_join(SpC) %>%
+  left_join(pH) %>%
+  drop_na(CO2_flux, Q) %>%
   mutate(
-    lQ=log10(Q),
-    lext=log10(external),
-    lint=log10(internal)
-  )%>%
-  left_join(inun)
+    lQ   = log10(Q),
+    lext = log10(external),
+    lint = log10(internal)
+  )
 
-
-df2 <- df2 %>%
+df2 <- df %>%
   filter(
-    is.finite(lQ), is.finite(TempC), is.finite(lint), is.finite(lext), is.finite(contrib.basin.inundation)) %>%
+    is.finite(lQ), is.finite(TempC), is.finite(lint), is.finite(lext),
+    is.finite(SpC), is.finite(depth), is.finite(pH)
+  ) %>%
   droplevels()
 
+df2 %>%
+  ggplot(aes(x = CO2, y = pH)) +
+  geom_point() +
+  scale_y_log10() +  scale_x_log10() +
+
+  facet_wrap(~ID, scales = 'free')
+
+# Load priors if a previous fit exists ###########
 pri <- tryCatch(prior_summary(fit_full), error = function(e) NULL)
 
+# Spatial Models ###########
 
-resid_df <- df2 %>%
-  select(ID, CO2_flux, lQ, TempC, lint, lext, contrib.basin.inundation) %>%
-  drop_na() %>%
-  group_by(ID) %>%
-  mutate(across(where(is.numeric), ~ . - mean(., na.rm = TRUE))) %>%
-  ungroup() %>%
-  select(-ID)
+# No interaction
+bf_int_full.complete_pooling <- bf(lint ~ lQ + TempC + SpC + pH)
+bf_ext_full.complete_pooling <- bf(lext ~ lQ + TempC + SpC + pH)
 
-# Compute correlation matrix on within-site residuals
-cor_matrix <- cor(resid_df, use = "pairwise.complete.obs")
+fit_complete <- brm(
+  bf_int_full.complete_pooling + bf_ext_full.complete_pooling + set_rescor(TRUE),
+  data   = df2,
+  family = student(),
+  prior  = pri,
+  cores  = 4,
+  file   = "04_Output/stream/models/spatial/complete"
+)
 
-# Plot
-corrplot(cor_matrix,
-         method   = "ellipse",
-         type     = "upper",
-         addCoef.col = "black",
-         tl.col   = "black",
-         tl.srt   = 45,
-         col      = COL2("RdBu", 200),
-         title    = "Within-site Correlations",
-         mar      = c(0, 0, 1, 0))
+complete_pooling.group <- readRDS("C:/Dissertation/04_Output/stream/models/spatial/complete_pooling.group.rds")
 
-df2 <- df2 %>%
-  mutate(inund_resid = residuals(lm(contrib.basin.inundation ~ lQ, data = df2)))
+# Interaction
+bf_int_full.interaction <- bf(lint ~ lQ * TempC + SpC * pH)
+bf_ext_full.interaction <- bf(lext ~ lQ * TempC + SpC * pH)
 
+fit_spatial_interaction <- brm(
+  bf_int_full.interaction + bf_ext_full.interaction + set_rescor(TRUE),
+  data   = df2,
+  family = student(),
+  prior  = pri,
+  cores  = 4,
+  file   = "04_Output/stream/models/spatial/spatial_interaction"
+)
+
+spatial_interaction <- readRDS("C:/Dissertation/04_Output/stream/models/spatial/spatial_interaction.rds")
+
+# Temporal Models ###########
+df1 <- df %>%
+  filter(
+    is.finite(lQ), is.finite(TempC), is.finite(lint), is.finite(lext)
+  ) %>%
+  droplevels()
+
+bf_int_full.partial_pool <- bf(lint ~ lQ + TempC + (1 | ID))
+bf_ext_full.partial_pool <- bf(lext ~ lQ + TempC + (1 | ID))
+
+fit_temporal <- brm(
+  bf_int_full.partial_pool + bf_ext_full.partial_pool + set_rescor(TRUE),
+  data   = df1,
+  family = student(),
+  prior  = pri,
+  cores  = 4,
+  file   = "04_Output/stream/models/temporal/full.rde"
+)
+
+full.rde <- readRDS("C:/Dissertation/04_Output/stream/models/temporal/full.rde.rds")
+
+# Full model with partial pooling and interaction ###########
+bf_int_full_interaction <- bf(lint ~ lQ * TempC + (1 | ID))
+bf_ext_full_interaction <- bf(lext ~ lQ * TempC + (1 | ID))
+
+fit_temporal_interaction <- brm(
+  bf_int_full_interaction + bf_ext_full_interaction + set_rescor(TRUE),
+  data   = df1,
+  family = student(),
+  prior  = pri,
+  cores  = 4,
+  file   = "04_Output/stream/models/temporal/temporal_interaction"
+)
+temporal_interaction <- readRDS("C:/Dissertation/04_Output/stream/models/temporal/temporal_interaction.rds")
 #formulas##########
 
-#patwhay
-bf_int_full <- bf(lint ~ lQ + TempC + (1 | ID))
-bf_ext_full <- bf(lext ~ lQ + TempC + (1 | ID))
-
-# Drop TEMP 
+# full grouped ny 
 bf_int_noT  <- bf(lint ~ lQ + (1 | ID))
 bf_ext_noT  <- bf(lext ~ lQ + (1 | ID))
 
@@ -75,47 +121,15 @@ bf_ext_noT  <- bf(lext ~ lQ + (1 | ID))
 bf_int_noQ  <- bf(lint ~ TempC + (1 | ID))
 bf_ext_noQ  <- bf(lext ~ TempC + (1 | ID))
 
-# models############
 
-fit <- brm(
-  bf_CO2flux_full +  + set_rescor(TRUE),
-  data = df2,
-  family = student(),
-  prior = pri,
-  cores = 4,
-  file = "04_Output/stream/CO2flux"
-)
-
-#CO2 flux#
 bf_CO2flux_full <- bf(CO2_flux ~ lQ + TempC + (1 | ID))
-
-fit_int_noT <- brm(
-  bf_CO2flux_full,
-  data = df2,
-  family = student(),
-  prior = pri,
-  cores = 4,
-  control = list(adapt_delta = 0.95),
-  file = "04_Output/stream/models/CO2flux.rds"
-)
-
-#int.ext#
 bf_ratio_full <- bf(int.ext.ratio ~ lQ + TempC + (1 | ID))
 
-fit_ratio <- brm(
-  bf_ratio_full,
-  data = df2,
-  family = student(),
-  prior = pri,
-  cores = 4,
-  control = list(adapt_delta = 0.95),
-  file = "04_Output/stream/models/int.ext.ratio.rds"
-)
 
 #remove one temp#
 fit_int_noT <- brm(
   bf_int_noT + bf_ext_full + set_rescor(TRUE),
-  data = df2,
+  data = df1,
   family = student(),
   prior = pri,
   cores = 4,
@@ -126,7 +140,7 @@ fit_int_noT <- brm(
 
 fit_ext_noT <- brm(
   bf_ext_noT + bf_int_full + set_rescor(TRUE),
-  data = df2,
+  data = df1,
   family = student(),
   prior = pri,
   cores = 4,
@@ -137,7 +151,7 @@ fit_ext_noT <- brm(
 #remove one Q#
 fit_int_noQ <- brm(
   bf_int_noQ + bf_ext_full + set_rescor(TRUE),
-  data = df2,
+  data = df1,
   family = student(),
   prior = pri,
   cores = 4,
@@ -146,7 +160,7 @@ fit_int_noQ <- brm(
 
 fit_ext_noQ <- brm(
   bf_int_full + bf_ext_noQ + set_rescor(TRUE),
-  data = df2,
+  data = df1,
   family = student(),
   prior = pri,
   cores = 4,
@@ -155,7 +169,7 @@ fit_ext_noQ <- brm(
 #remove both Q#
 fit_noQ <- brm(
   bf_int_noQ + bf_ext_noQ + set_rescor(TRUE),
-  data = df2,
+  data = df1,
   family = student(),
   prior = pri,
   cores = 4,
@@ -165,11 +179,33 @@ fit_noQ <- brm(
 #remove both T#
 fit_noT <- brm(
   bf_int_noT + bf_ext_noT + set_rescor(TRUE),
-  data = df2,
+  data = df1,
   family = student(),
   prior = pri,
   cores = 4,
   file = "04_Output/stream/models/noT.rds"
+)
+
+
+#CO2 flux#
+fit <- brm(
+  bf_CO2flux_full +  + set_rescor(TRUE),
+  data = df1,
+  family = student(),
+  prior = pri,
+  cores = 4,
+  file = "04_Output/stream/CO2flux"
+)
+
+#int.ext
+fit_ratio <- brm(
+  bf_ratio_full,
+  data = df1,
+  family = student(),
+  prior = pri,
+  cores = 4,
+  control = list(adapt_delta = 0.95),
+  file = "04_Output/stream/models/int.ext.ratio.rds"
 )
 #model comparison###########
 int_noT  <- readRDS("04_Output/stream/models/int_noT.rds")
@@ -228,6 +264,7 @@ model_comparison_df <- map_dfr(models,
                                },
                                .id = "model"
 ) %>% relocate(model, .before = parameter)
+
 
 ## --------------------------------------------------------------------------- ##
 ## 4. Pull out σ estimates per model for colour scale ------------------------
@@ -298,3 +335,25 @@ ggplot(plot_df, aes(x = Estimate, y = factor(model), color = sigma)) +
     strip.text  = element_text(size = 9),
     axis.text.y = element_text(size = 9)
   )
+
+
+
+# df2.corr <- df2 %>%
+#    select(ID, CO2_flux, lQ, TempC, lint, lext, SpC, pH, depth) %>%
+#    drop_na() %>%
+#    group_by(ID) %>%
+#    mutate(across(where(is.numeric), ~ . - mean(., na.rm = TRUE))) %>%
+#    ungroup() %>%
+#    select(-ID)
+# 
+#  cor_matrix <- cor(df2.corr, use = "pairwise.complete.obs")
+# 
+#  corrplot(cor_matrix,
+#           method      = "ellipse",
+#           type        = "upper",
+#           addCoef.col = "black",
+#          tl.col      = "black",
+#           tl.srt      = 45,
+#          col         = COL2("RdBu", 200),
+#           title       = "Within-site Correlations",
+#           mar         = c(0, 0, 1, 0))
