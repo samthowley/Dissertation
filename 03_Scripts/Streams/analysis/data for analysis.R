@@ -45,10 +45,7 @@ col<-c("internal" ='red', "external"='black', 'CO2_flux'='darkgray')
 
 
 
-wetland_cover <- read_csv("01_Raw_data/wetland cover/wetland_cover.csv")%>%
-  rename(Basin=Basin_Name)%>%
-  select(Basin, PERCENTAGE, AREA)%>%
-  rename(basin.wetland.perc=PERCENTAGE, basin.area=AREA)
+
 
 contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>%
   select(Wetland.area, ID)%>%

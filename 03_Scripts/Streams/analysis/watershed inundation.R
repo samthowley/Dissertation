@@ -2,12 +2,11 @@ source("03_Scripts/Streams/analysis/data for analysis.R")
 
 #calculate inundation#############
 contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>%
-  rename(contrib.wetland.area=Wetland.area, contrib.wetland.perc=PERCENTAGE, Basin=ID)
+  rename(contrib.wetland.area=Wetland.area, contrib.wetland.perc=PERCENTAGE)
 
 wetland_cover <- read_csv("01_Raw_data/wetland cover/wetland_cover.csv")%>%
   select(Basin_Name, AREA, PERCENTAGE)%>%
-  rename(Basin='Basin_Name', total.wetland.area=AREA, total.wetland.perc=PERCENTAGE)%>%
-  left_join(contrib_wetlands)
+  rename(Basin='Basin_Name', total.wetland.area=AREA, total.wetland.perc=PERCENTAGE)
 
 wetland_stage <- read_csv("01_Raw_data/wetland cover/wetland stage.csv")%>%
   separate(well_id, "_", into=c("Basin", "wetland"))%>%
