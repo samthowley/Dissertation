@@ -10,8 +10,19 @@ library(broom)
 library(weathermetrics)
 library(streamMetabolizer)
 library(openxlsx)
+library(outliers)
 
 #Internal Pathway#####
+file.names <- list.files(path="02_Clean_data", pattern=".csv", full.names=TRUE)
+file.names<-file.names[c(8, 7, 6)]
+data <- lapply(file.names,function(x) {read_csv(x, col_types = cols(ID = col_character()))})
+master <- reduce(data, full_join, by = c("ID", 'Date'))%>%
+  mutate(date=as.Date(Date))
+
+gw_corrected <- read_csv("04_Output/stream/gw_corrected_metabolism.csv")%>%
+  rename(date=Date)
+
+gw_corrected<-left_join(master, gw_corrected)
 
 KH<-gw_corrected %>%
   mutate(Temp_C=fahrenheit.to.celsius(Temp_DO),
@@ -28,10 +39,10 @@ KCO2<-KH %>%
   rename(day=Date)
 
 CO2<-read_csv("02_Clean_data/CO2.csv")%>%
-  mutate(day=as.Date(Date))
+  mutate(date=as.Date(Date))
 
-flux<-left_join(CO2,KCO2, by=c('day','ID'))%>%
-  group_by(day,ID)%>%
+flux<-left_join(CO2,KCO2, by=c('date','ID'))%>%
+  group_by(Date,ID)%>%
   mutate(
     CO2_day=mean(CO2, na.rm = T))%>%
   ungroup()%>%
@@ -40,11 +51,17 @@ flux<-left_join(CO2,KCO2, by=c('day','ID'))%>%
     CO2_flux=round(CO2_flux, 2),
     NEP_corrected=round(NEP_corrected, 2)
     )%>%
-  distinct(day,ID, .keep_all = T)
+  distinct(date,ID, .keep_all = T)
 
 
 pathways<-flux%>%
   mutate(
+    CO2_flux = if_else(ID == '5a' & (Q < 5 | Q > 100), NA, CO2_flux),
+    CO2_flux = if_else(ID == '7' & CO2_flux<0.4, NA, CO2_flux),
+    CO2_flux = if_else(ID == '6' & CO2_flux<2.2, NA, CO2_flux),
+    CO2_flux = if_else(ID == '9' & CO2_flux<0.3, NA, CO2_flux),
+    CO2_flux = if_else(ID == '3' & Q>100 & CO2_flux<3, NA, CO2_flux),
+    
     internal=NEP_corrected*(-12*1.2)/32,
     internal=if_else(NEP_corrected>0, 0.1, internal),
     # internal_1.2=NEP_corrected*(-44*1.2)/32,
@@ -79,9 +96,12 @@ pathways<-flux%>%
   filter(!ID=='6a', !is.na(ID)
          )%>%
   select(ID, Date, CO2, day, K600, depth, Q, CO2_flux,
-         external, internal, int.ext.ratio, Basin, NEP_corrected,
-         ER_corrected, NEP)
+         external, internal, int.ext.ratio, NEP_corrected,
+         ER_corrected)%>%
+  filter(internal>0.1, external>0.1, Q>0.1)
 
+
+#ggplotly()
 
 ggplot(
   pathways%>%filter(internal>0.1, external>0.1),

@@ -5,9 +5,9 @@ library(brms)
 library(corrplot)
 library(tidyverse)
 
-# ── Data ────────────────────────────────────────────────────────────────────
+# ── Data ##########
 inun <- watershed.inundation %>%
-  select(Date, Basin, contrib.basin.inundation, total.basin.inundation)
+  select(Date, ID, contrib.wetland.inun, total.wetland.inun)
 
 df2 <- int.ext %>%
   left_join(
@@ -26,66 +26,69 @@ df2 <- int.ext %>%
     lext = log10(external),
     lint = log10(internal)
   ) %>%
-  left_join(inun, by = c("Date", "Basin"))
+  left_join(inun)
 
 df2 <- df2 %>%
   filter(
     is.finite(lQ), is.finite(TempC),
     is.finite(lint), is.finite(lext),
-    is.finite(contrib.basin.inundation)
+    is.finite(total.wetland.inun)
   ) %>%
-  droplevels() %>%
-  mutate(inund_resid = residuals(lm(contrib.basin.inundation ~ lQ, data = .)))
+  droplevels() 
 
-# ── Within-site correlation plot ────────────────────────────────────────────
+
+df2%>%
+  ggplot(aes(x=total.wetland.inun, y=log10(Q)))+
+  geom_point()+
+  facet_wrap(~ID, scales='free')
 # resid_df <- df2 %>%
-#   select(ID, CO2_flux, lQ, TempC, lint, lext, inund_resid) %>%
-#   drop_na() %>%
-#   group_by(ID) %>%
-#   mutate(across(where(is.numeric), ~ . - mean(., na.rm = TRUE))) %>%
-#   ungroup() %>%
-#   select(-ID)
+#    select(ID, CO2_flux, lQ, TempC, lint, lext, total.wetland.inun) %>%
+#    drop_na() %>%
+#    group_by(ID) %>%
+#    mutate(across(where(is.numeric), ~ . - mean(., na.rm = TRUE))) %>%
+#    ungroup() %>%
+#    select(-ID)
 # 
-# cor_matrix <- cor(resid_df, use = "pairwise.complete.obs")
+#  cor_matrix <- cor(resid_df, use = "pairwise.complete.obs")
 # 
-# corrplot(cor_matrix,
-#          method      = "ellipse",
-#          type        = "upper",
-#          addCoef.col = "black",
+#  corrplot(cor_matrix,
+#           method      = "ellipse",
+#           type        = "upper",
+#           addCoef.col = "black",
 #          tl.col      = "black",
-#          tl.srt      = 45,
+#           tl.srt      = 45,
 #          col         = COL2("RdBu", 200),
-#          title       = "Within-site Correlations",
-#          mar         = c(0, 0, 1, 0))
+#           title       = "Within-site Correlations",
+#           mar         = c(0, 0, 1, 0))
 
 # ── Priors ──────────────────────────────────────────────────────────────────
-pri <- tryCatch(prior_summary(fit_full), error = function(e) NULL)
+pri <- NULL
 
-# ── Formulas ────────────────────────────────────────────────────────────────
+# ── Formulas ###########
 
-# Full pathway models (lQ + TempC + inund_resid)
-bf_int_full <- bf(lint ~ lQ + TempC + inund_resid + (1 | ID))
-bf_ext_full <- bf(lext ~ lQ + TempC + inund_resid + (1 | ID))
+# Full pathway models (lQ + TempC + total.wetland.inun)
+bf_int_full <- bf(lint ~ lQ + TempC + total.wetland.inun + (1 | ID))
+bf_ext_full <- bf(lext ~ lQ + TempC + total.wetland.inun + (1 | ID))
 
 # Drop TempC
-bf_int_noT  <- bf(lint ~ lQ + inund_resid + (1 | ID))
-bf_ext_noT  <- bf(lext ~ lQ + inund_resid + (1 | ID))
+bf_int_noT  <- bf(lint ~ lQ + total.wetland.inun + (1 | ID))
+bf_ext_noT  <- bf(lext ~ lQ + total.wetland.inun + (1 | ID))
 
 # Drop Q
-bf_int_noQ  <- bf(lint ~ TempC + inund_resid + (1 | ID))
-bf_ext_noQ  <- bf(lext ~ TempC + inund_resid + (1 | ID))
+bf_int_noQ  <- bf(lint ~ TempC + total.wetland.inun + (1 | ID))
+bf_ext_noQ  <- bf(lext ~ TempC + total.wetland.inun + (1 | ID))
 
-# Drop inund_resid
+# Drop total.wetland.inun
 bf_int_noI  <- bf(lint ~ lQ + TempC + (1 | ID))
 bf_ext_noI  <- bf(lext ~ lQ + TempC + (1 | ID))
 
 # CO2 flux
-bf_CO2flux_full  <- bf(CO2_flux ~ lQ + TempC + inund_resid + (1 | ID))
+bf_CO2flux_full  <- bf(CO2_flux ~ lQ + TempC + total.wetland.inun + (1 | ID))
 
 # int.ext ratio
-bf_ratio_full    <- bf(int.ext.ratio ~ lQ + TempC + inund_resid + (1 | ID))
+bf_ratio_full    <- bf(int.ext.ratio ~ lQ + TempC + total.wetland.inun + (1 | ID))
 
-# ── Models ──────────────────────────────────────────────────────────────────
+# ── Models ############
 dir.create("04_Output/stream/models_v2", recursive = TRUE, showWarnings = FALSE)
 
 # Full multivariate model
@@ -163,7 +166,7 @@ fit_ext_noQ <- brm(
   file    = "04_Output/stream/models_v2/ext_noQ.rds"
 )
 
-# Drop inund_resid from one pathway
+# Drop total.wetland.inun from one pathway
 fit_int_noI <- brm(
   bf_int_noI + bf_ext_full + set_rescor(TRUE),
   data    = df2,
@@ -206,7 +209,7 @@ fit_noT <- brm(
   file    = "04_Output/stream/models_v2/noT.rds"
 )
 
-# Drop both inund_resid
+# Drop both total.wetland.inun
 fit_noI <- brm(
   bf_int_noI + bf_ext_noI + set_rescor(TRUE),
   data    = df2,
@@ -217,7 +220,7 @@ fit_noI <- brm(
   file    = "04_Output/stream/models_v2/noI.rds"
 )
 
-# ── Model comparison ─────────────────────────────────────────────────────────
+# ── Model comparison #############
 models <- list(
   full      = readRDS("04_Output/stream/models_v2/fit_full.rds"),
   int_noT   = readRDS("04_Output/stream/models_v2/int_noT.rds"),
@@ -232,8 +235,8 @@ models <- list(
 )
 
 params_to_keep <- c(
-  "lint_Intercept", "lint_lQ", "lint_TempC", "lint_inund_resid",
-  "lext_Intercept", "lext_lQ", "lext_TempC", "lext_inund_resid",
+  "lint_Intercept", "lint_lQ", "lint_TempC", "lint_total.wetland.inun",
+  "lext_Intercept", "lext_lQ", "lext_TempC", "lext_total.wetland.inun",
   "rescor(lint,lext)",
   "sigma_lint", "sigma_lext"
 )
@@ -273,8 +276,8 @@ model_comparison_df <- model_comparison_df %>%
 
 # ── Plot ─────────────────────────────────────────────────────────────────────
 params_to_plot <- c(
-  "lint_lQ", "lint_TempC", "lint_inund_resid",
-  "lext_lQ", "lext_TempC", "lext_inund_resid"
+  "lint_lQ", "lint_TempC", "lint_total.wetland.inun",
+  "lext_lQ", "lext_TempC", "lext_total.wetland.inun"
 )
 
 plot_df <- model_comparison_df %>%
@@ -294,7 +297,7 @@ plot_df <- model_comparison_df %>%
     param_label = case_when(
       grepl("lQ",          parameter) ~ "lQ",
       grepl("TempC",       parameter) ~ "TempC",
-      grepl("inund_resid", parameter) ~ "Inundation (resid)",
+      grepl("total.wetland.inun", parameter) ~ "Inundation (resid)",
       grepl("sigma",       parameter) ~ "σ"
     ),
     pathway = factor(pathway, levels = c("External", "Internal")),

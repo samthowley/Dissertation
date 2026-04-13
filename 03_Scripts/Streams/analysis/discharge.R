@@ -1,18 +1,7 @@
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
 Q.impacts<-int.ext%>%
-  filter(external>0.1)%>%
-  mutate(
-    ID = factor(as.character(ID), levels = facet_order),
-    facet_label = paste0(ID, "\n", round(wetland.perc, 1), "% wetland")
-  ) %>%
-  mutate(
-    facet_label = factor(
-      facet_label,
-      levels = paste0(facet_order, "\n",
-                      round(wetland.perc[match(facet_order, ID)], 1),
-                      "% wetland")
-    ))
+  filter(external>0.1)
 
  Q.impacts.long<-int.ext%>%
    filter(external>0.1)%>%
@@ -20,21 +9,11 @@ Q.impacts<-int.ext%>%
     cols      = c(internal, external, CO2_flux),
     names_to  = "pathway",
     values_to = "flux"
-  )%>%
-   mutate(
-     ID = factor(as.character(ID), levels = facet_order),
-     facet_label = paste0(ID, "\n", round(wetland.perc, 1), "% wetland")
-   ) %>%
-   mutate(
-     facet_label = factor(
-       facet_label,
-       levels = paste0(facet_order, "\n",
-                       round(wetland.perc[match(facet_order, ID)], 1),
-                       "% wetland")
-     ))
+  )
 
 #scatter plots#############
- Q.impacts.long%>%filter(ID=='9')%>%
+ Q.impacts.long%>%
+   #filter(ID=='9')%>%
 ggplot(
        aes(x = Q, y = flux,
            group = pathway, color=pathway)) +

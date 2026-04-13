@@ -47,14 +47,7 @@ col<-c("internal" ='red', "external"='black', 'CO2_flux'='darkgray')
 
 int.ext <- read_csv("04_Output/stream/external-internal.csv")%>%
   mutate(
-    Basin=as.factor(Basin),
     day=as.Date(Date))
-
-
-labels_vec_wetperc <- setNames(
-  paste0(int.ext$ID, "\n", int.ext$wetland.perc),
-  int.ext$ID_wetland.perc)
-
 
 temperature <- read_csv("02_Clean_data/temperature.csv")%>%
   mutate(
@@ -70,6 +63,17 @@ DOC <- read_csv("04_Output/sampled.solid.carbon.csv")%>%
   rename(day=Date)
 
 DO <- read_csv("02_Clean_data/DO_cleaned.csv")
+
+SpC <- read_csv("02_Clean_data/SpC_cleaned.csv")%>%
+  mutate(Date=as.Date(Date))%>%
+  group_by(ID, Date)%>%
+  summarise(SpC=mean(SpC, na.rm=T))
+
+pH <- read_csv("02_Clean_data/pH_cleaned.csv")%>%
+  mutate(Date=as.Date(Date))%>%
+  group_by(ID, Date)%>%
+  summarise(pH=mean(pH, na.rm=T))
+
 
 master_metabolism <- read_csv("04_Output/stream/master_metabolism.csv")%>%
   select(date, K600, ID)%>%
