@@ -1,12 +1,11 @@
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
-
 wetland_cover <- watershed.inundation%>%
   select(ID, total.wetland.area, basin.wetland.perc,
          contrib.wetland.area, contrib.wetland.perc)%>%
-  mutate(basin.wetland.perc=round(basin.wetland.perc, 2),
-         contrib.wetland.perc=round(contrib.wetland.perc, 2)
-  )
+  distinct(ID, total.wetland.area, .keep_all = T)%>%
+  mutate(basin.wetland.perc=round(basin.wetland.perc, 3),
+         contrib.wetland.perc=round(contrib.wetland.perc, 3))
 
 wetland.impact<-int.ext%>%
   select(ID, Date, int.ext.ratio, internal, external)%>%
@@ -34,8 +33,12 @@ means_df <- total.wetland.impact %>%
   summarise(
     mean_ratio = mean(int.ext.ratio, na.rm = TRUE),
     basin.wetland.perc = first(basin.wetland.perc),
+    mean_internal=mean(internal, na.rm=T),
+    mean_external=mean(external, na.rm=T),
     .groups = "drop"
   )
+
+
 
 for.lm<-total.wetland.impact%>%
   group_by(ID, basin.wetland.perc)%>%
@@ -47,7 +50,6 @@ model <- lm(mean.ratio ~ basin.wetland.perc, data = for.lm)
 p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
 p_label <- paste0("p = ", signif(p_val, 3))
 
-# 3) Plot
 total.wetland.impact %>%
   mutate(
     ratio = int.ext.ratio,
@@ -71,6 +73,69 @@ total.wetland.impact %>%
   ylab("Average Internal / External") +
   xlab("Stream Site\nWetland cover (%)") +
   ggtitle("Internal:External Among Basins with Differing Wetland Cover")
+
+
+
+for.lm<-total.wetland.impact%>%
+  group_by(ID, basin.wetland.perc)%>%
+  summarise(mean.int=mean(internal, na.rm=T))
+
+summary(lm(mean.int ~ basin.wetland.perc, data = for.lm))
+
+model <- lm(mean.int ~ basin.wetland.perc, data = for.lm)
+p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
+p_label <- paste0("p = ", signif(p_val, 3))
+
+
+total.wetland.impact %>%
+  mutate(
+    ID = factor(ID, levels = id_levels)
+  ) %>%
+  ggplot(aes(x = ID, y = internal)) +
+  geom_violin(size = 1) +
+  geom_jitter(shape = 1, color = "gray", width = 0.15, alpha = 0.6) +
+  geom_point(
+    data = means_df,
+    aes(y = mean_internal),
+    color = "red",
+    shape = 8,
+    size = 3
+  ) +  annotate("text", x = Inf, y = Inf, label = p_label,
+                hjust = 1.1, vjust = 1.5, size = 4) +
+  scale_x_discrete(labels = x_labs) +
+  scale_y_log10() +
+  xlab("Stream Site\nWetland cover (%)")
+
+
+for.lm<-total.wetland.impact%>%
+  group_by(ID, basin.wetland.perc)%>%
+  summarise(mean.int=mean(external, na.rm=T))
+
+summary(lm(mean.int ~ basin.wetland.perc, data = for.lm))
+
+model <- lm(mean.int ~ basin.wetland.perc, data = for.lm)
+p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
+p_label <- paste0("p = ", signif(p_val, 3))
+
+total.wetland.impact %>%
+  mutate(
+    ID = factor(ID, levels = id_levels)
+  ) %>%
+  ggplot(aes(x = ID, y = external)) +
+  geom_violin(size = 1) +
+  geom_jitter(shape = 1, color = "gray", width = 0.15, alpha = 0.6) +
+  geom_point(
+    data = means_df,
+    aes(y = mean_external),
+    color = "red",
+    shape = 8,
+    size = 3
+  ) +  annotate("text", x = Inf, y = Inf, label = p_label,
+                hjust = 1.1, vjust = 1.5, size = 4) +
+  scale_x_discrete(labels = x_labs) +
+  scale_y_log10() +
+  xlab("Stream Site\nWetland cover (%)")
+  
 
 #contributing wetlands##########
 
