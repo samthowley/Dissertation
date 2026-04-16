@@ -50,9 +50,11 @@ plot_lme_results <- function(model,        # fitted lme model
     scale_y_log10() + #scale_x_log10() +
     # annotate("text", x=0.05, y = 30, label = stats_label,
     #          hjust = 0, vjust = 1.5, size = 3.5, fontface = "italic") +
+    annotate("text", x=-0.20, y = Inf, label = stats_label,
+             hjust = 0, vjust = 1.5, size = 3.5, fontface = "italic") +    
     annotate("text", x=-0.5, y = Inf, label = stats_label,
              hjust = 0, vjust = 1.5, size = 3.5, fontface = "italic") +
-    
+
     labs(title = title, x = x_lab, y = y_lab) +
     theme_classic()
 }
@@ -424,6 +426,10 @@ anova(model)
 r2(model)
 
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> a8500a1ec5520abcdef8a9d032c8701d8b6d3db7
 b<-plot_lme_results(
   model     = model,
   data      = int.ext.inun,
@@ -439,8 +445,16 @@ b<-plot_lme_results(
 
 #int.ext.ratio~contrib.basin.inundation#################
 
+<<<<<<< HEAD
+
+#ratio~contrib.basin.inundation#################
+
+model <- lme(
+  fixed       = log10(int.ext.ratio) ~ contrib.basin.inundation,
+=======
 model <- lme(
   fixed       = log10(int.ext.ratio) ~contrib.basin.inundation,
+>>>>>>> a8500a1ec5520abcdef8a9d032c8701d8b6d3db7
   random      = ~ 1 | ID,
   correlation = corAR1(form = ~ hour_index | ID),
   data        = int.ext.inun,
@@ -452,6 +466,24 @@ anova(model)
 r2(model)
 
 
+<<<<<<< HEAD
+
+c<-plot_lme_results(
+  model     = model,
+  data      = int.ext.inun,
+  x_var     = "contrib.basin.inundation",
+  y_var     = "int.ext.ratio",
+  group_var = "ID",
+  fixed_var = "contrib.basin.inundation",
+  x_lab     = expression('Watershed Inundation'~'(Wetland Percent * Mean Watertable Depth)'),
+  y_lab     = expression(CO[2] ~ "g/" ~ m^2 / "day"),
+  title     = expression("Pathway Ratio Response to Watershed Inundation")
+)
+
+
+plot_grid(a, b, c, ncol=1)
+
+=======
 c<-plot_lme_results(
   model     = model,
   data      = int.ext.inun,
@@ -465,3 +497,4 @@ c<-plot_lme_results(
 )
 
 plot_grid(a, b, c, ncol=1)
+>>>>>>> a8500a1ec5520abcdef8a9d032c8701d8b6d3db7

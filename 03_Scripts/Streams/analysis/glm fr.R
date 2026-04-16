@@ -24,60 +24,73 @@ fit_glm_glmm <- function(formula, data, family = Gamma(link = "log")) {
   list(glm = glm_model, glmm = glmm_model)
 }
 
+
+
 # ── Extract results function ───────────────────────────────────────────────────
 extract_results <- function(models, model_name) {
   
   # GLM results
-  glm_sum   <- summary(models$glm)
-  glm_coef  <- glm_sum$coefficients
-  glm_pred  <- rownames(glm_coef)[2]  # fixed predictor
+  glm_sum  <- summary(models$glm)
+  glm_coef <- glm_sum$coefficients
+  glm_pval <- glm_coef[2, 4]
+  glm_aic  <- round(AIC(models$glm), 2)
   
   glm_row <- data.frame(
-    Model      = model_name,
-    Type       = "GLM",
-    Predictor  = glm_pred,
-    Beta       = round(glm_coef[2, 1], 4),
-    SE         = round(glm_coef[2, 2], 4),
-    Statistic  = round(glm_coef[2, 3], 4),
-    P_value    = ifelse(glm_coef[2, 4] < 0.0001, "< 0.0001",
-                        round(glm_coef[2, 4], 4)),
-    R2_marginal    = NA,
-    R2_conditional = NA
+    Model     = model_name,
+    Type      = "GLM",
+    Predictor = rownames(glm_coef)[2],
+    Beta      = round(glm_coef[2, 1], 4),
+    SE        = round(glm_coef[2, 2], 4),
+    Statistic = round(glm_coef[2, 3], 4),
+    P_value   = ifelse(glm_pval < 0.0001, "< 0.0001", as.character(round(glm_pval, 4))),
+    AIC       = as.character(glm_aic),
+    AR1       = "Not accounted for",
+    Delta_AIC = as.character(round(glm_aic - round(AIC(models$glmm), 2), 2))
   )
   
-  # GLMM results
+  # Extract AR(1) correlation from GLMM
   glmm_sum  <- summary(models$glmm)
   glmm_coef <- glmm_sum$coefficients$cond
-  glmm_pred <- rownames(glmm_coef)[2]
-  glmm_r2   <- r2(models$glmm)
   glmm_pval <- glmm_coef[2, 4]
+  glmm_aic  <- round(AIC(models$glmm), 2)
+  
+  # Extract AR1 phi value
+  ar1_val <- tryCatch({
+    vc <- VarCorr(models$glmm)
+    ar1_corr <- attr(vc$cond[[2]], "correlation")
+    as.character(round(ar1_corr[1, 2], 3))
+  }, error = function(e) "NA")
   
   glmm_row <- data.frame(
-    Model      = model_name,
-    Type       = "GLMM",
-    Predictor  = glmm_pred,
-    Beta       = round(glmm_coef[2, 1], 4),
-    SE         = round(glmm_coef[2, 2], 4),
-    Statistic  = round(glmm_coef[2, 3], 4),
-    P_value    = ifelse(glmm_pval < 0.0001, "< 0.0001",
-                        round(glmm_pval, 4)),
-    R2_marginal    = round(glmm_r2$R2_marginal, 3),
-    R2_conditional = round(glmm_r2$R2_conditional, 3)
+    Model     = model_name,
+    Type      = "GLMM",
+    Predictor = rownames(glmm_coef)[2],
+    Beta      = round(glmm_coef[2, 1], 4),
+    SE        = round(glmm_coef[2, 2], 4),
+    Statistic = round(glmm_coef[2, 3], 4),
+    P_value   = ifelse(glmm_pval < 0.0001, "< 0.0001", as.character(round(glmm_pval, 4))),
+    AIC       = as.character(glmm_aic),
+    AR1       = ar1_val,
+    Delta_AIC = "-"
   )
   
   bind_rows(glm_row, glmm_row)
 }
-
 # ── Fit all models ─────────────────────────────────────────────────────────────
 
 # Temperature models
 int.ext <- left_join(int.ext, temperature) %>%
-  drop_na(Temp_PT) %>%
+  drop_na(Temp_PT, Q) %>%
+  filter(Q>0, internal>0)%>%
   distinct(Date, ID, .keep_all = TRUE)%>%
   group_by(ID) %>%
-  mutate(hour_index = row_number()) %>%
+  mutate(
+    hour_index = row_number(),
+    linternal=log10(internal),
+    lexternal=log10(external),
+    lQ=log10(Q)) %>%
   ungroup()
-  
+
 
 m_int_T      <- fit_glm_glmm(internal ~ TempC,        int.ext)
 m_ext_T      <- fit_glm_glmm(external ~ TempC,        int.ext)
@@ -86,58 +99,64 @@ m_CO2_T      <- fit_glm_glmm(CO2 ~ TempC,             int.ext)
 m_CO2flux_T  <- fit_glm_glmm(CO2_flux ~ TempC,        int.ext)
 
 # Discharge models
-m_int_Q      <- fit_glm_glmm(internal ~ Q,            int.ext)
-m_ext_Q      <- fit_glm_glmm(external ~ Q,            int.ext)
-m_ratio_Q    <- fit_glm_glmm(int.ext.ratio ~ Q,       int.ext)
-m_CO2_Q      <- fit_glm_glmm(CO2 ~ Q,                 int.ext)
-m_CO2flux_Q  <- fit_glm_glmm(CO2_flux ~ Q,            int.ext)
+m_int_Q      <- fit_glm_glmm(internal ~ lQ,            int.ext)
+m_ext_Q      <- fit_glm_glmm(external ~lQ,            int.ext)
+m_ratio_Q    <- fit_glm_glmm(int.ext.ratio ~ lQ,       int.ext)
+m_CO2_Q      <- fit_glm_glmm(CO2 ~ lQ,                 int.ext)
+m_CO2flux_Q  <- fit_glm_glmm(CO2_flux ~ lQ,            int.ext)
 
 
 extract_results <- function(models, model_name) {
   
   # GLM results
-  glm_sum   <- summary(models$glm)
-  glm_coef  <- glm_sum$coefficients
-  glm_pred  <- rownames(glm_coef)[2]
-  glm_pval  <- glm_coef[2, 4]
+  glm_sum  <- summary(models$glm)
+  glm_coef <- glm_sum$coefficients
+  glm_pval <- glm_coef[2, 4]
+  glm_aic  <- round(AIC(models$glm), 2)
   
   glm_row <- data.frame(
-    Model          = model_name,
-    Type           = "GLM",
-    Predictor      = glm_pred,
-    Beta           = round(glm_coef[2, 1], 4),
-    SE             = round(glm_coef[2, 2], 4),
-    Statistic      = round(glm_coef[2, 3], 4),
-    P_value        = ifelse(glm_pval < 0.0001, "< 0.0001", as.character(round(glm_pval, 4))),
-    R2_marginal    = as.character(NA),
-    R2_conditional = as.character(NA)
+    Model     = model_name,
+    Type      = "GLM",
+    Predictor = rownames(glm_coef)[2],
+    Beta      = round(glm_coef[2, 1], 4),
+    SE        = round(glm_coef[2, 2], 4),
+    Statistic = round(glm_coef[2, 3], 4),
+    P_value   = ifelse(glm_pval < 0.0001, "< 0.0001", as.character(round(glm_pval, 4))),
+    AIC       = as.character(glm_aic),
+    AR1       = "Not accounted for",
+    Delta_AIC = as.character(round(glm_aic - round(AIC(models$glmm), 2), 2))
   )
   
-  # GLMM results
+  # Extract AR(1) correlation from GLMM
   glmm_sum  <- summary(models$glmm)
   glmm_coef <- glmm_sum$coefficients$cond
   glmm_pval <- glmm_coef[2, 4]
-  glmm_r2   <- tryCatch(r2(models$glmm), error = function(e) NULL)
+  glmm_aic  <- round(AIC(models$glmm), 2)
   
-  r2m <- ifelse(!is.null(glmm_r2), as.character(round(glmm_r2$R2_marginal, 3)),    "NA")
-  r2c <- ifelse(!is.null(glmm_r2), as.character(round(glmm_r2$R2_conditional, 3)), "NA")
+  # Extract AR1 phi value
+  ar1_val <- tryCatch({
+    vc <- VarCorr(models$glmm)
+    ar1_corr <- attr(vc$cond[[2]], "correlation")
+    as.character(round(ar1_corr[1, 2], 3))
+  }, error = function(e) "NA")
   
   glmm_row <- data.frame(
-    Model          = model_name,
-    Type           = "GLMM",
-    Predictor      = rownames(glmm_coef)[2],
-    Beta           = round(glmm_coef[2, 1], 4),
-    SE             = round(glmm_coef[2, 2], 4),
-    Statistic      = round(glmm_coef[2, 3], 4),
-    P_value        = ifelse(glmm_pval < 0.0001, "< 0.0001", as.character(round(glmm_pval, 4))),
-    R2_marginal    = r2m,
-    R2_conditional = r2c
+    Model     = model_name,
+    Type      = "GLMM",
+    Predictor = rownames(glmm_coef)[2],
+    Beta      = round(glmm_coef[2, 1], 4),
+    SE        = round(glmm_coef[2, 2], 4),
+    Statistic = round(glmm_coef[2, 3], 4),
+    P_value   = ifelse(glmm_pval < 0.0001, "< 0.0001", as.character(round(glmm_pval, 4))),
+    AIC       = as.character(glmm_aic),
+    AR1       = ar1_val,
+    Delta_AIC = "-"
   )
   
   bind_rows(glm_row, glmm_row)
 }
 
-# ── Recompile table ────────────────────────────────────────────────────────────
+# Recompile table
 results_table <- bind_rows(
   extract_results(m_int_T,     "Internal ~ Temperature"),
   extract_results(m_ext_T,     "External ~ Temperature"),
@@ -151,5 +170,11 @@ results_table <- bind_rows(
   extract_results(m_CO2flux_Q, "CO2 Flux ~ Discharge")
 )
 
-print(results_table)
+
+
+glm.tbl<-results_table%>% filter(Type=='GLM')
+print(glm.tbl)
+glmm.tbl<-results_table%>% filter(Type=='GLMM')
+print(glmm.tbl)
+
 

@@ -1,11 +1,34 @@
 
-
 #call in data###########
 source("03_Scripts/Streams/analysis/data for analysis.R")
 library(posterior)
 library(patchwork)
 library(brms)
 library(corrplot)
+make_results_table <- function(model, model_name) {
+  as.data.frame(posterior_summary(model)) %>%
+    tibble::rownames_to_column("parameter") %>%
+    filter(grepl("^b_", parameter)) %>%          # keep only regression coefficients
+    filter(!grepl("Intercept", parameter)) %>%    # drop intercept
+    mutate(
+      parameter = gsub("^b_", "", parameter),     # clean parameter names
+      Result = case_when(
+        Q2.5 > 0  ~ "positive",
+        Q97.5 < 0 ~ "negative",
+        TRUE      ~ "unclear"
+      ),
+      model = model_name
+    ) %>%
+    select(
+      model,
+      Parameter = parameter,
+      Result,
+      Estimate,
+      Lower = Q2.5,
+      Upper = Q97.5
+    ) %>%
+    mutate(across(where(is.numeric), ~ round(.x, 2)))
+}
 
 # Call in data ###########
 df <- int.ext %>%
@@ -35,19 +58,13 @@ df2 <- df %>%
   ) %>%
   droplevels()
 
-df2 %>%
-  ggplot(aes(x = CO2, y = pH)) +
-  geom_point() +
-  scale_y_log10() +  scale_x_log10() +
-
-  facet_wrap(~ID, scales = 'free')
 
 # Load priors if a previous fit exists ###########
 pri <- tryCatch(prior_summary(fit_full), error = function(e) NULL)
 
 # Spatial Models ###########
 
-# No interaction
+## No interaction#######
 bf_int_full.complete_pooling <- bf(lint ~ lQ + TempC + SpC + pH)
 bf_ext_full.complete_pooling <- bf(lext ~ lQ + TempC + SpC + pH)
 
@@ -62,7 +79,7 @@ fit_complete <- brm(
 
 complete_pooling.group <- readRDS("C:/Dissertation/04_Output/stream/models/spatial/complete_pooling.group.rds")
 
-# Interaction
+## Interaction###########
 bf_int_full.interaction <- bf(lint ~ lQ * TempC + SpC * pH)
 bf_ext_full.interaction <- bf(lext ~ lQ * TempC + SpC * pH)
 
@@ -77,6 +94,40 @@ fit_spatial_interaction <- brm(
 
 spatial_interaction <- readRDS("C:/Dissertation/04_Output/stream/models/spatial/spatial_interaction.rds")
 
+##Ratio###########
+int.ext.ratio.interaction <- bf(int.ext.ratio ~ lQ * TempC + SpC * pH)
+
+fit <- brm(
+  int.ext.ratio.interaction,
+  data = df2,
+  family = student(),
+  prior = pri,
+  cores = 4,
+  file = "04_Output/stream/models/spatial/ratio_spatial_interaction"
+)
+ratio_spatial
+
+make_results_table(ratio_spatial,    "int.ext.ratio")
+
+
+
+
+int.ext.ratio.spat <- bf(int.ext.ratio ~ lQ + TempC + SpC + pH)
+
+fit <- brm(
+  int.ext.ratio.spat,
+  data = df2,
+  family = student(),
+  prior = pri,
+  cores = 4,
+  file = "04_Output/stream/models/spatial/ratio_spatial"
+)
+
+ratio_spatial_interaction
+make_results_table(ratio_spatial_interaction,    "int.ext.ratio")
+
+
+
 # Temporal Models ###########
 df1 <- df %>%
   filter(
@@ -86,6 +137,7 @@ df1 <- df %>%
 
 bf_int_full.partial_pool <- bf(lint ~ lQ + TempC + (1 | ID))
 bf_ext_full.partial_pool <- bf(lext ~ lQ + TempC + (1 | ID))
+
 
 fit_temporal <- brm(
   bf_int_full.partial_pool + bf_ext_full.partial_pool + set_rescor(TRUE),
@@ -98,7 +150,7 @@ fit_temporal <- brm(
 
 full.rde <- readRDS("C:/Dissertation/04_Output/stream/models/temporal/full.rde.rds")
 
-# Full model with partial pooling and interaction ###########
+## Full model with partial pooling and interaction ###########
 bf_int_full_interaction <- bf(lint ~ lQ * TempC + (1 | ID))
 bf_ext_full_interaction <- bf(lext ~ lQ * TempC + (1 | ID))
 
@@ -111,7 +163,34 @@ fit_temporal_interaction <- brm(
   file   = "04_Output/stream/models/temporal/temporal_interaction"
 )
 temporal_interaction <- readRDS("C:/Dissertation/04_Output/stream/models/temporal/temporal_interaction.rds")
-#formulas##########
+
+##Separate univariate model for ratio#######
+fit_ratio <- brm(
+  bf(int.ext.ratio ~ lQ + TempC + (1 | ID)),
+  data   = df1,
+  family = student(),
+  prior  = pri,
+  cores  = 4,
+  file   = "04_Output/stream/models/temporal/ratio"
+)
+
+
+fit_ratio <- brm(
+  bf(int.ext.ratio ~ lQ * TempC + (1 | ID)),
+  data   = df1,
+  family = student(),
+  prior  = pri,
+  cores  = 4,
+  file   = "04_Output/stream/models/temporal/ratio_interaction"
+)
+
+ratio_interaction 
+make_results_table(ratio_interaction,    "int.ext.ratio")
+
+ratio 
+make_results_table(ratio,    "int.ext.ratio")
+
+#dropformulas##########
 
 # full grouped ny 
 bf_int_noT  <- bf(lint ~ lQ + (1 | ID))
