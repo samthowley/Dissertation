@@ -9,6 +9,13 @@ library(ggpmisc)
 library('StreamMetabolism')
 library(hydroTSM)
 
+#spatial
+watershed <- read_csv("04_Output/watershed.inundation.csv")%>%
+  distinct(ID, basin.area, total.wetland.area)
+
+pH <- read_csv("02_Clean_data/pH_cleaned.csv")
+SpC <- read_csv("02_Clean_data/SpC_cleaned.csv")
+
 #hourly
 DO <- read_csv("02_Clean_data/DO_cleaned.csv")
 CO2<-read_csv("02_Clean_data/CO2_cleaned.csv")
@@ -36,7 +43,11 @@ df <- reduce(df_list, full_join, by=c('Date', 'ID'))%>%
     across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
     .groups = "drop"
   )%>%  
-  distinct(Date, ID, .keep_all = T)
+  distinct(Date, ID, .keep_all = T)%>%
+  left_join(watershed)%>%
+  mutate(
+    m3.s=Q/10^3,
+    q=m3.s/total.wetland.area)
 
 
 df_list <- list(df, ext.int, nep, area)

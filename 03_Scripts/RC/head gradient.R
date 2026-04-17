@@ -8,16 +8,25 @@ well.measurements<-read_excel("01_Raw_data/RW.log.xlsx",
                               sheet = "well dims")
 
 scope.elevations.raw<-read_excel("01_Raw_data/RW.log.xlsx",
-                             sheet = "scope elevations")
-# %>%
-#   select(-scope.height.ft, -notes, -scope.surface.elevation)
+                             sheet = "scope elevations")%>%
+  separate(Site, into = c("Stream", "GW"), sep = "GW", remove = FALSE)
+  
+
+scope.elevations.04172026<-read_excel("01_Raw_data/RW.log.xlsx",
+                                 sheet = "scope elevations 04172026")%>%
+  rename(scope.surface.elevation.04162026=scope.surface.elevation)%>%
+  select(Stream, GW, scope.surface.elevation.04162026)%>%
+  mutate(Stream=as.character(Stream), GW=as.character(GW))
+
+scope.elevations<-left_join(scope.elevations.raw, scope.elevations.04172026)%>%
+  mutate(scope.surface.elevation=if_else(Stream=='5',scope.surface.elevation.04162026,scope.surface.elevation))
 
 
-bed.elevations<-scope.elevations.raw%>%filter(Site %in% c('5GW0', '6GW0', '9GW0'))%>%
+bed.elevations<-scope.elevations%>%filter(Site %in% c('5GW0', '6GW0', '9GW0'))%>%
   rename(bed.elevation=elevation.ft)%>%
   select(-Site)
 
-scope.elevations.m<-left_join(scope.elevations.raw, bed.elevations, by='ID')%>%
+scope.elevations.m<-left_join(scope.elevations, bed.elevations, by='ID')%>%
   separate(Site, into = c("ID", "Well"), sep = "GW", remove = FALSE)%>%
   mutate(datum.elevation=(elevation.ft*-1)+bed.elevation,
          datum.elevation=conv_unit(datum.elevation, 'ft', 'm')
@@ -28,6 +37,7 @@ scope.elevations.m<-left_join(scope.elevations.raw, bed.elevations, by='ID')%>%
 RC.elevations<-well.measurements %>%
   separate(Site, into = c("ID", "Well"), sep = "GW", remove = FALSE)%>%
   left_join(scope.elevations.m, by=c('ID', "Well"))%>%
+  
   mutate(
     distance.from.stream=if_else(is.na(distance.from.stream), 0, distance.from.stream))%>%
   group_by(ID)%>%

@@ -1,5 +1,4 @@
 source("03_Scripts/ch0/data.R")
-names(hourly)
 
 common.layers.facetwrap<-list(
   geom_point(),
@@ -157,7 +156,6 @@ conversions%>%
   ggtitle(expression(DO~concentrations~decrease~w~NEP))
 
 
-
 #Temperature~#####
 temp_seq <- seq(45, 82, by = 0.5)
 
@@ -206,3 +204,23 @@ df %>%
             color = "black", linewidth = 1.2, linetype = "dashed",
             inherit.aes = FALSE) +
   ggtitle(expression(DO~concentrations~decrease~w~Temp))
+
+#O2-CO2 figure##########
+conversions%>%
+  filter(CO2_flux<30)%>%
+  ggplot(aes(x=CO2_flux, y=O2_flux, color=log10(q)))+
+  scale_color_viridis_c()+
+  geom_point(shape=1)+
+  theme_minimal()
+
+conversions%>%
+  pivot_longer(
+    cols = c("external", "internal"),
+    names_to = "pathway",
+    values_to = "flux"
+  )%>%
+  filter(CO2_flux<30)%>%
+  ggplot(aes(x=flux, y=O2_flux, color=pathway))+
+  geom_point(shape=1)+
+  theme_minimal()+
+  facet_wrap(~ID, scales='free')
