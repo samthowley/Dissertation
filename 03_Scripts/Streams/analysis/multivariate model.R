@@ -67,6 +67,11 @@ make_results_table <- function(model, model_name) {
 
 pri <- tryCatch(prior_summary(fit_full), error = function(e) NULL)
 
+# Split data by site
+site_data <- df1 %>%
+  group_by(ID) %>%
+  group_split() %>%
+  set_names(unique(df1$ID))
 # Temporal Models ###########
 # partial pooling ###########
 
@@ -100,112 +105,291 @@ fit_temporal_interaction <- brm(
 temporal_interaction <- readRDS("C:/Dissertation/04_Output/stream/models/temporal/temporal_interaction.rds")
 
 #no pooling, full model#########
-bf_int_no.pooling <- bf(lint ~ lQ + TempC + ID)
-bf_ext_no.pooling <- bf(lext ~ lQ + TempC + ID)
 
-fit_no.pooling <- brm(
-  bf_int_no.pooling + bf_ext_no.pooling + set_rescor(TRUE),
-  data   = df1,
-  family = student(),
-  prior  = pri,
-  cores  = 4,
-  file   = "04_Output/stream/models/temporal/temporal_no.pooling"
-)
+site_data <- df1 %>%
+  group_by(ID) %>%
+  group_split() %>%
+  set_names(unique(df1$ID))
+
+# Loop through each site and fit a bivariate model
+site_models <- imap(site_data, function(data, site_name) {
+  
+  message("Fitting model for site: ", site_name)
+  
+  bf_int <- bf(lint ~ lQ + TempC)
+  bf_ext <- bf(lext ~ lQ + TempC)
+  
+  brm(
+    bf_int + bf_ext + set_rescor(TRUE),
+    data   = data,
+    family = student(),
+    prior  = pri,
+    cores  = 4,
+    file   = paste0("04_Output/stream/models/Site Specific No Interaction/", site_name)
+  )
+})
+
+model_path <- "04_Output/stream/models/Site Specific No Interaction/"
+
+site_models <- list.files(model_path, pattern = "\\.rds$", full.names = TRUE) %>%
+  set_names(gsub("\\.rds$", "", basename(.))) %>%
+  map(readRDS)
+
+extract_results <- function(mod, site_name) {
+  
+  fix_df <- as.data.frame(summary(mod)$fixed) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `l-95% CI`, `u-95% CI`) %>%
+    filter(!grepl("Intercept", parameter))
+  
+  r2 <- as.data.frame(bayes_R2(mod)) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `Q2.5`, `Q97.5`) %>%
+    rename(`l-95% CI` = Q2.5, `u-95% CI` = Q97.5)
+  
+  bind_rows(fix_df, r2) %>%
+    mutate(site = site_name)
+}
+
+results_df <- imap_dfr(site_models, extract_results) 
+
+r2<-results_df%>%filter(parameter %in% c('R2lint', 'R2lext'))%>%
+  select(parameter, site, Estimate)
+
+
+parameter_T<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
+  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
+  filter(indep.var=='TempC')%>%
+  rename(upper.bound_T=`u-95% CI`, lower.bound_T=`l-95% CI`,
+         Estimate_T=Estimate)%>%
+  select(-indep.var)
+
+
+parameter_Q<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
+  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
+  filter(indep.var=='lQ')%>%
+  rename(upper.bound_Q=`u-95% CI`, lower.bound_Q=`l-95% CI`,
+         Estimate_Q=Estimate)%>%
+  select(-indep.var)
+
+
+r2<-results_df%>%filter(parameter %in% c('R2lint', 'R2lext'))%>%
+  separate(parameter, into = c("R2", "pathway"), sep = "(?<=R2)")%>%
+  select(site, pathway, Estimate)%>%
+  rename(R2=Estimate)
+
+
+
+no.pooling<-left_join(parameter_Q, parameter_T)%>%
+  left_join(r2)%>%
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+write_csv(no.pooling, "04_Output/stream/models/site_specific_results.csv")
+
+
 
 #no pooling, interaction, full model#########
-bf_int_no.pooling <- bf(lint ~ lQ * TempC + ID)
-bf_ext_no.pooling <- bf(lext ~ lQ * TempC + ID)
+site_models <- imap(site_data, function(data, site_name) {
+  
+  message("Fitting model for site: ", site_name)
+  
+  bf_int <- bf(lint ~ lQ * TempC)
+  bf_ext <- bf(lext ~ lQ * TempC)
+  
+  brm(
+    bf_int + bf_ext + set_rescor(TRUE),
+    data   = data,
+    family = student(),
+    prior  = pri,
+    cores  = 4,
+    file   = paste0("04_Output/stream/models/Site Specific Interaction/", site_name)
+  )
+})
 
-fit_no.pooling <- brm(
-  bf_int_no.pooling + bf_ext_no.pooling + set_rescor(TRUE),
-  data   = df1,
-  family = student(),
-  prior  = pri,
-  cores  = 4,
-  file   = "04_Output/stream/models/temporal/temporal_no.pooling"
-)
+model_path <- "04_Output/stream/models/Site Specific Interaction/"
 
+site_models <- list.files(model_path, pattern = "\\.rds$", full.names = TRUE) %>%
+  set_names(gsub("\\.rds$", "", basename(.))) %>%
+  map(readRDS)
+
+extract_results <- function(mod, site_name) {
+  
+  fix_df <- as.data.frame(summary(mod)$fixed) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `l-95% CI`, `u-95% CI`) %>%
+    filter(!grepl("Intercept", parameter))
+  
+  r2 <- as.data.frame(bayes_R2(mod)) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `Q2.5`, `Q97.5`) %>%
+    rename(`l-95% CI` = Q2.5, `u-95% CI` = Q97.5)
+  
+  bind_rows(fix_df, r2) %>%
+    mutate(site = site_name)
+}
+
+results_df <- imap_dfr(site_models, extract_results) 
+
+
+parameter_T<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
+  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
+  filter(indep.var=='TempC')%>%
+  rename(upper.bound_T=`u-95% CI`, lower.bound_T=`l-95% CI`,
+         Estimate_T=Estimate)%>%
+  select(-indep.var)
+
+
+parameter_Q<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
+  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
+  filter(indep.var=='lQ')%>%
+  rename(upper.bound_Q=`u-95% CI`, lower.bound_Q=`l-95% CI`,
+         Estimate_Q=Estimate)%>%
+  select(-indep.var)
+
+
+r2<-results_df%>%filter(parameter %in% c('R2lint', 'R2lext'))%>%
+  separate(parameter, into = c("R2", "pathway"), sep = "(?<=R2)")%>%
+  select(site, pathway, Estimate)%>%
+  rename(R2=Estimate)
+
+
+
+interaction.no.pooling<-left_join(parameter_Q, parameter_T)%>%
+  left_join(r2)%>%
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+write_csv(interaction.no.pooling, "04_Output/stream/models/site_specific_results_interact.csv")
 
 #dropformulas##########
 
-# full grouped ny 
-bf_int_noT  <- bf(lint ~ lQ + ID)
-bf_ext_noT  <- bf(lext ~ lQ + ID)
+site_data <- df1 %>%
+  group_by(ID) %>%
+  group_split() %>%
+  set_names(unique(df1$ID))
 
-# Drop Q 
-bf_int_noQ  <- bf(lint ~ TempC + ID)
-bf_ext_noQ  <- bf(lext ~ TempC + ID)
+# drop T
+site_models_noT <- imap(site_data, function(data, site_name) {
+  message("Fitting model for site: ", site_name)
+  bf_int_noT <- bf(lint ~ lQ)
+  bf_ext_noT <- bf(lext ~ lQ)
+  bf_int     <- bf(lint ~ lQ + TempC)
+  bf_ext     <- bf(lext ~ lQ + TempC)
+  
+  fit_int_noT <- brm(
+    bf_int_noT + bf_ext + set_rescor(TRUE),
+    data    = data,
+    family  = student(),
+    prior   = pri,
+    cores   = 4,
+    control = list(adapt_delta = 0.95),
+    file    = paste0("04_Output/stream/models/drop/noT/int_noT_", site_name)
+  )
+  fit_ext_noT <- brm(
+    bf_ext_noT + bf_int + set_rescor(TRUE),
+    data   = data,
+    family = student(),
+    prior  = pri,
+    cores  = 4,
+    file   = paste0("04_Output/stream/models/drop/noT/ext_noT_", site_name)
+  )
+  fit_noT <- brm(
+    bf_int_noT + bf_ext_noT + set_rescor(TRUE),
+    data   = data,
+    family = student(),
+    prior  = pri,
+    cores  = 4,
+    file   = paste0("04_Output/stream/models/drop/noT/boffa_", site_name)
+  )
+  
+  list(fit_int_noT = fit_int_noT, fit_ext_noT = fit_ext_noT, fit_noT = fit_noT)
+})
+
+# drop Q
+site_models_noQ <- imap(site_data, function(data, site_name) {
+  message("Fitting model for site: ", site_name)
+  bf_int_noQ <- bf(lint ~ TempC)
+  bf_ext_noQ <- bf(lext ~ TempC)
+  bf_int     <- bf(lint ~ lQ + TempC)
+  bf_ext     <- bf(lext ~ lQ + TempC)
+  
+  fit_int_noQ <- brm(
+    bf_int_noQ + bf_ext + set_rescor(TRUE),
+    data    = data,
+    family  = student(),
+    prior   = pri,
+    cores   = 4,
+    control = list(adapt_delta = 0.95),
+    file    = paste0("04_Output/stream/models/drop/noQ/int_noQ_", site_name)
+  )
+  fit_ext_noQ <- brm(
+    bf_ext_noQ + bf_int + set_rescor(TRUE),
+    data   = data,
+    family = student(),
+    prior  = pri,
+    cores  = 4,
+    file   = paste0("04_Output/stream/models/drop/noQ/ext_noQ_", site_name)
+  )
+  fit_noQ <- brm(
+    bf_int_noQ + bf_ext_noQ + set_rescor(TRUE),
+    data   = data,
+    family = student(),
+    prior  = pri,
+    cores  = 4,
+    file   = paste0("04_Output/stream/models/drop/noQ/boffa_Q_", site_name)
+  )
+  
+  list(fit_int_noQ = fit_int_noQ, fit_ext_noQ = fit_ext_noQ, fit_noQ = fit_noQ)
+})
 
 
-#remove one temp#
-fit_int_noT <- brm(
-  bf_int_noT + bf_ext_full + set_rescor(TRUE),
-  data = df1,
-  family = student(),
-  prior = pri,
-  cores = 4,
-  control = list(adapt_delta = 0.95),
-  file = "04_Output/stream/models/drop/int_noT.rds"
-)
+
+model_path <- "04_Output/stream/models/Site Specific Interaction/"
+
+site_models <- list.files(model_path, pattern = "\\.rds$", full.names = TRUE) %>%
+  set_names(gsub("\\.rds$", "", basename(.))) %>%
+  map(readRDS)
+
+extract_results <- function(mod, site_name) {
+  
+  fix_df <- as.data.frame(summary(mod)$fixed) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `l-95% CI`, `u-95% CI`) %>%
+    filter(!grepl("Intercept", parameter))
+  
+  r2 <- as.data.frame(bayes_R2(mod)) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `Q2.5`, `Q97.5`) %>%
+    rename(`l-95% CI` = Q2.5, `u-95% CI` = Q97.5)
+  
+  bind_rows(fix_df, r2) %>%
+    mutate(site = site_name)
+}
+
+results_df <- imap_dfr(site_models, extract_results) 
 
 
-fit_ext_noT <- brm(
-  bf_ext_noT + bf_int_full + set_rescor(TRUE),
-  data = df1,
-  family = student(),
-  prior = pri,
-  cores = 4,
-  file = "04_Output/stream/models/drop/ext_noT.rds"
-)
+parameter_T<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
+  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
+  filter(indep.var=='TempC')%>%
+  rename(upper.bound_T=`u-95% CI`, lower.bound_T=`l-95% CI`,
+         Estimate_T=Estimate)%>%
+  select(-indep.var)
 
 
-#remove one Q#
-fit_int_noQ <- brm(
-  bf_int_noQ + bf_ext_full + set_rescor(TRUE),
-  data = df1,
-  family = student(),
-  prior = pri,
-  cores = 4,
-  file = "04_Output/stream/models/drop/int_noQ.rds"
-)
-
-fit_ext_noQ <- brm(
-  bf_int_full + bf_ext_noQ + set_rescor(TRUE),
-  data = df1,
-  family = student(),
-  prior = pri,
-  cores = 4,
-  file = "04_Output/stream/models/drop/ext_noQ.rds"
-)
-#remove both Q#
-fit_noQ <- brm(
-  bf_int_noQ + bf_ext_noQ + set_rescor(TRUE),
-  data = df1,
-  family = student(),
-  prior = pri,
-  cores = 4,
-  file = "04_Output/stream/models/drop/noQ.rds"
-)
-
-#remove both T#
-fit_noT <- brm(
-  bf_int_noT + bf_ext_noT + set_rescor(TRUE),
-  data = df1,
-  family = student(),
-  prior = pri,
-  cores = 4,
-  file = "04_Output/stream/models/drop/noT.rds"
-)
+parameter_Q<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
+  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
+  filter(indep.var=='lQ')%>%
+  rename(upper.bound_Q=`u-95% CI`, lower.bound_Q=`l-95% CI`,
+         Estimate_Q=Estimate)%>%
+  select(-indep.var)
 
 
-#model comparison###########
-int_noT  <- readRDS("04_Output/stream/models/int_noT.rds")
-ext_noT  <- readRDS("04_Output/stream/models/ext_noT.rds")
-int_noQ  <- readRDS("04_Output/stream/models/int_noQ.rds")
-ext_noQ  <- readRDS("04_Output/stream/models/ext_noQ.rds")
-fit      <- readRDS("04_Output/stream/models/fit.rds")
-bayes_R2(fit)
-noQ      <- readRDS("04_Output/stream/models/noQ.rds")
-noT      <- readRDS("04_Output/stream/models/noT.rds")
-int.ext.ratio<- readRDS("04_Output/stream/models/int.ext.ratio.rds")
-CO2flux<- readRDS("04_Output/stream/models/CO2flux.rds")
+r2<-results_df%>%filter(parameter %in% c('R2lint', 'R2lext'))%>%
+  separate(parameter, into = c("R2", "pathway"), sep = "(?<=R2)")%>%
+  select(site, pathway, Estimate)%>%
+  rename(R2=Estimate)
+
+
+
+interaction.no.pooling<-left_join(parameter_Q, parameter_T)%>%
+  left_join(r2)%>%
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+write_csv(interaction.no.pooling, "04_Output/stream/models/site_specific_results_interact.csv")
