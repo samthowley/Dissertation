@@ -5,6 +5,33 @@ library(patchwork)
 library(brms)
 library(corrplot)
 #make_results_table(ratio,    "int.ext.ratio")
+#model figures##########
+dropQ <- read_csv("04_Output/stream/models/dropQ.csv")
+
+dropT <- read_csv("04_Output/stream/models/dropT.csv")
+
+ 
+
+no_T %>%
+  filter(pathway == 'lint', drop %in% c('noT_lint', 'full')) %>%
+  ggplot(aes(x = as.factor(site), y = Estimate, ymin = `l-95% CI`, ymax = `u-95% CI`)) +
+  geom_point(data = ~ filter(., drop == "full"), 
+             aes(shape = indep), size = 6, alpha=0.7, color='black') +
+  geom_point(data = ~ filter(., drop != "full"), 
+             aes(shape = indep, color = pathway), size = 3) +
+  theme_minimal()
+unique(no_T$drop)
+
+dropQ %>%
+  filter(pathway == 'lint') %>%
+  ggplot(aes(x = as.factor(site), y = Estimate, ymin = `l-95% CI`, ymax = `u-95% CI`)) +
+  geom_point(data = ~ filter(., drop == "full"), 
+             aes(shape = indep), size = 6, alpha=0.7, color='black') +
+  geom_point(data = ~ filter(., drop != "full"), 
+             aes(shape = indep, color = drop), size = 3) +
+  #geom_errorbar(width = 0.2) +
+  theme_minimal()
+
 
 # Call in data ###########
 df <- int.ext %>%
@@ -147,14 +174,21 @@ extract_results <- function(mod, site_name) {
     select(parameter, Estimate, `Q2.5`, `Q97.5`) %>%
     rename(`l-95% CI` = Q2.5, `u-95% CI` = Q97.5)
   
-  bind_rows(fix_df, r2) %>%
+  sigma_df <- as.data.frame(summary(mod)$spec_pars) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `l-95% CI`, `u-95% CI`) %>%
+    filter(grepl("sigma", parameter))
+  
+  bind_rows(fix_df, r2, sigma_df) %>%
     mutate(site = site_name)
 }
 
 results_df <- imap_dfr(site_models, extract_results) 
 
 r2<-results_df%>%filter(parameter %in% c('R2lint', 'R2lext'))%>%
-  select(parameter, site, Estimate)
+  separate(parameter, into = c("R2", "pathway"), sep = "(?<=R2)")%>%
+  select(site, pathway, Estimate)%>%
+  rename(R2=Estimate)
 
 
 parameter_T<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
@@ -173,18 +207,24 @@ parameter_Q<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
   select(-indep.var)
 
 
-r2<-results_df%>%filter(parameter %in% c('R2lint', 'R2lext'))%>%
-  separate(parameter, into = c("R2", "pathway"), sep = "(?<=R2)")%>%
+sigma<-results_df%>%filter(parameter %in% c('sigma_lint', 'sigma_lext'))%>%
+  separate(parameter, into = c("sigma", "pathway"), sep = "_")%>%
   select(site, pathway, Estimate)%>%
-  rename(R2=Estimate)
+  rename(sigma=Estimate)
 
 
 
 no.pooling<-left_join(parameter_Q, parameter_T)%>%
-  left_join(r2)%>%
+  left_join(r2)%>%left_join(sigma)%>%
   mutate(across(where(is.numeric), ~ round(.x, 3)))
 write_csv(no.pooling, "04_Output/stream/models/site_specific_results.csv")
 
+no.pooling.long<-results_df%>%
+  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
+  filter(pathway %in% c('lint', 'lext'))%>%
+  left_join(sigma)%>%left_join(r2)
+
+write_csv(no.pooling.long, "04_Output/stream/models/site_specific_results.long.csv")
 
 
 #no pooling, interaction, full model#########
@@ -223,7 +263,12 @@ extract_results <- function(mod, site_name) {
     select(parameter, Estimate, `Q2.5`, `Q97.5`) %>%
     rename(`l-95% CI` = Q2.5, `u-95% CI` = Q97.5)
   
-  bind_rows(fix_df, r2) %>%
+  sigma_df <- as.data.frame(summary(mod)$spec_pars) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `l-95% CI`, `u-95% CI`) %>%
+    filter(grepl("sigma", parameter))
+  
+  bind_rows(fix_df, r2, sigma_df) %>%
     mutate(site = site_name)
 }
 
@@ -258,18 +303,17 @@ interaction.no.pooling<-left_join(parameter_Q, parameter_T)%>%
   mutate(across(where(is.numeric), ~ round(.x, 3)))
 write_csv(interaction.no.pooling, "04_Output/stream/models/site_specific_results_interact.csv")
 
-#dropformulas##########
+#drop models##########
 
 site_data <- df1 %>%
   group_by(ID) %>%
   group_split() %>%
   set_names(unique(df1$ID))
 
-# drop T
 site_models_noT <- imap(site_data, function(data, site_name) {
   message("Fitting model for site: ", site_name)
-  bf_int_noT <- bf(lint ~ lQ)
-  bf_ext_noT <- bf(lext ~ lQ)
+  bf_int_noT <- bf(lint ~ TempC)
+  bf_ext_noT <- bf(lext ~ TempC)
   bf_int     <- bf(lint ~ lQ + TempC)
   bf_ext     <- bf(lext ~ lQ + TempC)
   
@@ -296,13 +340,12 @@ site_models_noT <- imap(site_data, function(data, site_name) {
     family = student(),
     prior  = pri,
     cores  = 4,
-    file   = paste0("04_Output/stream/models/drop/noT/boffa_", site_name)
+    file   = paste0("04_Output/stream/models/drop/noT/boffa_Q_", site_name)
   )
   
   list(fit_int_noT = fit_int_noT, fit_ext_noT = fit_ext_noT, fit_noT = fit_noT)
 })
 
-# drop Q
 site_models_noQ <- imap(site_data, function(data, site_name) {
   message("Fitting model for site: ", site_name)
   bf_int_noQ <- bf(lint ~ TempC)
@@ -340,56 +383,164 @@ site_models_noQ <- imap(site_data, function(data, site_name) {
 })
 
 
+# drop T#################
 
-model_path <- "04_Output/stream/models/Site Specific Interaction/"
+model_path <- "04_Output/stream/models/drop/noT"
 
-site_models <- list.files(model_path, pattern = "\\.rds$", full.names = TRUE) %>%
+site_models_noT <- list.files(model_path, pattern = "\\.rds$", full.names = TRUE) %>%
   set_names(gsub("\\.rds$", "", basename(.))) %>%
-  map(readRDS)
+  map(readRDS) %>%
+  {
+    sites <- unique(gsub("^(int_noT|ext_noT|boffa)_", "", names(.)))
+    map(sites, function(s) {
+      list(
+        fit_int_noT = .[[paste0("int_noT_", s)]],
+        fit_ext_noT = .[[paste0("ext_noT_", s)]],
+        fit_noT     = .[[paste0("boffa_", s)]]
+      )
+    }) %>% set_names(sites)
+  }
 
-extract_results <- function(mod, site_name) {
-  
+extract_results <- function(mod, site_name, drop = NULL) {
   fix_df <- as.data.frame(summary(mod)$fixed) %>%
     tibble::rownames_to_column("parameter") %>%
     select(parameter, Estimate, `l-95% CI`, `u-95% CI`) %>%
     filter(!grepl("Intercept", parameter))
-  
   r2 <- as.data.frame(bayes_R2(mod)) %>%
     tibble::rownames_to_column("parameter") %>%
     select(parameter, Estimate, `Q2.5`, `Q97.5`) %>%
     rename(`l-95% CI` = Q2.5, `u-95% CI` = Q97.5)
-  
-  bind_rows(fix_df, r2) %>%
-    mutate(site = site_name)
+  sigma_df <- as.data.frame(summary(mod)$spec_pars) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `l-95% CI`, `u-95% CI`) %>%
+    filter(grepl("sigma", parameter))
+  bind_rows(fix_df, r2, sigma_df) %>%
+    mutate(site = site_name, drop = drop)
 }
 
-results_df <- imap_dfr(site_models, extract_results) 
 
+results_noT <- imap_dfr(site_models_noT, function(mods, site_name) {
+  bind_rows(
+    extract_results(mods$fit_int_noT, site_name, drop = "noT_lint"),
+    extract_results(mods$fit_ext_noT, site_name, drop = "noT_lext"),
+    extract_results(mods$fit_noT,     site_name, drop = "noT_both")
+  )
+})
 
-parameter_T<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
-  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
-  filter(indep.var=='TempC')%>%
-  rename(upper.bound_T=`u-95% CI`, lower.bound_T=`l-95% CI`,
-         Estimate_T=Estimate)%>%
-  select(-indep.var)
-
-
-parameter_Q<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
-  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
-  filter(indep.var=='lQ')%>%
-  rename(upper.bound_Q=`u-95% CI`, lower.bound_Q=`l-95% CI`,
-         Estimate_Q=Estimate)%>%
-  select(-indep.var)
-
-
-r2<-results_df%>%filter(parameter %in% c('R2lint', 'R2lext'))%>%
+  
+R2_T<-results_noT%>%  
+  filter(parameter %in% c('R2lint', 'R2lext'))%>%
   separate(parameter, into = c("R2", "pathway"), sep = "(?<=R2)")%>%
-  select(site, pathway, Estimate)%>%
+  select(pathway, Estimate, site, drop)%>%
   rename(R2=Estimate)
 
+sigma_T<-results_noT%>%  
+  filter(parameter %in% c('sigma_lint', 'sigma_lext'))%>%
+  separate(parameter, into = c("R2", "pathway"), sep = "_")%>%
+  select(pathway, Estimate, site, drop)%>%
+  rename(sigma=Estimate)
+
+variance<-left_join(R2_T, sigma_T)
+
+wip<-results_noT%>%  
+  filter(!parameter %in% c('sigma_lint', 'R2lext', 'R2lint', 'sigma_lext'))%>%
+  separate(parameter, into = c("pathway", "indep"), sep = "_")%>%
+  left_join(variance)
 
 
-interaction.no.pooling<-left_join(parameter_Q, parameter_T)%>%
-  left_join(r2)%>%
-  mutate(across(where(is.numeric), ~ round(.x, 3)))
-write_csv(interaction.no.pooling, "04_Output/stream/models/site_specific_results_interact.csv")
+site_specific_results_long <- read_csv("04_Output/stream/models/site_specific_results.long.csv")%>%
+  mutate(drop='full')%>%
+  rename(indep=indep.var)
+  
+no_T<-rbind(wip, site_specific_results_long)%>%
+  separate(drop, into = c("test", "dropped_from"), sep = "_")
+
+
+write_csv(no_T, "04_Output/stream/models/dropT.csv")
+
+# drop Q##############
+
+model_path <- "04_Output/stream/models/drop/noQ"
+
+site_models_noQ <- list.files(model_path, pattern = "\\.rds$", full.names = TRUE) %>%
+  set_names(gsub("\\.rds$", "", basename(.))) %>%
+  map(readRDS) %>%
+  {
+    sites <- unique(gsub("^(int_noQ_|ext_noQ_|boffa_Q_)", "", names(.)))
+    map(sites, function(s) {
+      list(
+        fit_int_noQ = .[[paste0("int_noQ_", s)]],
+        fit_ext_noQ = .[[paste0("ext_noQ_", s)]],
+        fit_noQ     = .[[paste0("boffa_Q_", s)]]
+      )
+    }) %>% set_names(sites)
+  }
+
+
+extract_results <- function(mod, site_name, drop = NULL) {
+  fix_df <- as.data.frame(summary(mod)$fixed) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `l-95% CI`, `u-95% CI`) %>%
+    filter(!grepl("Intercept", parameter))
+  r2 <- as.data.frame(bayes_R2(mod)) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `Q2.5`, `Q97.5`) %>%
+    rename(`l-95% CI` = Q2.5, `u-95% CI` = Q97.5)
+  sigma_df <- as.data.frame(summary(mod)$spec_pars) %>%
+    tibble::rownames_to_column("parameter") %>%
+    select(parameter, Estimate, `l-95% CI`, `u-95% CI`) %>%
+    filter(grepl("sigma", parameter))
+  bind_rows(fix_df, r2, sigma_df) %>%
+    mutate(site = site_name, drop = drop)
+}
+
+results_noQ <- imap_dfr(site_models_noQ, function(mods, site_name) {
+  bind_rows(
+    extract_results(mods$fit_int_noQ, site_name, drop = "noQ_lint"),
+    extract_results(mods$fit_ext_noQ, site_name, drop = "noQ_lext"),
+    extract_results(mods$fit_noQ,     site_name, drop = "noQ_both")
+  )
+})
+
+
+R2_T<-results_noQ%>%  
+  filter(parameter %in% c('R2lint', 'R2lext'))%>%
+  separate(parameter, into = c("R2", "pathway"), sep = "(?<=R2)")%>%
+  select(pathway, Estimate, site, drop)%>%
+  rename(R2=Estimate)
+
+sigma_T<-results_noQ%>%  
+  filter(parameter %in% c('sigma_lint', 'sigma_lext'))%>%
+  separate(parameter, into = c("R2", "pathway"), sep = "_")%>%
+  select(pathway, Estimate, site, drop)%>%
+  rename(sigma=Estimate)
+
+variance<-left_join(R2_T, sigma_T)
+
+wip<-results_noQ%>%  
+  filter(!parameter %in% c('sigma_lint', 'R2lext', 'R2lint', 'sigma_lext'))%>%
+  separate(parameter, into = c("pathway", "indep"), sep = "_")%>%
+  left_join(variance)
+
+
+site_specific_results_long <- read_csv("04_Output/stream/models/site_specific_results.long.csv")%>%
+  mutate(drop='full')%>%
+  rename(indep=indep.var)
+
+no_Q<-rbind(wip, site_specific_results_long)%>%
+  separate(drop, into = c("test", "dropped_from"), sep = "_")
+
+write_csv(no_Q, "04_Output/stream/models/dropQ.csv")
+
+# noQ models
+# results_noQ <- imap_dfr(site_models_noQ, function(mods, site_name) {
+#   bind_rows(
+#     extract_results(mods$fit_int_noQ, site_name, drop = "noQ_lext"),
+#     extract_results(mods$fit_ext_noQ, site_name, drop = "noQ_lint"),
+#     extract_results(mods$fit_noQ,     site_name, drop = "noQ_both")
+#   )
+# })
+# 
+# # combine
+# all_results <- bind_rows(results_noT, results_noQ)
+
