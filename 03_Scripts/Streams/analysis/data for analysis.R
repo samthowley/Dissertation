@@ -16,40 +16,10 @@ library(partR2)
 library(weathermetrics)
 
 
-
-
 facet_order <- c("15","5","5a","6", "3", "13", "7","9")  # EDIT THIS
 
 col<-c("internal" ='red', "external"='black', 'CO2_flux'='darkgray')
 
-# theme_set(theme(axis.text.x = element_text(12),
-#                 axis.text.y = element_text(size = 12),
-# 
-#                 axis.title.x = element_text(size=14, angle=360),
-#                 axis.title.y = element_text(size=14, angle=90),
-#                 plot.title = element_text(size = 14),
-# 
-#                 legend.key.size = unit(0.5, "cm"),
-#                 legend.key.height = unit(1, "cm"),
-#                 legend.key.width = unit(1, "cm"),
-#                 legend.text = element_text(size = 12),
-#                 legend.title = element_text(size = 12),
-#                 legend.position ="bottom",
-# 
-#                 panel.background = element_rect(fill = 'white'),
-#                 strip.text = element_text(size = 13),
-# 
-#                 axis.line.x = element_line(size = 0.5, linetype = "solid", colour = "gray"),
-#                 axis.line.y = element_line(size = 0.5, linetype = "solid", colour = "gray")))
-# 
-
-
-
-
-
-# contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>%
-#   select(Wetland.area, ID)%>%
-#   rename(contrib.wetland.area=Wetland.area)
 
 int.ext <- read_csv("04_Output/stream/external-internal.csv")%>%
   mutate(

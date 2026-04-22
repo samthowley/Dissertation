@@ -1,14 +1,12 @@
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
-<<<<<<< HEAD
 wetland_cover <- watershed.inundation%>%
   select(ID, total.wetland.area, basin.wetland.perc,
          contrib.wetland.area, contrib.wetland.perc)%>%
   distinct(ID, total.wetland.area, .keep_all = T)%>%
   mutate(basin.wetland.perc=round(basin.wetland.perc, 3),
          contrib.wetland.perc=round(contrib.wetland.perc, 3))
-=======
-<<<<<<< HEAD
+
 #calculate inundation#############
 contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>%
   rename(contrib.wetland.area=Wetland.area, contrib.wetland.perc=PERCENTAGE)
@@ -16,7 +14,6 @@ contrib_wetlands <- read_csv("01_Raw_data/wetland cover/contrib_wetlands.csv")%>
 wetland_cover <- read_csv("01_Raw_data/wetland cover/wetland_cover.csv")%>%
   select(Basin_Name, AREA, PERCENTAGE)%>%
   rename(Basin='Basin_Name', total.wetland.area=AREA, total.wetland.perc=PERCENTAGE)
-=======
 
 wetland_cover <- watershed.inundation%>%
   select(ID, total.wetland.area, basin.wetland.perc,
@@ -24,8 +21,6 @@ wetland_cover <- watershed.inundation%>%
   mutate(basin.wetland.perc=round(basin.wetland.perc, 2),
          contrib.wetland.perc=round(contrib.wetland.perc, 2)
   )
->>>>>>> a8500a1ec5520abcdef8a9d032c8701d8b6d3db7
->>>>>>> 14f919177a3d39685107c32796c1b1f85accbbe6
 
 wetland.impact<-int.ext%>%
   select(ID, Date, int.ext.ratio, internal, external)%>%

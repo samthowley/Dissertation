@@ -3,6 +3,10 @@ source("03_Scripts/Streams/analysis/data for analysis.R")
 site_specific_results <- read_csv("04_Output/stream/models/site_specific_results.csv")%>%
   rename(ID=site)
 
+site_specific_results%>%
+  ggplot(aes(x=ID, y=Estimate, color=indep.var, shape=pathway))+
+  geom_point(size=4)
+
 basin_area <- read_csv("01_Raw_data/wetland cover/basin_area.csv")%>%
   select(Basin, Shape_Area)%>%rename(ID=Basin)
 
