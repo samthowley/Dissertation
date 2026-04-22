@@ -5,34 +5,6 @@ library(patchwork)
 library(brms)
 library(corrplot)
 #make_results_table(ratio,    "int.ext.ratio")
-#model figures##########
-dropQ <- read_csv("04_Output/stream/models/dropQ.csv")
-
-dropT <- read_csv("04_Output/stream/models/dropT.csv")
-
- 
-
-no_T %>%
-  filter(pathway == 'lint', drop %in% c('noT_lint', 'full')) %>%
-  ggplot(aes(x = as.factor(site), y = Estimate, ymin = `l-95% CI`, ymax = `u-95% CI`)) +
-  geom_point(data = ~ filter(., drop == "full"), 
-             aes(shape = indep), size = 6, alpha=0.7, color='black') +
-  geom_point(data = ~ filter(., drop != "full"), 
-             aes(shape = indep, color = pathway), size = 3) +
-  theme_minimal()
-unique(no_T$drop)
-
-dropQ %>%
-  filter(pathway == 'lint') %>%
-  ggplot(aes(x = as.factor(site), y = Estimate, ymin = `l-95% CI`, ymax = `u-95% CI`)) +
-  geom_point(data = ~ filter(., drop == "full"), 
-             aes(shape = indep), size = 6, alpha=0.7, color='black') +
-  geom_point(data = ~ filter(., drop != "full"), 
-             aes(shape = indep, color = drop), size = 3) +
-  #geom_errorbar(width = 0.2) +
-  theme_minimal()
-
-
 # Call in data ###########
 df <- int.ext %>%
   left_join(DO %>%
@@ -190,32 +162,25 @@ r2<-results_df%>%filter(parameter %in% c('R2lint', 'R2lext'))%>%
   select(site, pathway, Estimate)%>%
   rename(R2=Estimate)
 
-
-parameter_T<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
-  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
-  filter(indep.var=='TempC')%>%
-  rename(upper.bound_T=`u-95% CI`, lower.bound_T=`l-95% CI`,
-         Estimate_T=Estimate)%>%
-  select(-indep.var)
-
-
-parameter_Q<-results_df%>%filter(!parameter %in% c('R2lint', 'R2lext'))%>%
-  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
-  filter(indep.var=='lQ')%>%
-  rename(upper.bound_Q=`u-95% CI`, lower.bound_Q=`l-95% CI`,
-         Estimate_Q=Estimate)%>%
-  select(-indep.var)
-
-
 sigma<-results_df%>%filter(parameter %in% c('sigma_lint', 'sigma_lext'))%>%
   separate(parameter, into = c("sigma", "pathway"), sep = "_")%>%
   select(site, pathway, Estimate)%>%
   rename(sigma=Estimate)
 
+variance<-left_join(sigma, r2)
+
+parameter<-results_df%>%
+  separate(parameter, into = c("pathway", "indep.var"), sep = "_")%>%
+  filter(pathway %in% c('lext', 'lint'))%>%
+  rename(upper.bound=`u-95% CI`, lower.bound=`l-95% CI`,
+         Estimate=Estimate)#%>%
 
 
-no.pooling<-left_join(parameter_Q, parameter_T)%>%
-  left_join(r2)%>%left_join(sigma)%>%
+
+
+
+
+no.pooling<-left_join(parameter, variance)%>%
   mutate(across(where(is.numeric), ~ round(.x, 3)))
 write_csv(no.pooling, "04_Output/stream/models/site_specific_results.csv")
 

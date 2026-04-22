@@ -17,6 +17,9 @@ watershed<-left_join(basin_area, totalbasinwetland)%>%
   mutate(basin.wetland.perc=total.wetland.area/basin.area)%>%
   rename(ID=Basin)
 
+write_csv(watershed, "01_Raw_data/wetland cover/wetland.perc.csv")
+
+
 watershed%>%
   ggplot(aes(x=Basin))+
   geom_point(aes(y=total.wetland.area))+
