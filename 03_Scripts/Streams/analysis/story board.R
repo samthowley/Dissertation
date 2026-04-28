@@ -1,6 +1,16 @@
 
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
+int.ext.spat<-int.ext%>% left_join(pH.avg)%>%left_join(SpC.avg)%>%
+  left_join(Q.avg)%>%left_join(wetland_perc)%>%left_join(T.avg)%>%
+  mutate(
+    int.contrib=round(
+      (internal/CO2_flux)*100,2),
+    ext.contrib=round(
+      (external/CO2_flux)*100,2))%>%
+  filter(int.contrib<=100, ext.contrib<=100)
+
+
 #Interpolating Hotchkiss Data###########
 
 df <- tribble(
@@ -80,28 +90,26 @@ int.ext.summary<-left_join(int.ext, pH)%>%
     Source="This Paper",
     Year="2026",
     Location="Florida, Coastal Plain",
-    Biome="Subtropical"
+    Biome="Subtropical",
+    Water.Class="Shallow Aquifer",
+    Water.Class=if_else(Site==13, "Deeper Groundwater Seepage", Water.Class)
                     )
 
 
 
 pubs<-read_csv("01_Raw_data/int ext comparison.csv")%>%
-  mutate(discharge_m3_s=as.numeric(discharge_m3_s))%>%
-  mutate(across(7:11, as.numeric))%>%
+  mutate(across(8:13, as.numeric))%>%
   mutate(
-    Year=as.character(Year),
-    pH=str_remove_all(pH, "~"),
-    pH_lower = as.numeric(str_extract(pH, "^[0-9.]+")),
-    pH_upper = as.numeric(str_extract(pH, "[0-9.]+$")))%>%
-  select(-pH, -pH_upper, -Karst)%>%
-  rename('pH'='pH_lower')%>%
+    Year=as.character(Year))%>%
+  select(-pH)%>%
+  rename('pH'='pH_low')%>%
   filter(!is.na(Source))%>%
   
   full_join(int.ext.summary)%>%
   mutate(
     Karst=case_when(
-      pH>=7~"pH>=7",
-      pH<7~"pH<7"),
+      pH>=6.8~"pH>=7",
+      pH<6.8~"pH<7"),
     Source=paste(Source, Year),
     pct_internal = (internal.mn / CO2flux.mn) * 100
   ) %>%
@@ -116,35 +124,35 @@ pubs<-read_csv("01_Raw_data/int ext comparison.csv")%>%
 
 
 
-(b<-ggplot(pubs, aes(x = Source, y = pct_internal, color = Biome)) +
+(b<-ggplot(pubs, aes(x = Source, y = pct_internal, color = Water.Class)) +
   
   geom_rect(aes(xmin = -Inf, xmax = Inf, ymin = 0, ymax = 19,
                 fill = "Global estimate (Hotchkiss et al. 2015)"),
             inherit.aes = FALSE) +
-  geom_point(size = 3, aes(shape = Karst)) +
+  geom_point(size = 3) +
   
   
   #BUILD LEGEND
   scale_fill_manual(name = NULL, values = c("Global estimate (Hotchkiss et al. 2015)" = "grey90")) +
   
-  scale_color_manual(
-    name = "Biome",
-    values = c(
-      "Boreal"             = "#E05C5C",
-      "Mediterranean"      = "#D4820A",
-      "Semi-arid montane"  = "#639922",
-      "Subtropical"        = "#1D9E75",
-      "Temperate forest"   = "#1DA8B8",
-      "Tropical humid"     = "#378ADD",
-      "Tropical savanna"   = "#8338AC",
-      "Tropical wet forest"= "#D4479A"
-    ),
-    breaks = c(
-      "Boreal", "Mediterranean", "Semi-arid montane", "Subtropical",
-      "Temperate forest", "Tropical humid", "Tropical savanna", "Tropical wet forest"
-    ),
-    na.translate = FALSE
-  ) +
+  # scale_color_manual(
+  #   name = "Biome",
+  #   values = c(
+  #     "Boreal"             = "#E05C5C",
+  #     "Mediterranean"      = "#D4820A",
+  #     "Semi-arid montane"  = "#639922",
+  #     "Subtropical"        = "#1D9E75",
+  #     "Temperate forest"   = "#1DA8B8",
+  #     "Tropical humid"     = "#378ADD",
+  #     "Tropical savanna"   = "#8338AC",
+  #     "Tropical wet forest"= "#D4479A"
+  #   ),
+  #   breaks = c(
+  #     "Boreal", "Mediterranean", "Semi-arid montane", "Subtropical",
+  #     "Temperate forest", "Tropical humid", "Tropical savanna", "Tropical wet forest"
+  #   ),
+  #   na.translate = FALSE
+  # ) +
   
   
   
@@ -177,7 +185,7 @@ ggplot(aes(x = discharge_m3_s)) +
   geom_ribbon(aes(ymin = internal_smooth - internal_se_smooth, ymax = internal_smooth + internal_se_smooth,
                   fill = "Global Internal Pathway (Hotchkiss et al. 2015)"),alpha=0.7, na.rm = T) +
   
-  geom_point(aes(x = discharge_m3_s, y = internal.mn, color = Biome, shape=Source), size = 3) +
+  geom_point(aes(x = discharge_m3_s, y = internal.mn, color = Water.Class, shape=Source), size = 3) +
 
   
   #BUILD LEGEND
@@ -186,24 +194,24 @@ ggplot(aes(x = discharge_m3_s)) +
                                "Global External Pathway" = "blue",
                                "Global Internal Pathway (Hotchkiss et al. 2015)" = "grey")) +
 
-  scale_color_manual(
-    name = "Biome",
-    values = c(
-      "Boreal"             = "#E05C5C",
-      "Mediterranean"      = "#D4820A",
-      "Semi-arid montane"  = "#639922",
-      "Subtropical"        = "#1D9E75",
-      "Temperate forest"   = "#1DA8B8",
-      "Tropical humid"     = "#378ADD",
-      "Tropical savanna"   = "#8338AC",
-      "Tropical wet forest"= "#D4479A"
-    ),
-    breaks = c(
-      "Boreal", "Mediterranean", "Semi-arid montane", "Subtropical",
-      "Temperate forest", "Tropical humid", "Tropical savanna", "Tropical wet forest"
-    ),
-    na.translate = FALSE
-  ) +
+  # scale_color_manual(
+  #   name = "Biome",
+  #   values = c(
+  #     "Boreal"             = "#E05C5C",
+  #     "Mediterranean"      = "#D4820A",
+  #     "Semi-arid montane"  = "#639922",
+  #     "Subtropical"        = "#1D9E75",
+  #     "Temperate forest"   = "#1DA8B8",
+  #     "Tropical humid"     = "#378ADD",
+  #     "Tropical savanna"   = "#8338AC",
+  #     "Tropical wet forest"= "#D4479A"
+  #   ),
+  #   breaks = c(
+  #     "Boreal", "Mediterranean", "Semi-arid montane", "Subtropical",
+  #     "Temperate forest", "Tropical humid", "Tropical savanna", "Tropical wet forest"
+  #   ),
+  #   na.translate = FALSE
+  # ) +
   scale_shape_manual(
     name = "Source",
     values = c(
@@ -226,5 +234,79 @@ ggplot(aes(x = discharge_m3_s)) +
 
 
 plot_grid(a,b, ncol=1)
+
+
+######################################################################
+
+common_list<-
+  list(
+    theme(
+      plot.title = element_text(hjust = 0.5, size=16),
+      axis.title.y =  element_text(size=14),
+      axis.text =  element_text(size=11))
+  )
+
+
+
+model <- lm(ext.contrib ~ pH.avg, data = int.ext.avg)
+p_val <- summary(model)$coefficients["pH.avg", "Pr(>|t|)"]
+p_label <- paste0("p = ", signif(p_val, 3))
+
+
+(b<-int.ext.spat %>%
+    mutate(pH.avg = as.factor(pH.avg)) %>%                 # make pH a factor
+    ggplot(aes(x = pH.avg, y = ext.contrib)) +             # core mapping
+    geom_violin() +   # violin shape
+    geom_jitter(width = 0.15, height = 0, alpha = 0.3,      # scatter detail
+                colour = "black", size = 1.2) +
+    theme_minimal() +
+    labs(x = "pH", y = "%") +
+    ggtitle("External Contribution to Total"~CO[2]~"flux")+
+    
+    geom_rect(
+      data = NULL,
+      aes(
+        xmin = 7.45,              # left edge of the first factor level
+        xmax = nlevels(pH.avg) + 0.55,  # right edge beyond last factor level
+        ymin = min(int.ext.spat$ext.contrib, na.rm = TRUE)+22,   # bottom edge
+        ymax = max(int.ext.spat$ext.contrib, na.rm = TRUE)+5    # top edge
+      ),
+      fill = NA,
+      colour = "red",
+      linetype = "dashed",
+      linewidth = 0.7,
+      inherit.aes = FALSE
+    )+
+    
+    annotate("text", x = Inf, y = Inf, label = p_label,
+             hjust = 1.1, vjust = 38, size = 5)+
+    
+    common_list)
+
+
+
+model <- lm(ext.contrib ~ basin.wetland.perc, data = int.ext.avg)
+p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
+p_label <- paste0("p = ", signif(p_val, 3))
+
+
+(a<-int.ext.spat%>%
+    mutate(
+      basin.wetland.perc=round(basin.wetland.perc, 4)*100,
+      basin.wetland.perc=paste(basin.wetland.perc, "%")
+    )%>%
+    ggplot(aes(x=as.factor(basin.wetland.perc), y=ext.contrib))+
+    geom_violin()+
+    geom_jitter(alpha=0.3)+
+    theme_minimal()+
+    #xlab('pH')+
+    labs(x = "Wetland Area/Basin Area", y = "%") +
+    annotate("text", x = Inf, y = Inf, label = p_label,
+             hjust = 9.1, vjust = 42, size = 5)+
+    
+    common_list
+)
+
+plot_grid(b,a, ncol=1)
 
 

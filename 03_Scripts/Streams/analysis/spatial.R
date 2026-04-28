@@ -49,6 +49,21 @@ summary(lm(Q.avg ~ int.contrib, data = int.ext.avg))
 summary(lm(basin.wetland.perc ~ int.contrib, data = int.ext.avg))
 
 
+temp_slopes <- read_csv("04_Output/stream/temp_slopes.csv")
+Q_slopes <- read_csv("04_Output/stream/Q_slopes.csv")
+
+
+
+T.slopes<- left_join(int.ext.avg, temp_slopes, by='ID')
+summary(lm(pH.avg ~ slope, data =T.slopes%>%filter(pathway=="Internal")))
+summary(lm(pH.avg ~ slope, data =T.slopes%>%filter(pathway=="External"))) #sig
+
+
+Q.slopes<- left_join(int.ext.avg, Q_slopes, by='ID')
+summary(lm(pH.avg ~ slope, data =Q.slopes%>%filter(pathway=="Internal")))
+summary(lm(pH.avg ~ slope, data =Q.slopes%>%filter(pathway=="External"))) #sig
+
+
 ######################################################################
 common_list<-
   list(
@@ -97,8 +112,6 @@ p_label <- paste0("p = ", signif(p_val, 3))
 
 
 
-
-
 model <- lm(ext.contrib ~ basin.wetland.perc, data = int.ext.avg)
 p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
 p_label <- paste0("p = ", signif(p_val, 3))
@@ -124,23 +137,53 @@ p_label <- paste0("p = ", signif(p_val, 3))
 plot_grid(b,a, ncol=1)
 
 
+##############
+common.layers<-list(
+  geom_point(size=4, aes(shape=significance, color=r2)),
+    geom_hline(yintercept = 0),
+    theme_classic(),
+    stat_poly_line(formula = y ~ x, se = FALSE),
+    stat_poly_eq(
+      aes(label = paste(..p.value.label..,  sep = " ~~ ")),
+      formula = y ~ x, parse = TRUE,
+      size = 5, label.x = "right", label.y = "top", vstep = 0.1
+    ))
 
 
 
+a<-plot_grid(
+T.slopes%>%
+  filter(pathway=='External')%>%
+  ggplot(aes(x=pH.avg, y=slope))+
+  ggtitle(expression(External~CO[2]~'~Temperature'~Slopes))+
+  common.layers
+,
+T.slopes%>%
+  filter(pathway=='Internal')%>%
+  ggplot(aes(x=pH.avg, y=slope))+
+  ggtitle(expression(Internal~CO[2]~'~Temperature'~Slopes))+
+  common.layers,
 
-site_specific_results_long <- read_csv("04_Output/stream/models/site_specific_results.long.csv")%>%
-  rename(ID=site)%>%
-  left_join(int.ext.avg)%>%
-  mutate(R2.case=case_when(
-    R2>=0.4~ "r2>=0.4",
-    R2<0.4~ "r2<0.4",
-    
-  ))
+ncol=2
+
+)
 
 
-site_specific_results_long%>%
-  filter(pathway=='lint', indep.var=='lQ')%>%
-   ggplot(aes(x=pH.avg, y=Estimate, color=R2.case))+
-  geom_point(size=3)+theme_minimal()+
-  xlab('pH')+ylab('Specific Conductivity')
+b<-plot_grid(
+  Q.slopes%>%
+    filter(pathway=='External')%>%
+    ggplot(aes(x=pH.avg, y=slope))+
+    ggtitle(expression(External~CO[2]~'~Q'~Slopes))+
+    common.layers
+  ,
+  Q.slopes%>%
+    filter(pathway=='Internal')%>%
+    ggplot(aes(x=pH.avg, y=slope))+
+    ggtitle(expression(Internal~CO[2]~'~Q'~Slopes))+
+    common.layers,
+  
+  ncol=2
+)
+  
 
+plot_grid(a,b, ncol=1)
