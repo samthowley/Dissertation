@@ -26,18 +26,21 @@ T.avg<-temperature%>%
 int.ext.spat<-int.ext%>% left_join(pH.avg)%>%left_join(SpC.avg)%>%
   left_join(Q.avg)%>%left_join(wetland_perc)%>%left_join(T.avg)%>%
   mutate(
-    int.contrib=(internal/CO2_flux)*100,
-    ext.contrib=(external/CO2_flux)*100
-  )
+    int.contrib=round(
+      (internal/CO2_flux)*100,2),
+    ext.contrib=round(
+      (external/CO2_flux)*100,2))%>%
+  filter(int.contrib<=100, ext.contrib<=100)
 
 int.ext.avg<-int.ext.spat%>%
   group_by(ID)%>%
   summarise(
     int.avg=round(mean(internal, na.rm=T),2),
     ext.avg=round(mean(external, na.rm=T),2),
-    int.contrib=round(mean((internal/CO2_flux)*100, na.rm=T), 2),
-    ext.contrib=round(mean((external/CO2_flux)*100, na.rm=T), 2)
-  )%>% left_join(pH.avg)%>%left_join(SpC.avg)%>%
+    int.contrib=mean(int.contrib, na.rm=T),
+    ext.contrib=mean(ext.contrib, na.rm=T),
+  )%>% 
+  left_join(pH.avg)%>%left_join(SpC.avg)%>%
   left_join(Q.avg)%>%left_join(wetland_perc)%>%left_join(T.avg)
 
 summary(lm(pH.avg ~ int.contrib, data = int.ext.avg))
@@ -60,8 +63,8 @@ int.ext.spat%>%
   ggplot(aes(x=pH.avg, y=int.contrib, color=ID))+
   geom_violin()+
   geom_jitter(alpha=0.3)+
-  theme_minimal()+scale_y_log10()+
-  xlab('pH')
+  theme_minimal()+
+   xlab('pH')+ylab(expression("Internal Contribution to Total"~CO[2]~"flux (%)"))
 
 
 ######################################################################
@@ -74,8 +77,9 @@ int.ext.spat%>%
   mutate(
     Q.avg=as.factor(Q.avg)
   )%>%
+  filter(int.contrib<=100)%>%
   ggplot(aes(x=Q.avg, y=int.contrib, color=ID))+
   geom_violin()+
   geom_jitter(alpha=0.3)+
-  theme_minimal()+scale_y_log10()+
-  xlab('pH')
+  theme_minimal()
+
