@@ -50,36 +50,97 @@ summary(lm(basin.wetland.perc ~ int.contrib, data = int.ext.avg))
 
 
 ######################################################################
+common_list<-
+  list(
+    theme(
+      plot.title = element_text(hjust = 0.5, size=16),
+      axis.title.y =  element_text(size=14),
+      axis.text =  element_text(size=11))
+  )
 
-int.ext.spat%>%
-  ggplot(aes(x=pH.avg, y=SpC.avg, color=ID))+
-  geom_point()+theme_minimal()+scale_y_log10()+
-  xlab('pH')+ylab('Specific Conductivity')
 
-int.ext.spat%>%
+
+model <- lm(ext.contrib ~ pH.avg, data = int.ext.avg)
+p_val <- summary(model)$coefficients["pH.avg", "Pr(>|t|)"]
+p_label <- paste0("p = ", signif(p_val, 3))
+
+
+(b<-int.ext.spat %>%
+  mutate(pH.avg = as.factor(pH.avg)) %>%                 # make pH a factor
+  ggplot(aes(x = pH.avg, y = ext.contrib)) +             # core mapping
+  geom_violin() +   # violin shape
+  geom_jitter(width = 0.15, height = 0, alpha = 0.3,      # scatter detail
+              colour = "black", size = 1.2) +
+  theme_minimal() +
+  labs(x = "pH", y = "%") +
+  ggtitle("External Contribution to Total"~CO[2]~"flux")+
+  
+  geom_rect(
+    data = NULL,
+    aes(
+      xmin = 7.45,              # left edge of the first factor level
+      xmax = nlevels(pH.avg) + 0.55,  # right edge beyond last factor level
+      ymin = min(int.ext.spat$ext.contrib, na.rm = TRUE)+22,   # bottom edge
+      ymax = max(int.ext.spat$ext.contrib, na.rm = TRUE)+5    # top edge
+    ),
+    fill = NA,
+    colour = "red",
+    linetype = "dashed",
+    linewidth = 0.7,
+    inherit.aes = FALSE
+  )+
+    
+    annotate("text", x = Inf, y = Inf, label = p_label,
+             hjust = 1.1, vjust = 38, size = 5)+
+    
+    common_list)
+
+
+
+
+
+model <- lm(ext.contrib ~ basin.wetland.perc, data = int.ext.avg)
+p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
+p_label <- paste0("p = ", signif(p_val, 3))
+
+
+(a<-int.ext.spat%>%
   mutate(
-    pH.avg=as.factor(pH.avg)
-        )%>%
-  ggplot(aes(x=pH.avg, y=int.contrib, color=ID))+
+    basin.wetland.perc=round(basin.wetland.perc, 4)*100,
+    basin.wetland.perc=paste(basin.wetland.perc, "%")
+  )%>%
+  ggplot(aes(x=as.factor(basin.wetland.perc), y=ext.contrib))+
   geom_violin()+
   geom_jitter(alpha=0.3)+
   theme_minimal()+
-   xlab('pH')+ylab(expression("Internal Contribution to Total"~CO[2]~"flux (%)"))
+  #xlab('pH')+
+  labs(x = "Wetland Area/Basin Area", y = "%") +
+    annotate("text", x = Inf, y = Inf, label = p_label,
+             hjust = 9.1, vjust = 42, size = 5)+
+    
+  common_list
+)
+
+plot_grid(b,a, ncol=1)
 
 
-######################################################################
 
-int.ext.spat%>%
-  ggplot(aes(x=T.avg, y=Q.avg, color=ID))+
-  geom_point()+theme_minimal()+scale_y_log10()
 
-int.ext.spat%>%
-  mutate(
-    Q.avg=as.factor(Q.avg)
-  )%>%
-  filter(int.contrib<=100)%>%
-  ggplot(aes(x=Q.avg, y=int.contrib, color=ID))+
-  geom_violin()+
-  geom_jitter(alpha=0.3)+
-  theme_minimal()
+
+
+site_specific_results_long <- read_csv("04_Output/stream/models/site_specific_results.long.csv")%>%
+  rename(ID=site)%>%
+  left_join(int.ext.avg)%>%
+  mutate(R2.case=case_when(
+    R2>=0.4~ "r2>=0.4",
+    R2<0.4~ "r2<0.4",
+    
+  ))
+
+
+site_specific_results_long%>%
+  filter(pathway=='lint', indep.var=='lQ')%>%
+   ggplot(aes(x=pH.avg, y=Estimate, color=R2.case))+
+  geom_point(size=3)+theme_minimal()+
+  xlab('pH')+ylab('Specific Conductivity')
 

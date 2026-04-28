@@ -226,7 +226,7 @@ nrow=1
 #slopes##########
 
 
-rbind(
+Q_slopes<-rbind(
 site_lm_table_fun(Q.impacts, log10(internal), ID, log10(Q)) %>%
   mutate(pathway = "Internal") %>%
   rename(slope = slope, p = p_slope)
@@ -241,7 +241,12 @@ site_lm_table_fun(Q.impacts, log10(CO2_flux), ID, log10(Q)) %>%
 )%>%
   mutate(
     significance=if_else(p<=0.005, "significant", "insignificant")
-  )%>%
+  )
+
+write_csv(Q_slopes, "04_Output/stream/Q_slopes.csv")
+
+
+Q_slopes%>%
   ggplot(aes(
     x=pathway,
     y = slope,

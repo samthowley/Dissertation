@@ -1,22 +1,19 @@
-﻿Source,Year,Site,Location,Biome,discharge_m3_s,CO2flux.mn,internal.mn,external.mn,internal.contrib,internal.min,internal.max
-Lupon et al.,2019,Krycklan C5–C6,Sweden,Boreal,0.0087,4,1.3,2.7,0.325,,
-Bernal et al.,2022,Fuirosos,"Catalonia, Spain",Mediterranean,0.0039,2.57,1.3,1.27,0.505836576,,
-Bernal et al.,2022,Font del Regàs,"Catalonia, Spain",Mediterranean,0.0582,6.7,3.84,2.86,0.573134328,,
-Kirk and Cohen,2023,DRAIN,"Santa Fe River, FL, USA",Subtropical,0.02,7.5,2.48,5.02,0.330666667,,
-Kirk and Cohen,2023,SF700,"Santa Fe River, FL, USA",Subtropical,0.5,5.5,1.58,3.92,0.287272727,,
-Kirk and Cohen,2023,SF1000,"Santa Fe River, FL, USA",Subtropical,0.4,6.5,3.75,2.75,0.576923077,,
-Kirk and Cohen,2023,SF1500,"Santa Fe River, FL, USA",Subtropical,1.8,7,4.01,2.99,0.572857143,,
-Kirk and Cohen,2023,ICHE,"Santa Fe River, FL, USA",Subtropical,9.6,4.7,0,4.7,0,,
-Kirk and Cohen,2023,SF2500,"Santa Fe River, FL, USA",Subtropical,38.3,9,2.25,6.75,0.25,,
-Kirk and Cohen,2023,SF2800,"Santa Fe River, FL, USA",Subtropical,50.9,8.5,2.85,5.65,0.335294118,,
-Duvert et al.,2019,Daly River,"Northern Territory, Australia",Tropical savanna,24,8.5,0.85,7.65,0.1,,
-Duvert et al.,2019,Howard River,"Northern Territory, Australia",Tropical savanna,0.16,2.3,0.69,1.61,0.3,,
-Marzolf et al.,2022,Taconazo,"La Selva, Costa Rica",Tropical wet forest,0.004,2.16,0.34,1.82,0.157407407,,
-Carter et al.,2022,New Hope Creek,"NC, USA",Temperate forest,0.7,2.9,1.86,1.04,0.64137931,,
-Deirmendjian et al.,2021,Nyong watershed network average,"Cameroon, Central Africa",Tropical humid,76.1,13.93,1.43,12.5,0.102656138,,
-Lynch,2009,Clark Fork River,"Montana, USA",Semi-arid montane,40,0.19,0.17,0.03,0.894736842,,
-Rocher-Ros et al.,2019,Miellajokka catchment,"Alaska, USA",Boreal,0.1287,2.7,2.1,0.6,0.777777778,,
-Rocher-Ros et al.,2019,Miellajokka catchment,"Alaska, USA",Boreal,0.014,1.4,1.2,0.2,0.857142857,,
-Taillardat et al. ,2022,,Quebec,Boreal,0.0184,8.28,1.41,6.87,0.170289855,,
-,,,,,,,,,,,
-,,,,,,,,,,,
+﻿DOI,Source,Year,Site,Location,Biome,discharge_m3_s,CO2flux.mn,internal.mn,external.mn,internal.contrib,Karst,pH
+doi: 10.1002/lno.11134,Lupon et al.,2019,Krycklan C5–C6,Sweden,Boreal,0.0087,4,1.3,2.7,0.325,,~5.0-6.5
+doi: 10.1002/lno.12226,Bernal et al.,2022,Fuirosos,"Catalonia, Spain",Mediterranean,0.0039,2.57,1.3,1.27,0.505836576,,~7.5
+doi: 10.1002/lno.12227,Bernal et al.,2022,Font del Regàs,"Catalonia, Spain",Mediterranean,0.0582,6.7,3.84,2.86,0.573134328,,~7.8
+10.1029/2022JG006954,Kirk and Cohen,2023,DRAIN,"Santa Fe River, FL, USA",Subtropical,0.02,7.5,2.48,5.02,0.330666667,,~5.5-6.5
+10.1029/2022JG006955,Kirk and Cohen,2023,SF700,"Santa Fe River, FL, USA",Subtropical,0.5,5.5,1.58,3.92,0.287272727,,~6.5-7.2
+10.1029/2022JG006956,Kirk and Cohen,2023,SF1000,"Santa Fe River, FL, USA",Subtropical,0.4,6.5,3.75,2.75,0.576923077,,~6.8-7.4
+10.1029/2022JG006957,Kirk and Cohen,2023,SF1500,"Santa Fe River, FL, USA",Subtropical,1.8,7,4.01,2.99,0.572857143,,~7.0-7.5
+10.1029/2022JG006958,Kirk and Cohen,2023,ICHE,"Santa Fe River, FL, USA",Subtropical,9.6,4.7,0,4.7,0,Karst,~7.4-7.8
+10.1029/2022JG006959,Kirk and Cohen,2023,SF2500,"Santa Fe River, FL, USA",Subtropical,38.3,9,2.25,6.75,0.25,,~7.2-7.6
+10.1029/2022JG006960,Kirk and Cohen,2023,SF2800,"Santa Fe River, FL, USA",Subtropical,50.9,8.5,2.85,5.65,0.335294118,,~7.3-7.6
+10.1029/2018JG004912,Duvert et al.,2019,Daly River,"Northern Territory, Australia",Tropical savanna,24,8.5,0.85,7.65,0.1,Karst,~7.6-8.0
+10.1029/2018JG004913,Duvert et al.,2019,Howard River,"Northern Territory, Australia",Tropical savanna,0.16,2.3,0.69,1.61,0.3,Karst,~7.2-7.8
+https://doi.org/10.1007/s10533-022-00954-4,Marzolf et al.,2022,Taconazo,"La Selva, Costa Rica",Tropical wet forest,0.004,2.16,0.34,1.82,0.157407407,Karst,~5.5-6.9
+10.1029/2022JG007048,Carter et al.,2022,New Hope Creek,"NC, USA",Temperate forest,0.7,2.9,1.86,1.04,0.64137931,,~6.8-7.2
+doi:10.5194/bg-19-137-2022,Moustapha et al.,2023,Nyong watershed network average,"Cameroon, Central Africa",Tropical humid,76.1,13.93,1.43,12.5,0.102656138,,~5.7-6.2
+DOI: 10.1111/gcb.14895,Rocher-Ros et al.,2019,Miellajokka catchment,"Alaska, USA",Boreal,0.1287,2.7,2.1,0.6,0.777777778,,~6.8-7.2
+DOI: 10.1111/gcb.14895,Rocher-Ros et al.,2019,Miellajokka catchment,"Alaska, USA",Boreal,0.014,1.4,1.2,0.2,0.857142857,,~6.8-7.2
+10.1029/2022JG006855,Taillardat et al. ,2022,,Quebec,Boreal,0.0184,8.28,1.41,6.87,0.170289855,,~4.0-5.5

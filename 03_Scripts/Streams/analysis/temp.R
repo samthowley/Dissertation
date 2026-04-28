@@ -289,7 +289,7 @@ common.layers<-list(
 
 )
 
-rbind(
+temp.slopes<-rbind(
   site_lm_table_fun(temp.impacts, internal, ID, TempC) %>%
     mutate(pathway = "Internal") %>%
     rename(slope = slope, p = p_slope)
@@ -305,7 +305,12 @@ rbind(
   mutate(
     setting="Bradford Experimental Forest",
     significance=if_else(p<=0.005, "significant", "insignificant")
-  )%>%
+  )
+
+write_csv(temp.slopes, "04_Output/stream/temp_slopes.csv")
+
+
+temp.slopes%>%
   ggplot(aes(
     x=pathway,
     y = slope,

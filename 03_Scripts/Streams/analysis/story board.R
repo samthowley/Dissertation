@@ -64,57 +64,156 @@ interp_df <- interp_df %>%
   select(-logQ)
 
 
-int.ext.summary<-int.ext%>%
+
+
+int.ext.summary<-left_join(int.ext, pH)%>%
   group_by(ID)%>%
   summarise(
-    
     discharge_m3_s= mean(Q/10^3, na.rm=T),
-    Q.min= min(Q/10^3, na.rm=T),
-    Q.max= max(Q/10^3, na.rm=T),
-        
     CO2flux.mn=mean(CO2_flux, na.rm=T),
-    CO2flux.min=min(CO2_flux, na.rm=T),
-    CO2flux.max=max(CO2_flux, na.rm=T),
-       
     internal.mn=mean(internal, na.rm=T),
-    internal.min=min(internal, na.rm=T),
-    internal.max=max(internal, na.rm=T),
-    
     external.mn=mean(external, na.rm=T),
-    external.min=min(external, na.rm=T),
-    external.max=max(external, na.rm=T)
+    pH=mean(pH, na.rm=T)
          )%>%
-  mutate(spatial=if_else(ID=='13', "Karst", "Tannic"))
+  rename(Site=ID)%>%
+  mutate(
+    Source="This Paper",
+    Year="2026",
+    Location="Florida, Coastal Plain",
+    Biome="Subtropical"
+                    )
 
-comparisons<-full_join(interp_df, int.ext.summary)
 
 
-
-ggplot(comparisons, aes(x = discharge_m3_s)) +
+pubs<-read_csv("01_Raw_data/int ext comparison.csv")%>%
+  mutate(discharge_m3_s=as.numeric(discharge_m3_s))%>%
+  mutate(across(7:11, as.numeric))%>%
+  mutate(
+    Year=as.character(Year),
+    pH=str_remove_all(pH, "~"),
+    pH_lower = as.numeric(str_extract(pH, "^[0-9.]+")),
+    pH_upper = as.numeric(str_extract(pH, "[0-9.]+$")))%>%
+  select(-pH, -pH_upper, -Karst)%>%
+  rename('pH'='pH_lower')%>%
+  filter(!is.na(Source))%>%
   
-  geom_ribbon(aes(ymin = total_smooth - total_se_smooth, ymax = total_smooth + total_se_smooth,
-                  fill = "Global CO2 Flux (Hotchkiss et al. 2015)"), alpha = 0.5, na.rm = T) +
-  geom_ribbon(aes(ymin = external_smooth - external_se_smooth, ymax = external_smooth + external_se_smooth,
-                  fill = "Global External Pathway"), alpha = 0.2, na.rm = T) +
+  full_join(int.ext.summary)%>%
+  mutate(
+    Karst=case_when(
+      pH>=7~"pH>=7",
+      pH<7~"pH<7"),
+    Source=paste(Source, Year),
+    pct_internal = (internal.mn / CO2flux.mn) * 100
+  ) %>%
+  arrange(discharge_m3_s) %>%
+  mutate(
+    # Sub-label with mean discharge
+    x_label = paste0(Source, "\n(", round(discharge_m3_s, 3), " m³ s⁻¹)"),
+    x_label = factor(x_label, levels = unique(x_label))  # preserve Q order
+  )%>%
+  filter(Source!="Lynch 2009")
+
+
+
+
+(b<-ggplot(pubs, aes(x = Source, y = pct_internal, color = Biome)) +
+  
+  geom_rect(aes(xmin = -Inf, xmax = Inf, ymin = 0, ymax = 19,
+                fill = "Global estimate (Hotchkiss et al. 2015)"),
+            inherit.aes = FALSE) +
+  geom_point(size = 3, aes(shape = Karst)) +
+  
+  
+  #BUILD LEGEND
+  scale_fill_manual(name = NULL, values = c("Global estimate (Hotchkiss et al. 2015)" = "grey90")) +
+  
+  scale_color_manual(
+    name = "Biome",
+    values = c(
+      "Boreal"             = "#E05C5C",
+      "Mediterranean"      = "#D4820A",
+      "Semi-arid montane"  = "#639922",
+      "Subtropical"        = "#1D9E75",
+      "Temperate forest"   = "#1DA8B8",
+      "Tropical humid"     = "#378ADD",
+      "Tropical savanna"   = "#8338AC",
+      "Tropical wet forest"= "#D4479A"
+    ),
+    breaks = c(
+      "Boreal", "Mediterranean", "Semi-arid montane", "Subtropical",
+      "Temperate forest", "Tropical humid", "Tropical savanna", "Tropical wet forest"
+    ),
+    na.translate = FALSE
+  ) +
+  
+  
+  
+  #FORMAT FIGURE
+  labs(
+    x = NULL,
+    y = "Internal pathway contribution (%)",
+    title = expression("Internal Pathway Contribution to Low-Order Stream" ~ CO[2] ~ "Flux")
+  ) +
+  theme_classic(base_size = 13) +
+  theme(
+    axis.text.x = element_text(angle = 330, hjust = 0, vjust = 1),
+    legend.position = "right"
+  ))
+
+
+
+
+comparisons<-full_join(interp_df, pubs)
+
+
+(a<-comparisons%>%
+  mutate(Source=if_else(Source!="This Paper 2026", "Literature", Source))%>%
+ggplot(aes(x = discharge_m3_s)) +
+  
+  # geom_ribbon(aes(ymin = total_smooth - total_se_smooth, ymax = total_smooth + total_se_smooth,
+  #                 fill = "Global CO2 Flux (Hotchkiss et al. 2015)"), alpha = 0.5, na.rm = T) +
+  # geom_ribbon(aes(ymin = external_smooth - external_se_smooth, ymax = external_smooth + external_se_smooth,
+  #                 fill = "Global External Pathway"), alpha = 0.2, na.rm = T) +
   geom_ribbon(aes(ymin = internal_smooth - internal_se_smooth, ymax = internal_smooth + internal_se_smooth,
-                  fill = "Global Internal Pathway"), alpha = 0.2, na.rm = T) +
+                  fill = "Global Internal Pathway (Hotchkiss et al. 2015)"),alpha=0.7, na.rm = T) +
   
-  geom_point(aes(x = discharge_m3_s, y = internal.mn, color = "Internally Produced CO2"), size = 3) +
-  geom_point(aes(x = discharge_m3_s, y = external.mn, color = "Externally Sourced CO2"), size = 3) +
-  geom_point(aes(x = discharge_m3_s, y = CO2flux.mn, color = "Total CO2 Flux"), size = 3) +
+  geom_point(aes(x = discharge_m3_s, y = internal.mn, color = Biome, shape=Source), size = 3) +
+
   
+  #BUILD LEGEND
   scale_fill_manual(name = NULL,
                     values = c("Global CO2 Flux (Hotchkiss et al. 2015)"       = "grey70",
                                "Global External Pathway" = "blue",
-                               "Global Internal Pathway" = "red")) +
-  scale_color_manual(name = NULL,
-                     values = c("Total CO2 Flux"              = "black",
-                                "Externally Sourced CO2" = "blue",
-                                "Internally Produced CO2" = "darkred")) +
+                               "Global Internal Pathway (Hotchkiss et al. 2015)" = "grey")) +
+
+  scale_color_manual(
+    name = "Biome",
+    values = c(
+      "Boreal"             = "#E05C5C",
+      "Mediterranean"      = "#D4820A",
+      "Semi-arid montane"  = "#639922",
+      "Subtropical"        = "#1D9E75",
+      "Temperate forest"   = "#1DA8B8",
+      "Tropical humid"     = "#378ADD",
+      "Tropical savanna"   = "#8338AC",
+      "Tropical wet forest"= "#D4479A"
+    ),
+    breaks = c(
+      "Boreal", "Mediterranean", "Semi-arid montane", "Subtropical",
+      "Temperate forest", "Tropical humid", "Tropical savanna", "Tropical wet forest"
+    ),
+    na.translate = FALSE
+  ) +
+  scale_shape_manual(
+    name = "Source",
+    values = c(
+      "Literature"      = 16,   # filled circle
+      "This Paper 2026" = 8    # filled star
+    ),
+    na.translate = FALSE
+  )+
   
-  guides(fill  = guide_legend(override.aes = list(alpha = 0.5)),
-         color = guide_legend(override.aes = list(size = 3))) +
-  
+  #FORMAT FIGURE
   scale_x_log10() +
   scale_y_log10() +
   labs(
@@ -122,22 +221,10 @@ ggplot(comparisons, aes(x = discharge_m3_s)) +
     y = expression(CO[2]~g/m^2/day)
   ) +
   theme_classic(base_size = 14)+
-  ggtitle("BEF Comparisons to Global Estimate")
+  ggtitle("Internal Pathway Contributions Exceeds Predictions")
+)
 
 
-
-pubs<-read_csv("01_Raw_data/int ext comparison.csv")%>%
-  mutate(discharge_m3_s=as.numeric(discharge_m3_s))%>%
-  mutate(across(6:18, as.numeric))
+plot_grid(a,b, ncol=1)
 
 
-
-full_join(int.ext.summary, pubs)%>%
-  mutate(Source=if_else(is.na(Source),"This Paper", Source))%>%
-  ggplot(aes(x=Source, y=(internal.mn/CO2flux.mn)*100, color=discharge_m3_s))+
-  scale_color_viridis_c()+
-  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0, ymax = 19,
-           fill = "grey70", alpha = 0.5) +  
-  geom_point(size=3)+
-  theme_classic()+
-  ggtitle("Internal Pathway Contribution to Low-Order Stream"~CO[2]~"Flux")
