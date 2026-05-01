@@ -64,34 +64,15 @@ pathways<-flux%>%
     
     internal=NEP_corrected*(-12*1.2)/32,
     internal=if_else(NEP_corrected>0, 0.1, internal),
-    # internal_1.2=NEP_corrected*(-44*1.2)/32,
-    # internal_1.7=NEP_corrected*(-44*1.7)/32,
 
     external=abs(CO2_flux-internal),
-    #external=if_else(external<0, 0.1, external),
-    # external_1.2=CO2_flux-internal_1.2,
-    # external_1.7=CO2_flux-internal_1.7,
-
-    # internal_1.2=if_else(NEP_corrected>0, 0, internal_1.2),
-    # internal_1.7=if_else(NEP_corrected>0, 0, internal_1.7),
-    #
-    # external_1=if_else(NEP_corrected>0, CO2_flux, external_1),
-    # external_1.2=if_else(NEP_corrected>0, CO2_flux, external_1.2),
-    # external_1.7=if_else(NEP_corrected>0, CO2_flux, external_1.7),
-    #
-    # external_1=if_else(external_1<0, 0, external_1),
-    # external_1.2=if_else(external_1.2<0, 0, external_1.2),
-    # external_1.7=if_else(external_1.7<0, 0, external_1.7),
-    #
-    #
-    # avg.internal=(internal_1+internal_1.2+internal_1.7)/3,
-    # avg.external=(external_1+external_1.2+external_1.7)/3,
-
     int.ext.ratio=internal/external,
 
     Basin=case_when(ID=='5'~'5',ID=='5a'~'5',ID=='15'~'15',
                          ID=='3'~'6',ID=='7'~'7',ID=='6'~'6',ID=='6a'~'6',
-                         ID=='9'~'9', ID=='13'~'13')
+                         ID=='9'~'9', ID=='13'~'13'),
+    internal=if_else(ID==3 & internal< 0.3, NA, internal),
+    internal=if_else(ID==6 & internal< 1, NA, internal)
     )%>%
   filter(!ID=='6a', !is.na(ID)
          )%>%
@@ -104,13 +85,12 @@ pathways<-flux%>%
 #ggplotly()
 
 ggplot(
-  pathways%>%filter(internal>0.1, external>0.1),
+  pathways,
   aes(x = Q)) +
   scale_y_log10()+scale_x_log10()+
-  geom_point(aes(y = internal), color='red') +
-  geom_point(aes(y = external), color='black') +
-  geom_point(aes(y = CO2_flux), color='purple') +
-  geom_hline(yintercept = 0)+
+  #geom_point(aes(y = internal), color='red') +
+   geom_point(aes(y = external), color='black') +
+  # geom_point(aes(y = CO2_flux), color='purple') +
   facet_wrap(~ID, ncol = 4, scales = 'free')
 
 mean(pathways$internal, na.rm=T)

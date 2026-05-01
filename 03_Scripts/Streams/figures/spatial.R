@@ -65,76 +65,77 @@ summary(lm(pH.avg ~ slope, data =Q.slopes%>%filter(pathway=="External"))) #sig
 
 
 ######################################################################
-common_list<-
+
+common_list <-
   list(
     theme(
-      plot.title = element_text(hjust = 0.5, size=16),
-      axis.title.y =  element_text(size=14),
-      axis.text =  element_text(size=11))
+      plot.title = element_text(hjust = 0.5, size = 16),
+      axis.title = element_text(size = 14),
+      axis.text = element_text(size = 12)
+    )
   )
 
-
-
+# Plot b
 model <- lm(ext.contrib ~ pH.avg, data = int.ext.avg)
 p_val <- summary(model)$coefficients["pH.avg", "Pr(>|t|)"]
-p_label <- paste0("p = ", signif(p_val, 3))
+p_label_b <- paste0("p = ", signif(p_val, 3))
 
-
-(b<-int.ext.spat %>%
-  mutate(pH.avg = as.factor(pH.avg)) %>%                 # make pH a factor
-  ggplot(aes(x = pH.avg, y = ext.contrib)) +             # core mapping
-  geom_violin() +   # violin shape
-  geom_jitter(width = 0.15, height = 0, alpha = 0.3,      # scatter detail
-              colour = "black", size = 1.2) +
-  theme_minimal() +
-  labs(x = "pH", y = "%") +
-  ggtitle("External Contribution to Total"~CO[2]~"flux")+
-  
-  geom_rect(
-    data = NULL,
-    aes(
-      xmin = 7.45,              # left edge of the first factor level
-      xmax = nlevels(pH.avg) + 0.55,  # right edge beyond last factor level
-      ymin = min(int.ext.spat$ext.contrib, na.rm = TRUE)+22,   # bottom edge
-      ymax = max(int.ext.spat$ext.contrib, na.rm = TRUE)+5    # top edge
-    ),
-    fill = NA,
-    colour = "red",
-    linetype = "dashed",
-    linewidth = 0.7,
-    inherit.aes = FALSE
-  )+
-    
-    annotate("text", x = Inf, y = Inf, label = p_label,
-             hjust = 1.1, vjust = 38, size = 5)+
-    
+(b <- int.ext.spat %>%
+    mutate(pH.avg = as.factor(pH.avg)) %>%
+    ggplot(aes(x = pH.avg, y = ext.contrib)) +
+    geom_violin() +
+    geom_jitter(width = 0.15, height = 0, alpha = 0.3,
+                colour = "black", size = 1.2) +
+    theme_minimal() +
+    labs(x = "pH", y = "%") +
+    ggtitle("External Contribution to Total" ~ CO[2] ~ "flux") +
+    geom_rect(
+      data = NULL,
+      aes(
+        xmin = 7.45,
+        xmax = nlevels(pH.avg) + 0.55,
+        ymin = min(int.ext.spat$ext.contrib, na.rm = TRUE) + 22,
+        ymax = max(int.ext.spat$ext.contrib, na.rm = TRUE) + 5
+      ),
+      fill = NA,
+      colour = "red",
+      linetype = "dashed",
+      linewidth = 0.7,
+      inherit.aes = FALSE
+    ) +
+    annotate("text",
+             x = nlevels(as.factor(int.ext.spat$pH.avg)),
+             y = max(int.ext.spat$ext.contrib, na.rm = TRUE) + 5,
+             label = p_label_b,
+             hjust =3, vjust = 1, size = 5) +
+    coord_cartesian(clip = "off") +
     common_list)
 
-
-
+# Plot a
 model <- lm(ext.contrib ~ basin.wetland.perc, data = int.ext.avg)
 p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
-p_label <- paste0("p = ", signif(p_val, 3))
+p_label_a <- paste0("p = ", signif(p_val, 3))
 
-
-(a<-int.ext.spat%>%
-  mutate(
-    basin.wetland.perc=round(basin.wetland.perc, 4)*100,
-    basin.wetland.perc=paste(basin.wetland.perc, "%")
-  )%>%
-  ggplot(aes(x=as.factor(basin.wetland.perc), y=ext.contrib))+
-  geom_violin()+
-  geom_jitter(alpha=0.3)+
-  theme_minimal()+
-  #xlab('pH')+
-  labs(x = "Wetland Area/Basin Area", y = "%") +
-    annotate("text", x = Inf, y = Inf, label = p_label,
-             hjust = 9.1, vjust = 42, size = 5)+
-    
-  common_list
+(a <- int.ext.spat %>%
+    mutate(
+      basin.wetland.perc = round(basin.wetland.perc, 4) * 100,
+      basin.wetland.perc = paste(basin.wetland.perc, "%")
+    ) %>%
+    ggplot(aes(x = as.factor(basin.wetland.perc), y = ext.contrib)) +
+    geom_violin() +
+    geom_jitter(alpha = 0.3) +
+    theme_minimal() +
+    labs(x = "Wetland Area/Basin Area", y = "%") +
+    annotate("text",
+             x = n_distinct(round(int.ext.spat$basin.wetland.perc, 4)),
+             y = max(int.ext.spat$ext.contrib, na.rm = TRUE),
+             label = p_label_a,
+             hjust = 3, vjust = 1, size = 5) +
+    coord_cartesian(clip = "off") +
+    common_list
 )
 
-plot_grid(b,a, ncol=1)
+plot_grid(b, a, ncol = 1)
 
 
 ##############
