@@ -51,20 +51,15 @@ summary(lm(basin.wetland.perc ~ int.contrib, data = int.ext.avg))
 
 temp_slopes <- read_csv("04_Output/stream/temp_slopes.csv")
 Q_slopes <- read_csv("04_Output/stream/Q_slopes.csv")
-
-
+q_slopes <- read_csv("04_Output/stream/q_slopes.csv")
 
 T.slopes<- left_join(int.ext.avg, temp_slopes, by='ID')
-summary(lm(pH.avg ~ slope, data =T.slopes%>%filter(pathway=="Internal")))
-summary(lm(pH.avg ~ slope, data =T.slopes%>%filter(pathway=="External"))) #sig
 
 
-Q.slopes<- left_join(int.ext.avg, Q_slopes, by='ID')
-summary(lm(pH.avg ~ slope, data =Q.slopes%>%filter(pathway=="Internal")))
-summary(lm(pH.avg ~ slope, data =Q.slopes%>%filter(pathway=="External"))) #sig
+q.slopes<- left_join(int.ext.avg,q_slopes, by='ID')
 
 
-######################################################################
+###pH and wetland boxplots###################################################################
 
 common_list <-
   list(
@@ -138,7 +133,7 @@ p_label_a <- paste0("p = ", signif(p_val, 3))
 plot_grid(b, a, ncol = 1)
 
 
-##############
+##comparing q, Q, and T slopes with wetland and pH############
 common.layers<-list(
   geom_point(size=4, aes(shape=significance, color=r2)),
     geom_hline(yintercept = 0),
@@ -152,7 +147,7 @@ common.layers<-list(
 
 
 
-a<-plot_grid(
+(a<-plot_grid(
 T.slopes%>%
   filter(pathway=='External')%>%
   ggplot(aes(x=pH.avg, y=slope))+
@@ -165,26 +160,45 @@ T.slopes%>%
   ggtitle(expression(Internal~CO[2]~'~Temperature'~Slopes))+
   common.layers,
 
-ncol=2
+ncol=1
 
-)
+))
 
 
-b<-plot_grid(
-  Q.slopes%>%
+(b<-plot_grid(
+  q.slopes%>%
     filter(pathway=='External')%>%
     ggplot(aes(x=pH.avg, y=slope))+
-    ggtitle(expression(External~CO[2]~'~Q'~Slopes))+
+    ggtitle(expression(External~CO[2]~'~q'~Slopes))+
     common.layers
   ,
-  Q.slopes%>%
+  q.slopes%>%
     filter(pathway=='Internal')%>%
     ggplot(aes(x=pH.avg, y=slope))+
-    ggtitle(expression(Internal~CO[2]~'~Q'~Slopes))+
+    ggtitle(expression(Internal~CO[2]~'~q'~Slopes))+
     common.layers,
   
-  ncol=2
-)
+  ncol=1
+))
   
 
-plot_grid(a,b, ncol=1)
+
+
+(c<-plot_grid(
+  q.slopes%>%
+    filter(pathway=='External')%>%
+    ggplot(aes(x=basin.wetland.perc, y=slope))+
+    ggtitle(expression(External~CO[2]~'~q'~Slopes))+
+    common.layers
+  ,
+  q.slopes%>%
+    filter(pathway=='Internal')%>%
+    ggplot(aes(x=basin.wetland.perc, y=slope))+
+    ggtitle(expression(Internal~CO[2]~'~q'~Slopes))+
+    common.layers,
+  
+  ncol=1
+))
+
+
+plot_grid(a,b,c, ncol=3)

@@ -151,8 +151,7 @@ Q.impacts%>%
   scale_fill_manual(values=c('white', 'darkred', 'darkgray'))+
   geom_boxplot()+
   scale_y_log10()+
-  ggtitle("Mean Pathway Response to Flow")+
-  common.list
+  ggtitle("Mean Pathway Response to Flow")
 
 
 
@@ -282,4 +281,37 @@ site_lm_table_fun(Q.impacts, log10(int.ext.ratio), ID, log10(Q)) %>%
     axis.text.x = element_blank(),
 
   )
+basin_area <- read_csv("01_Raw_data/wetland cover/basin_area.csv")%>%
+  select(Basin, Shape_Area)%>%rename(ID=Basin)
 
+
+Q.impacts<-left_join(Q.impacts, basin_area)%>%
+  mutate(m3.s=Q/10^3,
+         q=m3.s/Shape_Area,
+         logq=log10(q))
+
+
+q_slopes<-rbind(
+  site_lm_table_fun(Q.impacts, log10(internal), ID, log10(q)) %>%
+    mutate(pathway = "Internal") %>%
+    rename(slope = slope, p = p_slope)
+  ,
+  site_lm_table_fun(Q.impacts, log10(external), ID, log10(q)) %>%
+    mutate(pathway = "External") %>%
+    rename(slope = slope, p = p_slope)
+  ,
+  site_lm_table_fun(Q.impacts, log10(CO2_flux), ID, log10(q)) %>%
+    mutate(pathway = "Total") %>%
+    rename(slope = slope, p = p_slope)
+)%>%
+  mutate(
+    significance=if_else(p<=0.005, "significant", "insignificant")
+  )
+
+write_csv(q_slopes, "04_Output/stream/q_slopes.csv")
+
+q_slopes%>%
+  filter(pathway!='Total')%>%
+  ggplot(aes(x=ID, slope, color=pathway, shape=significance))+
+  geom_point(size=4)+
+  theme_classic()

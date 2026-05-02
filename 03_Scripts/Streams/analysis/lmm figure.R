@@ -28,17 +28,6 @@ Q.avg<-discharge%>%
   left_join(basin_area)%>%
   mutate(q=Q/Shape_Area)
 
-left_join(site_specific_results, Q.avg)%>%
-  filter(indep.var=='lQ')%>%
-  ggplot(aes(x=q, y=Estimate, color=pathway, shape = ID))+
-  geom_point(size=4)
-
-
-left_join(site_specific_results, read_csv("01_Raw_data/wetland cover/wetland.perc.csv"))%>%
-  filter(indep.var=='lQ')%>%
-  ggplot(aes(x=basin.wetland.perc, y=Estimate, color=pathway, shape = ID))+
-  geom_point(size=4)
-
 wetland_perc <- read_csv("01_Raw_data/wetland cover/wetland.perc.csv")
 
 #drop############
@@ -51,62 +40,92 @@ dropQ <- read_csv("04_Output/stream/models/dropQ.csv")%>%
     dropped_from=if_else(is.na(dropped_from), 'full', dropped_from)
   )
 
-dropQ %>%
-  ggplot(aes(x = as.factor(site), y = Estimate, 
-             ymin = `l-95% CI`, ymax = `u-95% CI`)) +
-  geom_point(data = ~ filter(., test == "full"), 
-             aes(shape = indep), size = 6, alpha=0.7, color='black') +
-  geom_point(data = ~ filter(., test != "full"), 
-             aes(shape = indep, color = dropped_from), size = 3) +
-  geom_errorbar(width = 0.2) +
+
+#dropped Q                ################
+shape_key <- c('full' = 16, 'lint' = 17, 'lext' = 15, 'both' = 18)
+
+common_layers <- list(
+  geom_point(size = 4),
+  scale_color_viridis_c(),
+  scale_shape_manual(values = c('full' = 16, 'lint' = 17, 'lext' = 15, 'both' = 18)),
   theme_minimal()
+)
 
-test<-dropQ%>%
-  filter(dropped_from %in% c('lint', 'full', 'both'),
-         pathway=='lint')%>%
-  arrange(site)
-
-
-dropQ %>%
-  filter(dropped_from %in% c('lint', 'full', 'both'),
+a<-dropQ %>%
+  filter(dropped_from %in% c('lint', 'full'),
          pathway == 'lint',
          indep=='TempC') %>%
   ggplot(aes(x = as.factor(site), y = Estimate, color=sigma, shape=dropped_from)) +
-  geom_point(size=4) +
-  scale_color_viridis_c()+
-  theme_minimal()+
+  common_layers +
   ggtitle("Discharge Dropped: Internal")
-           
 
-dropQ %>%
-  filter(dropped_from %in% c('lext', 'full', 'both'),
+b<-dropQ %>%
+  filter(dropped_from %in% c('lext', 'full'),
          pathway == 'lext',
          indep=='TempC') %>%
   ggplot(aes(x = as.factor(site), y = Estimate, color=sigma, shape=dropped_from)) +
-  geom_point(size=4) +
-  scale_color_viridis_c()+
-  theme_minimal()+
+  common_layers +
   ggtitle("Discharge Dropped: External")
 
-
-
-dropT %>%
-  filter(dropped_from %in% c('lint', 'full', 'both'),
-         pathway == 'lint',
-         indep=='lQ') %>%
-  ggplot(aes(x = as.factor(site), y = Estimate, color=sigma, shape=dropped_from)) +
-  geom_point(size=4) +
-  scale_color_viridis_c()+
-  theme_minimal()+
-  ggtitle("Temp Dropped: Internal")
-
-
-dropT %>%
-  filter(dropped_from %in% c('lext', 'full', 'both'),
+c<-dropQ %>%
+  filter(dropped_from %in% c('full', 'both'),
          pathway == 'lext',
-         indep=='lQ') %>%
+         indep=='TempC') %>%
   ggplot(aes(x = as.factor(site), y = Estimate, color=sigma, shape=dropped_from)) +
-  geom_point(size=4) +
-  scale_color_viridis_c()+
-  theme_minimal()+
-  ggtitle("Temp Dropped: External")
+  common_layers +
+  ggtitle("Discharge Dropped: Both Pathways")
+
+(g<-plot_grid(a,b,c, ncol=3))
+
+full.for.q<-site_specific_results%>%
+  filter(indep.var=='TempC')%>%
+  rename(indep=indep.var, site=ID)%>%
+  select(site, pathway, Estimate, sigma)
+
+dropQ_wide <- dropQ %>%
+  pivot_wider(
+    id_cols = c(pathway, indep, site, test),
+    names_from = dropped_from,
+    values_from = c(Estimate, sigma)
+  ) %>%
+  drop_na(Estimate_lint, Estimate_lext, Estimate_both) %>%
+  select(-Estimate_full, -sigma_full) %>%
+  left_join(full.for.q) %>%
+  mutate(
+    lint.diff = Estimate_lint - Estimate,
+    lint.sigma.diff = sigma_lint - sigma,
+    lext.diff = Estimate_lext - Estimate,
+    lext.sigma.diff = sigma_lext - sigma,
+    both.diff = Estimate_both - Estimate,
+    both.sigma.diff = sigma_both - sigma
+  )
+  
+
+
+d<-dropQ_wide %>%
+  pivot_longer(cols = c(lint.diff, lext.diff, both.diff),
+               names_to = "dropped_from",
+               values_to = "diff") %>%
+  ggplot(aes(x = as.factor(site), y = diff, color = dropped_from, shape = dropped_from)) +
+  geom_point(size = 4) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  facet_wrap(~dropped_from + indep, scales = "free") +
+  labs(y = "Difference in Estimate from Full Model", x = "Site")
+
+e<-dropQ_wide %>%
+  pivot_longer(cols = c(lint.sigma.diff, lext.sigma.diff, both.sigma.diff),
+               names_to = "dropped_from",
+               values_to = "sigma.diff") %>%
+  ggplot(aes(x = as.factor(site), y = sigma.diff, color = dropped_from, shape = dropped_from)) +
+  geom_point(size = 4) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  facet_wrap(~dropped_from + indep, scales = "free") +
+  labs(y = "Difference in Sigma from Full Model", x = "Site")
+
+plot_grid(g, d, e,ncol=1)
+
+  
