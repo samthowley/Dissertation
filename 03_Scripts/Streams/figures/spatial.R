@@ -1,7 +1,5 @@
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
-
-
 basin_area <- read_csv("01_Raw_data/wetland cover/basin_area.csv")%>%
   select(Basin, Shape_Area)%>%rename(ID=Basin)
 
@@ -13,10 +11,13 @@ SpC.avg<-SpC%>%
 
 Q.avg<-discharge%>%
   left_join(basin_area)%>%
-  # mutate(
-  #   Q=Q/10^3,
-  #   q=Q/Shape_Area)%>%
-  group_by(ID)%>%summarise(Q.avg=round(mean(Q, na.rm=T),2))
+  mutate(
+    Q=Q/10^3,
+    q=Q/Shape_Area)%>%
+  group_by(ID)%>%
+  summarise(
+    Q.avg=round(mean(Q, na.rm=T),2),
+    q.avg=mean(q, na.rm=T))
 
 wetland_perc <- read_csv("01_Raw_data/wetland cover/wetland.perc.csv")
 
@@ -25,11 +26,13 @@ T.avg<-temperature%>%
 
 int.ext.spat<-int.ext%>% left_join(pH.avg)%>%left_join(SpC.avg)%>%
   left_join(Q.avg)%>%left_join(wetland_perc)%>%left_join(T.avg)%>%
+  left_join(basin_area, by='ID')%>%
   mutate(
     int.contrib=round(
       (internal/CO2_flux)*100,2),
     ext.contrib=round(
-      (external/CO2_flux)*100,2))%>%
+      (external/CO2_flux)*100,2),
+    q=Q/10^3/Shape_Area)%>%
   filter(int.contrib<=100, ext.contrib<=100)
 
 int.ext.avg<-int.ext.spat%>%
@@ -53,9 +56,8 @@ temp_slopes <- read_csv("04_Output/stream/temp_slopes.csv")
 Q_slopes <- read_csv("04_Output/stream/Q_slopes.csv")
 q_slopes <- read_csv("04_Output/stream/q_slopes.csv")
 
+
 T.slopes<- left_join(int.ext.avg, temp_slopes, by='ID')
-
-
 q.slopes<- left_join(int.ext.avg,q_slopes, by='ID')
 
 
@@ -70,7 +72,7 @@ common_list <-
     )
   )
 
-# Plot b
+# Plot b#############
 model <- lm(ext.contrib ~ pH.avg, data = int.ext.avg)
 p_val <- summary(model)$coefficients["pH.avg", "Pr(>|t|)"]
 p_label_b <- paste0("p = ", signif(p_val, 3))
@@ -106,7 +108,7 @@ p_label_b <- paste0("p = ", signif(p_val, 3))
     coord_cartesian(clip = "off") +
     common_list)
 
-# Plot a
+# Plot a#############
 model <- lm(ext.contrib ~ basin.wetland.perc, data = int.ext.avg)
 p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
 p_label_a <- paste0("p = ", signif(p_val, 3))
@@ -132,13 +134,34 @@ p_label_a <- paste0("p = ", signif(p_val, 3))
 
 plot_grid(b, a, ncol = 1)
 
+#plot C###############
+model <- lm(ext.contrib ~ q.avg, data = int.ext.avg)
+p_val <- summary(model)$coefficients["q.avg", "Pr(>|t|)"]
+p_label_c <- paste0("p = ", signif(p_val, 3))
+
+test<-int.ext.spat %>%
+  left_join(Q.avg, by = "ID") 
+(c <- int.ext.spat %>%
+    ggplot(aes(x = as.factor(q.avg), y = ext.contrib)) +
+    geom_violin() +
+    geom_jitter(alpha = 0.3) +
+    theme_minimal() +
+    labs(x = expression("Specific Discharge" ~m^2~s^-1), y = "%") +
+    # annotate("text",
+    #          x = n_distinct(round(int.ext.spat$q, 10)),
+    #          y = max(int.ext.spat$ext.contrib, na.rm = TRUE),
+    #          label = p_label_c,
+    #          hjust = 12, vjust = 1, size = 5) +
+    coord_cartesian(clip = "off") +
+    common_list
+)
 
 ##comparing q, Q, and T slopes with wetland and pH############
 common.layers<-list(
-  geom_point(size=4, aes(shape=significance, color=r2)),
+  geom_point(size=4, aes(color=significance, shape=ID)),
     geom_hline(yintercept = 0),
     theme_classic(),
-    stat_poly_line(formula = y ~ x, se = FALSE),
+    stat_poly_line(formula = y ~ x, se = FALSE, color='black', linetype='dashed'),
     stat_poly_eq(
       aes(label = paste(..p.value.label..,  sep = " ~~ ")),
       formula = y ~ x, parse = TRUE,
@@ -146,7 +169,7 @@ common.layers<-list(
     ))
 
 
-
+names(T.slopes)
 (a<-plot_grid(
 T.slopes%>%
   filter(pathway=='External')%>%
