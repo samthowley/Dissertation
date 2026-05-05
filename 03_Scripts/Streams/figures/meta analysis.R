@@ -78,63 +78,66 @@ int.ext.summary<-left_join(int.ext, pH)%>%
          )%>%
   rename(Site=ID)%>%
   mutate(
-    Source="This Paper",
-    Year="2026",
+    Citation="This Paper",
     Location="Florida, Coastal Plain",
     Biome="Subtropical",
-    Water.Class="Shallow Aquifer",
-    Water.Class=if_else(Site==13, "Deeper Groundwater Seepage", Water.Class)
+    Source="Shallow Aquifer",
+    Source=if_else(Site==13, "Deeper Groundwater Seepage", Source)
                     )
 
 
-pubs<-read_csv("01_Raw_data/int ext comparison.csv")%>%
-  mutate(across(8:13, as.numeric))%>%
-  mutate(
-    Year=as.character(Year))%>%
-  select(-pH)%>%
-  rename('pH'='pH_low')%>%
-  filter(!is.na(Source))%>%
-  
+pubs<-read_csv("01_Raw_data/meta_analysis_extraction.csv")%>%
+  select(Citation, Location, Biome, Source, Discharge_m3s, CO2_flux_gCm2day, Internal_Pathway_gCm2day, External_Pathway_gCm2day,
+         pH)%>%
+  rename(
+    discharge_m3_s = Discharge_m3s,
+    CO2flux.mn = CO2_flux_gCm2day,
+    internal.mn = Internal_Pathway_gCm2day,
+    external.mn = External_Pathway_gCm2day
+  )%>%
+  mutate(across(5:9, as.numeric))%>%
+  filter(!is.na(internal.mn))%>%
   full_join(int.ext.summary)%>%
-  mutate(
-    Karst=case_when(
-      pH>=6.8~"pH>=7",
-      pH<6.8~"pH<7"),
-    Source=paste(Source, Year),
-    pct_internal = (internal.mn / CO2flux.mn) * 100
-  ) %>%
+   mutate( pct_internal = (internal.mn / CO2flux.mn) * 100) %>%
   arrange(discharge_m3_s) %>%
   mutate(
     # Sub-label with mean discharge
     x_label = paste0(Source, "\n(", round(discharge_m3_s, 3), " m³ s⁻¹)"),
     x_label = factor(x_label, levels = unique(x_label))  # preserve Q order
-  )%>%
-  filter(Source!="Lynch 2009")
+  )%>%    filter(external.mn > 0, internal.mn>0.1)
 
 
 
+unique(pubs$Source)
 
-(b<-ggplot(pubs, aes(x = Source, y = pct_internal, color = Water.Class)) +
+(b<-pubs%>%
+    ggplot(aes(x = Citation, y = pct_internal, color = Source)) +
   
   geom_rect(aes(xmin = -Inf, xmax = Inf, ymin = 0, ymax = 19,
-                fill = "Global estimate (Hotchkiss et al. 2015)"), alpha=0.5,
+                fill = "Global estimate (Hotchkiss et al. 2015)"),
             inherit.aes = FALSE) +
   geom_point(size = 3) +
   
   
   #BUILD LEGEND######
-  scale_fill_manual(name = NULL, values = c("Global estimate (Hotchkiss et al. 2015)" = "grey")) +
-  
+  scale_fill_manual(name = NULL, values = c("Global estimate (Hotchkiss et al. 2015)" = "lightgrey")) +
+
   scale_color_manual(
-    name = "Biome",
+    name = "Source Water",
     values = c(
-      "Deeper Groundwater Seepage"= "#E05C5C",
-      "Spring-fed"   = "#D4820A",
-      "Shallow Aquifer"     = "#378ADD",
-      "Lateral Seepage/Flow"  = "#8338AC"
+      "Riparian groundwater"            = "#E3C849",
+      "Shallow Aquifer"                 = "#EDCA7F",
+      "Wetland Seepage"                 = "#EAC34B",
+      "Groundwater-fed"                 = "#378ADD",
+      "Deeper Groundwater Seepage"      = "#008bcc",
+      "Groundwater-dominated"           = "#3885B6",
+      "Spring-fed"                      = "#5EA5C2",
+      "Mixed"                           = "#8338AC",
+      "Snowmelt + Groundwater Baseflow" = "#924CA1"
     ),
     breaks = c(
-      "Deeper Groundwater Seepage","Lateral Seepage/Flow", "Shallow Aquifer", "Spring-fed"
+      "Riparian groundwater","Shallow Aquifer", "Wetland Seepage", "Groundwater-fed",
+      "Deeper Groundwater Seepage", "Groundwater-dominated", "Spring-fed", "Mixed", "Snowmelt + Groundwater Baseflow"
     ),
     na.translate = FALSE
   ) +
@@ -146,68 +149,85 @@ pubs<-read_csv("01_Raw_data/int ext comparison.csv")%>%
   ) +
   theme_classic(base_size = 13) +
   theme(
-    axis.text.x = element_text(angle = 330, hjust = 0, vjust = 1, size=12),
+    axis.text.x = element_text(angle = 345, hjust = 0, vjust = 1, size=10),
     axis.text.y = element_text(size=12),
-    axis.title=element_text(size=15),
+    axis.title=element_text(size=12),
     legend.position = "right"
   ))
+
 
 ##################
 
 comparisons<-full_join(interp_df, pubs)
 
 
-(a<-comparisons%>%
-  mutate(Source=if_else(Source!="This Paper 2026", "Literature", Source))%>%
-ggplot(aes(x = discharge_m3_s)) +
+a<-comparisons %>%
+  pivot_longer(cols = c("internal.mn", "CO2flux.mn"),
+               names_to = "Pathway",
+               values_to = "CO2_flux") %>%
+  ggplot(aes(x = discharge_m3_s)) +
   
   geom_ribbon(aes(ymin = internal_smooth - internal_se_smooth, ymax = internal_smooth + internal_se_smooth,
-                  fill = "Global Internal Pathway (Hotchkiss et al. 2015)"),alpha=0.7, na.rm = T) +
+                  fill = "Global Internal Pathway"), alpha = 0.7, na.rm = T) +
   
-  geom_point(aes(x = discharge_m3_s, y = internal.mn, color = Water.Class, shape=Source), size = 3) +
-
+  geom_ribbon(aes(ymin = total_smooth - total_se_smooth, ymax = total_smooth + total_se_smooth,
+                  fill = "Total Flux (Hotchkiss et al. 2015)"), alpha = 0.7, na.rm = T) +
   
+  geom_ribbon(aes(ymin = external_smooth - external_se_smooth, ymax = external_smooth + external_se_smooth,
+                  fill = "Global External Pathway"), alpha = 0.5, na.rm = T) +
+  geom_line(aes(y = CO2_flux, group = Site, color = Source),    # <-- replace Site with your ID column
+            alpha = 0.4, linewidth = 0.5) +
+  geom_point(aes(x = discharge_m3_s, y = CO2_flux, color = Source, shape = Pathway), size = 3) +
   #BUILD LEGEND#############
-  scale_fill_manual(name = NULL,
-                    values = c("Global Internal Pathway (Hotchkiss et al. 2015)" = "grey")) +
-
-    scale_color_manual(
-      name = "Biome",
-      values = c(
-        "Deeper Groundwater Seepage"= "#E05C5C",
-        "Spring-fed"   = "#D4820A",
-        "Shallow Aquifer"     = "#378ADD",
-        "Lateral Seepage/Flow"  = "#8338AC"
-      ),
-      breaks = c(
-        "Deeper Groundwater Seepage","Lateral Seepage/Flow", "Shallow Aquifer", "Spring-fed"
-      ),
-      na.translate = FALSE
-    ) +
-    
-  scale_shape_manual(
-    name = "Source",
+scale_fill_manual(name = NULL,
+                  values = c(
+                    "Total Flux (Hotchkiss et al. 2015)" = "black",
+                    "Global Internal Pathway" = "grey",
+                    "Global External Pathway" = "lightgrey"
+                  )) +
+  scale_color_manual(
+    name = "Source Water",
     values = c(
-      "Literature"      = 16,   # filled circle
-      "This Paper 2026" = 8    # filled star
+      "Riparian groundwater"            = "#E3C849",
+      "Shallow Aquifer"                 = "#EDCA7F",
+      "Wetland Seepage"                 = "#EAC34B",
+      "Groundwater-fed"                 = "#378ADD",
+      "Deeper Groundwater Seepage"      = "#008bcc",
+      "Groundwater-dominated"           = "#3885B6",
+      "Spring-fed"                      = "#5EA5C2",
+      "Mixed"                           = "#8338AC",
+      "Snowmelt + Groundwater Baseflow" = "#924CA1"
+    ),
+    breaks = c(
+      "Riparian groundwater", "Shallow Aquifer", "Wetland Seepage", "Groundwater-fed",
+      "Deeper Groundwater Seepage", "Groundwater-dominated", "Spring-fed", "Mixed", "Snowmelt + Groundwater Baseflow"
     ),
     na.translate = FALSE
-  )+
-  
+  ) +
+  scale_shape_manual(
+    name = expression(CO[2]~"Flux"),
+    values = c(
+      "internal.mn"  = 16,
+      "CO2flux.mn"   = 1
+    ),
+    labels = c(
+      "internal.mn" = "Internal Pathway",
+      "CO2flux.mn"  = "Total Flux"
+    )
+  ) +
   #FORMAT FIGURE############
-  scale_x_log10() +
+scale_x_log10() +
   scale_y_log10() +
   labs(
     x = expression("Discharge (m"^3~s^-1*")"),
     y = expression(CO[2]~g/m^2/day)
   ) +
-  theme_classic(base_size = 14)+
-    theme(
-      axis.text = element_text(size=12),
-      axis.title=element_text(size=15),
-      legend.position = "right"
-    ))
-
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text  = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    legend.position = "right"
+  )
 ###########################
 
 title   <- ggdraw() + draw_label("Internal Pathway Contribution in Low-Order Stream"~ CO[2] ~"Flux",
@@ -217,11 +237,11 @@ legend  <- get_legend(a)
 
 (panels  <- plot_grid(b + theme(legend.position = "none"), a + theme(legend.position = "none"),
                      ncol = 1,
-                     rel_heights = c(0.5,0.7)))
+                     rel_heights = c(0.7,1), align = "v"))
   
   
   
-body    <- plot_grid(panels, legend, ncol = 2, rel_widths = c(0.6, 0.2))
+(body    <- plot_grid(panels, legend, ncol = 2, rel_widths = c(0.6, 0.2)))
 plot_grid(title, body, ncol = 1, rel_heights = c(0.05, 1))
 
 
