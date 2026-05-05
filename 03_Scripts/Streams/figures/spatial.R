@@ -70,201 +70,189 @@ common_list <-
   list(
     theme(
       plot.title = element_text(hjust = 0.5, size = 16),
-      axis.title = element_text(size = 14),
+      axis.title = element_text(size = 12),
       axis.text = element_text(size = 12)
     )
   )
 
-# Plot pH#############
-model <- lm(ext.contrib ~ pH.avg, data = int.ext.avg)
-p_val <- summary(model)$coefficients["pH.avg", "Pr(>|t|)"]
-p_label_b <- paste0("p = ", signif(p_val, 3))
-
-(b <- int.ext.spat %>%
-    mutate(pH.avg = as.factor(pH.avg)) %>%
-    ggplot(aes(x = pH.avg, y = ext.contrib)) +
+# Violin Plot#############
+(a <- int.ext.spat %>%
+    ggplot(aes(x = ID, y = ext.contrib))+
     geom_violin() +
-    geom_jitter(width = 0.15, height = 0, alpha = 0.3,
+    geom_jitter( height = 0, alpha = 0.3,
                 colour = "black", size = 1.2) +
     theme_minimal() +
-    labs(x = "pH", y = "%") +
-    ggtitle("External Contribution to Total" ~ CO[2] ~ "flux") +
-    geom_rect(
-      data = NULL,
-      aes(
-        xmin = 7.45,
-        xmax = nlevels(pH.avg) + 0.55,
-        ymin = min(int.ext.spat$ext.contrib, na.rm = TRUE) + 22,
-        ymax = max(int.ext.spat$ext.contrib, na.rm = TRUE) + 5
-      ),
-      fill = NA,
-      colour = "red",
-      linetype = "dashed",
-      linewidth = 0.7,
-      inherit.aes = FALSE
-    ) +
-    annotate("text",
-             x = nlevels(as.factor(int.ext.spat$pH.avg)),
-             y = max(int.ext.spat$ext.contrib, na.rm = TRUE) + 5,
-             label = p_label_b,
-             hjust =3, vjust = 1, size = 5) +
-    coord_cartesian(clip = "off") +
+    labs(x = "Site", y = "External Contribution (%)")+
+    # geom_rect(
+    #   data = NULL,
+    #   aes(
+    #     xmin = 7.45,
+    #     xmax = nlevels(pH.avg) + 0.55,
+    #     ymin = min(int.ext.spat$ext.contrib, na.rm = TRUE) + 22,
+    #     ymax = max(int.ext.spat$ext.contrib, na.rm = TRUE) + 5
+    #   ),
+    #   fill = NA,
+    #   colour = "red",
+    #   linetype = "dashed",
+    #   linewidth = 0.7,
+    #   inherit.aes = FALSE
+    # ) +
     common_list)
 
-# Plot wetland perc#############
-model <- lm(ext.contrib ~ basin.wetland.perc, data = int.ext.avg)
-p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
-p_label_a <- paste0("p = ", signif(p_val, 3))
 
-(a <- int.ext.spat %>%
-    mutate(
-      basin.wetland.perc = round(basin.wetland.perc, 4) * 100,
-      basin.wetland.perc = paste(basin.wetland.perc, "%")
-    ) %>%
-    ggplot(aes(x = as.factor(basin.wetland.perc), y = ext.contrib)) +
-    geom_violin() +
-    geom_jitter(alpha = 0.3) +
+
+(b <- int.ext.spat %>%
+    ggplot(aes(x = ID, y = int.contrib))+
+    geom_violin(color='red') +
+    geom_jitter( height = 0, alpha = 0.3,
+                 colour = "red", size = 1.2) +
     theme_minimal() +
-    labs(x = "Wetland Area/Basin Area", y = "%") +
-    annotate("text",
-             x = n_distinct(round(int.ext.spat$basin.wetland.perc, 4)),
-             y = max(int.ext.spat$ext.contrib, na.rm = TRUE),
-             label = p_label_a,
-             hjust = 3, vjust = 1, size = 5) +
-    coord_cartesian(clip = "off") +
-    common_list
-)
+    labs(x = "Site", y = "Internal Contribution (%)")+
+    # geom_rect(
+    #   data = NULL,
+    #   aes(
+    #     xmin = 7.45,
+    #     xmax = nlevels(pH.avg) + 0.55,
+    #     ymin = min(int.ext.spat$ext.contrib, na.rm = TRUE) + 22,
+    #     ymax = max(int.ext.spat$ext.contrib, na.rm = TRUE) + 5
+    #   ),
+    #   fill = NA,
+    #   colour = "red",
+    #   linetype = "dashed",
+    #   linewidth = 0.7,
+    #   inherit.aes = FALSE
+    # ) +
+    common_list)
 
-plot_grid(b, a, ncol = 1)
 
-#plot q###############
-model <- lm(ext.contrib ~ q.avg, data = int.ext.avg)
-p_val <- summary(model)$coefficients["q.avg", "Pr(>|t|)"]
-p_label_c <- paste0("p = ", signif(p_val, 3))
+ig_title <- ggdraw() +
+  draw_label(
+    expression("External and Internal Pathway Contribution to Total" ~ CO[2] ~ "Flux"),
+    fontface  = "plain",   # bold handled inside expression
+    size      = 13,
+    x         = 0.5, hjust = 0.5
+  )
 
-test<-int.ext.spat %>%
-  left_join(Q.avg, by = "ID") 
-(c <- int.ext.spat %>%
-    ggplot(aes(x = as.factor(q.avg), y = ext.contrib)) +
-    geom_violin() +
-    geom_jitter(alpha = 0.3) +
-    theme_minimal() +
-    labs(x = expression("Specific Discharge" ~m^2~s^-1), y = "%") +
-    # annotate("text",
-    #          x = n_distinct(round(int.ext.spat$q, 10)),
-    #          y = max(int.ext.spat$ext.contrib, na.rm = TRUE),
-    #          label = p_label_c,
-    #          hjust = 12, vjust = 1, size = 5) +
-    coord_cartesian(clip = "off") +
-    common_list
-)
 
-#plot RQ###############
-model <- lm(ext.contrib ~ RQ, data = int.ext.avg)
-p_val <- summary(model)$coefficients["RQ", "Pr(>|t|)"]
-p_label_d <- paste0("p = ", signif(p_val, 3))
 
-(c <- int.ext.spat %>%
-    ggplot(aes(x = as.factor(RQ), y = int.contrib)) +
-    geom_violin() +
-    geom_jitter(alpha = 0.3) +
-    theme_minimal() +
-    labs(x = 'Respiratory Quotient', y = "%") +
-    annotate("text",
-             x = n_distinct(round(int.ext.spat$RQ, 10)),
-             y = max(int.ext.spat$ext.contrib, na.rm = TRUE),
-             label = p_label_d,
-             hjust =1, vjust = 1, size = 5) +
-    coord_cartesian(clip = "off") +
-    common_list
-)
+panels <- plot_grid(a, b,
+                    ncol = 1, 
+                    align = "x")
+
+
+(figA <- plot_grid(ig_title, panels,
+                   ncol = 1,
+                   rel_heights = c(0.07, 1)))
+
+
+
+
 
 ##comparing q, Q, and T slopes with wetland and pH############
 common.layers<-list(
-  geom_point(size=4, aes(color=significance)),
+  geom_point(size=4, aes(shape=significance)),
     geom_hline(yintercept = 0),
     theme_classic(),
-    stat_poly_line(formula = y ~ x, se = FALSE, color='black', linetype='dashed'),
+    stat_poly_line(
+      formula = y ~ x, se = FALSE,  linetype='dashed'),
     stat_poly_eq(
       aes(label = paste(..p.value.label..,  sep = " ~~ ")),
       formula = y ~ x, parse = TRUE,
-      size = 5, label.x = "right", label.y = "top", vstep = 0.1
-    ))
-
-
-names(T.slopes)
-(a<-plot_grid(
-T.slopes%>%
-  filter(pathway=='External')%>%
-  ggplot(aes(x=pH.avg, y=slope))+
-  ggtitle(expression(External~CO[2]~'~Temperature'~Slopes))+
-  common.layers
-,
-T.slopes%>%
-  filter(pathway=='Internal')%>%
-  ggplot(aes(x=pH.avg, y=slope))+
-  ggtitle(expression(Internal~CO[2]~'~Temperature'~Slopes))+
-  common.layers,
-
-ncol=1
-
-))
-
-
-(b<-plot_grid(
-  q.slopes%>%
-    filter(pathway=='External')%>%
-    ggplot(aes(x=pH.avg, y=slope))+
-    ggtitle(expression(External~CO[2]~'~q'~Slopes))+
-    common.layers
-  ,
-  q.slopes%>%
-    filter(pathway=='Internal')%>%
-    ggplot(aes(x=pH.avg, y=slope))+
-    ggtitle(expression(Internal~CO[2]~'~q'~Slopes))+
-    common.layers,
+      size = 4, label.x = "right", label.y = "top", vstep = 0.05
+    ),
+  scale_color_manual(
+    name="Pathway",
+    values = c('red', 'black'),
+    labels=c('external'='External Pathway', 'internal'='Internal Pathway')
+  ),
+  scale_shape_manual(
+    name="p-value",
+    values=c(16,17),
+    labels=c('insignificant'='>0.005', 'significant'='<=0.005')
+  ),
+  theme(
+    axis.text = element_text(size = 12),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 15),
+    
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5, size=13),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12)
+  ),
+  annotate("text", x = -Inf, y = Inf, label = "Positive Slope",
+           hjust = -0.1, vjust = 1.5, size = 4, color = "gray40"),
+  annotate("text", x = -Inf, y = -Inf, label = "Negative Slope",
+           hjust = -0.1, vjust = -0.5, size = 4, color = "gray40")
   
-  ncol=1
-))
-  
+  )
+
+
+(a<-T.slopes%>%
+  filter(pathway %in% c('External', "Internal"))%>%
+  ggplot(aes(x=pH.avg, y=slope, color=pathway))+
+  common.layers+
+  xlab('pH')+ylab(expression(beta[pH])))
+
+
+b<-T.slopes%>%
+  filter(pathway %in% c('External', "Internal"))%>%
+  ggplot(aes(x=basin.wetland.perc, y=slope, color=pathway))+
+  common.layers+
+  xlab("Wetland Cover Percent")+ylab(expression(beta['Wetland%']))
+
+temp_panels<-plot_grid(a+ theme(legend.position = "none"),b+ theme(legend.position = "none"), ncol=1)
+
+temp_title <- ggdraw() +
+  draw_label(
+    expression(bold("Spatial Patterns Effects on Temperature Dependent Slope")),
+    fontface  = "plain",   # bold handled inside expression
+    size      = 13,
+    x         = 0.5, hjust = 0.5
+  )
+
+temp_col<-plot_grid(temp_title, temp_panels,
+          ncol = 1,
+          rel_heights = c(0.07, 1, 0.12))
 
 
 
-(c<-plot_grid(
-  q.slopes%>%
-    filter(pathway=='External')%>%
-    ggplot(aes(x=basin.wetland.perc, y=slope))+
-    ggtitle(expression(External~CO[2]~'~q'~Slopes))+
-    common.layers
-  ,
-  q.slopes%>%
-    filter(pathway=='Internal')%>%
-    ggplot(aes(x=basin.wetland.perc, y=slope))+
-    ggtitle(expression(Internal~CO[2]~'~q'~Slopes))+
-    common.layers,
-  
-  ncol=1
-))
+
+(c<-q.slopes%>%
+    filter(pathway %in% c('External', "Internal"))%>%
+    ggplot(aes(x=pH.avg, y=slope, color=pathway))+
+    common.layers+
+    xlab('pH')+ylab(expression(beta[pH])))
 
 
-plot_grid(a,b,c, ncol=3)
+d<-q.slopes%>%
+  filter(pathway %in% c('External', "Internal"))%>%
+  ggplot(aes(x=basin.wetland.perc, y=slope, color=pathway))+
+  common.layers+
+  xlab("Wetland Cover Percent")+ylab(expression(beta['Wetland%']))
+
+q_panels<-plot_grid(c+ theme(legend.position = "none"),d+ theme(legend.position = "none"), ncol=1)
+
+q_title <- ggdraw() +
+  draw_label(
+    expression(bold("Spatial Patterns Effects on Specific-Discharge Dependent Slope")),
+    fontface  = "plain",   # bold handled inside expression
+    size      = 13,
+    x         = 0.5, hjust = 0.5
+  )
+
+q_col<-plot_grid(q_title, q_panels,
+                 ncol = 1,
+                 rel_heights = c(0.07, 1, 0.12))
 
 
 
 
+legend <- get_legend(a)
 
-(d<-plot_grid(
-  q.slopes%>%
-    filter(pathway=='External')%>%
-    ggplot(aes(x=RQ, y=slope))+
-    ggtitle(expression(External~CO[2]~'~RQ'~Slopes))+
-    common.layers
-  ,
-  q.slopes%>%
-    filter(pathway=='Internal')%>%
-    ggplot(aes(x=RQ, y=slope))+
-    ggtitle(expression(Internal~CO[2]~'~RQ'~Slopes))+
-    common.layers,
-  
-  ncol=1
-))
+
+
+plot_grid(temp_col, q_col, legend,
+                   ncol = 3,
+                   rel_widths = c(1, 1, 0.2))
+

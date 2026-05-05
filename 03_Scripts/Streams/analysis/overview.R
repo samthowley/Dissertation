@@ -1,7 +1,11 @@
 #metabolism#########
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
-mean(int.ext$ER_corrected, na.rm=T)
+int.ext%>%
+  group_by(as.factor(ID))%>%
+  summarise(
+    internal.contrib=mean(internal/CO2_flux, na.rm=T)
+  )
 
 
 int.ext%>%
