@@ -18,7 +18,7 @@ combined_df <- reduce(df_list, full_join, by=c('Date', 'ID'))%>%
   mutate(date=as.Date(Date))%>%
   distinct(Date, ID, .keep_all = T)
 
-master_metabolism <- read_csv("04_Output/master_metabolism.csv")
+master_metabolism <- read_csv("04_Output/stream/master_metabolism.csv")
 
 combined<-left_join(combined_df, master_metabolism, by=c('date', 'ID'))%>%
   arrange(ID, Date)%>%

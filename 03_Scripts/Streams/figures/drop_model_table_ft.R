@@ -219,11 +219,11 @@ ft <- flextable(tbl_fmt, col_keys = col_keys) %>%
 # ── 8. Print and save ─────────────────────────────────────────────────────────
 ft
 
-# Save as Word document (paste-ready, formatting preserved)
+#Save as Word document (paste-ready, formatting preserved)
 output_docx <- file.path(
   "C:/Users/19126/OneDrive - University of Florida/Desktop/PUBLICATION STORY BOARDS/Chapter 1 Drafting",
   "Table2_drop_model.docx"
 )
-
-save_as_docx(ft, path = output_docx)
-message("Table saved to: ", output_docx)
+# 
+# save_as_docx(ft, path = output_docx)
+# message("Table saved to: ", output_docx)

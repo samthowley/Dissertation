@@ -26,7 +26,7 @@ T.avg<-temperature%>%
 
 int.ext.spat<-int.ext%>% left_join(pH.avg)%>%left_join(SpC.avg)%>%
   left_join(Q.avg)%>%left_join(wetland_perc)%>%left_join(T.avg)%>%
-  left_join(basin_area, by='ID')%>%
+  left_join(basin_area, by='ID')%>%left_join(O2_CO2_fluxes, by='ID')%>%
   mutate(
     int.contrib=round(
       (internal/CO2_flux)*100,2),
@@ -34,6 +34,13 @@ int.ext.spat<-int.ext%>% left_join(pH.avg)%>%left_join(SpC.avg)%>%
       (external/CO2_flux)*100,2),
     q=Q/10^3/Shape_Area)%>%
   filter(int.contrib<=100, ext.contrib<=100)
+
+
+O2_CO2_fluxes <- read_csv("04_Output/O2.CO2.fluxes.csv")%>%
+  group_by(ID)%>%
+  summarise(
+    RQ=round(mean(CO2_flux/O2_flux, na.rm=T), 2)
+  )
 
 int.ext.avg<-int.ext.spat%>%
   group_by(ID)%>%
@@ -44,12 +51,8 @@ int.ext.avg<-int.ext.spat%>%
     ext.contrib=mean(ext.contrib, na.rm=T),
   )%>% 
   left_join(pH.avg)%>%left_join(SpC.avg)%>%
-  left_join(Q.avg)%>%left_join(wetland_perc)%>%left_join(T.avg)
-
-summary(lm(pH.avg ~ int.contrib, data = int.ext.avg))
-summary(lm(SpC.avg ~ int.contrib, data = int.ext.avg))
-summary(lm(Q.avg ~ int.contrib, data = int.ext.avg))
-summary(lm(basin.wetland.perc ~ int.contrib, data = int.ext.avg))
+  left_join(Q.avg)%>%left_join(wetland_perc)%>%left_join(T.avg)%>%
+  left_join(O2_CO2_fluxes, by='ID')
 
 
 temp_slopes <- read_csv("04_Output/stream/temp_slopes.csv")
@@ -72,7 +75,7 @@ common_list <-
     )
   )
 
-# Plot b#############
+# Plot pH#############
 model <- lm(ext.contrib ~ pH.avg, data = int.ext.avg)
 p_val <- summary(model)$coefficients["pH.avg", "Pr(>|t|)"]
 p_label_b <- paste0("p = ", signif(p_val, 3))
@@ -108,7 +111,7 @@ p_label_b <- paste0("p = ", signif(p_val, 3))
     coord_cartesian(clip = "off") +
     common_list)
 
-# Plot a#############
+# Plot wetland perc#############
 model <- lm(ext.contrib ~ basin.wetland.perc, data = int.ext.avg)
 p_val <- summary(model)$coefficients["basin.wetland.perc", "Pr(>|t|)"]
 p_label_a <- paste0("p = ", signif(p_val, 3))
@@ -134,7 +137,7 @@ p_label_a <- paste0("p = ", signif(p_val, 3))
 
 plot_grid(b, a, ncol = 1)
 
-#plot C###############
+#plot q###############
 model <- lm(ext.contrib ~ q.avg, data = int.ext.avg)
 p_val <- summary(model)$coefficients["q.avg", "Pr(>|t|)"]
 p_label_c <- paste0("p = ", signif(p_val, 3))
@@ -156,9 +159,29 @@ test<-int.ext.spat %>%
     common_list
 )
 
+#plot RQ###############
+model <- lm(ext.contrib ~ RQ, data = int.ext.avg)
+p_val <- summary(model)$coefficients["RQ", "Pr(>|t|)"]
+p_label_d <- paste0("p = ", signif(p_val, 3))
+
+(c <- int.ext.spat %>%
+    ggplot(aes(x = as.factor(RQ), y = int.contrib)) +
+    geom_violin() +
+    geom_jitter(alpha = 0.3) +
+    theme_minimal() +
+    labs(x = 'Respiratory Quotient', y = "%") +
+    annotate("text",
+             x = n_distinct(round(int.ext.spat$RQ, 10)),
+             y = max(int.ext.spat$ext.contrib, na.rm = TRUE),
+             label = p_label_d,
+             hjust =1, vjust = 1, size = 5) +
+    coord_cartesian(clip = "off") +
+    common_list
+)
+
 ##comparing q, Q, and T slopes with wetland and pH############
 common.layers<-list(
-  geom_point(size=4, aes(color=significance, shape=ID)),
+  geom_point(size=4, aes(color=significance)),
     geom_hline(yintercept = 0),
     theme_classic(),
     stat_poly_line(formula = y ~ x, se = FALSE, color='black', linetype='dashed'),
@@ -225,3 +248,23 @@ ncol=1
 
 
 plot_grid(a,b,c, ncol=3)
+
+
+
+
+
+(d<-plot_grid(
+  q.slopes%>%
+    filter(pathway=='External')%>%
+    ggplot(aes(x=RQ, y=slope))+
+    ggtitle(expression(External~CO[2]~'~RQ'~Slopes))+
+    common.layers
+  ,
+  q.slopes%>%
+    filter(pathway=='Internal')%>%
+    ggplot(aes(x=RQ, y=slope))+
+    ggtitle(expression(Internal~CO[2]~'~RQ'~Slopes))+
+    common.layers,
+  
+  ncol=1
+))

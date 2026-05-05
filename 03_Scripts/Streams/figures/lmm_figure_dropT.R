@@ -170,7 +170,7 @@ A_sizes  <- c("Full (Q + T)"     = SZ_PT + 0.5,
 
   facet_wrap(~ pathway_lab, ncol = 1, scales = "free_x") +
 
-  labs(x = expression(beta[T]~"estimate (95% CrI)"), y = "Site",
+  labs(x = expression(beta['lQ']~"estimate (95% CrI)"), y = "Site",
        color = NULL, shape = NULL) +
   pub_theme +
   theme(legend.position   = "bottom",
@@ -233,7 +233,7 @@ pA_right_noleg <- pA_right + theme(legend.position = "none")
 fig_title <- ggdraw() +
   draw_label(
     expression(bold("Effect of Removing Temperature on") ~
-                 beta[T] ~ bold("Estimates and Model Fit")),
+                 beta['lQ'] ~ bold("Estimates and Model Fit")),
     fontface  = "plain",   # bold handled inside expression
     size      = 11,
     x         = 0.5, hjust = 0.5

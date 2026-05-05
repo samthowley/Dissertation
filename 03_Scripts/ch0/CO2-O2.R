@@ -18,7 +18,7 @@ combined_df <- reduce(df_list, full_join, by=c('Date', 'ID'))%>%
   mutate(date=as.Date(Date))%>%
   distinct(Date, ID, .keep_all = T)
 
-master_metabolism <- read_csv("04_Output/master_metabolism.csv")
+master_metabolism <- read_csv("04_Output/stream/master_metabolism.csv")
 
 combined<-left_join(combined_df, master_metabolism, by=c('date', 'ID'))%>%
   arrange(ID, Date)%>%
@@ -47,9 +47,18 @@ flux<-ks%>%
   mutate(
     CO2_flux=KCO2_m.d*(CO2-400)*KH*(1/10^6)*44.01*10^3,
     O2_flux=KO2_m.d*(DO-DO.sat),
-    o2.co2=O2_flux/CO2_flux) %>%
+    o2.co2=O2_flux/CO2_flux,
+    day=as.Date(Date)) %>%
   filter(ID != '14')%>%
-  select(Date, ID, CO2_flux, O2_flux, o2.co2)
+  select(Date, ID, day, CO2_flux, O2_flux, o2.co2)
+
+
+flux%>%
+  ggplot(aes(x = O2_flux, y = CO2_flux)) +
+  geom_point() +
+  facet_wrap(~ID)
+
+
 
 write_csv(flux, "04_Output/O2.CO2.fluxes.csv")
 
