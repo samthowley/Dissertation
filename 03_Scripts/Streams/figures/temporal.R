@@ -1,13 +1,5 @@
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
-
-ggplot(int.ext, aes(x=TempC, y=internal))+
-  theme_minimal()+
-  scale_x_log10()+  scale_y_log10()+
-  geom_point()+
-  facet_wrap(~ID, scales='free')
-
-
 theme <- list(
   theme_minimal(),
   scale_y_log10(),
@@ -83,4 +75,4 @@ panels<-plot_grid(pA_left_noleg,pA_right_noleg, ncol=1, align = 'v')
 
 (figA <- plot_grid(panels, legend_left,
                    ncol = 2,
-                   rel_widths = c(0.6, 0.1)))
+                   rel_widths = c(0.6, 0.2)))

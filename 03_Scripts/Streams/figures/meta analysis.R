@@ -82,7 +82,9 @@ int.ext.summary<-left_join(int.ext, pH)%>%
     Location="Florida, Coastal Plain",
     Biome="Subtropical",
     Source="Shallow Aquifer",
-    Source=if_else(Site==13, "Deeper Groundwater Seepage", Source)
+    Source=if_else(Site==13, "Deeper Groundwater Seepage", Source),
+    Source=if_else(Site==5, "Mixed", Source)
+    
                     )
 
 
@@ -109,6 +111,80 @@ pubs<-read_csv("01_Raw_data/meta_analysis_extraction.csv")%>%
 
 
 unique(pubs$Source)
+
+
+# ─── Figure: Violin (your sites) + Left density (literature) ──────────────
+
+# Raw per-observation pct_internal for sites 1-13
+violin_data <- int.ext %>%
+  filter(!is.na(internal), !is.na(CO2_flux), CO2_flux > 0, internal > 0) %>%
+  mutate(
+    pct_internal = (internal / CO2_flux) * 100,
+    ID = factor(ID, levels = rev(sort(unique(as.numeric(as.character(ID))))))
+  )
+
+# Literature sites only (no "This Paper") for left-side density
+density_data <- pubs %>%
+  filter(Citation != "This Paper", !is.na(pct_internal))
+
+# Shared y range (round up to nearest 10)
+y_hi <- ceiling(max(c(violin_data$pct_internal, density_data$pct_internal), na.rm = TRUE) / 10) * 10
+
+# Right panel: violins per site
+p_violin <- ggplot(violin_data, aes(x = ID, y = pct_internal)) +
+  annotate("rect",
+           xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
+           fill = "#A8C5DA", alpha = 0.4) +
+  geom_violin(fill = "grey70", color = "grey50", alpha = 0.85) +
+  coord_cartesian(ylim = c(0, y_hi)) +
+  labs(x = "Site ID", y = "Internal pathway contribution (%)") +
+  theme_classic(base_size = 13) +
+  theme(axis.text = element_text(size = 11))
+
+# Right panel: rotated density of literature pct_internal, opening rightward
+p_density <- ggplot(density_data, aes(y = pct_internal)) +
+  annotate("rect",
+           xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
+           fill = "#A8C5DA", alpha = 0.4) +
+  geom_density(fill = "grey70", color = "grey50", alpha = 0.85) +
+  geom_point(aes(x = 0, y = pct_internal, fill = Citation),
+             shape = 21, color = "grey30", size = 2.5, alpha = 0.9) +
+  scale_fill_brewer(palette = "Set3", name = "Citation") +
+  coord_cartesian(ylim = c(0, y_hi)) +
+  labs(x = "Density", y = "Internal pathway contribution\nto total CO₂ flux (%)") +
+  theme_classic(base_size = 13) +
+  theme(
+    axis.text.y  = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x  = element_text(size = 9),
+    axis.title.y = element_text(size = 11)
+  )
+
+# Extract legend from density panel, then strip it for combining
+density_legend <- get_legend(p_density)
+
+fig_title <- ggdraw() +
+  draw_label(
+    expression("Internal Pathway Contribution to Stream CO"[2]*" Flux"),
+    size = 14, fontface = "bold"
+  )
+
+panels <- plot_grid(
+  p_violin + theme(legend.position = "none"),
+  p_density + theme(legend.position = "none"),
+  ncol = 2, align = "h", axis = "tb",
+  rel_widths = c(0.72, 0.28)
+)
+
+(p_violin_meta <- plot_grid(
+  plot_grid(fig_title, panels, ncol = 1, rel_heights = c(0.06, 1)),
+  density_legend,
+  ncol = 2, rel_widths = c(0.85, 0.15)
+))
+###########
+
+
+
 
 (b<-pubs%>%
     ggplot(aes(x = Citation, y = pct_internal, color = Source)) +
@@ -220,7 +296,7 @@ scale_x_log10() +
   scale_y_log10() +
   labs(
     x = expression("Discharge (m"^3~s^-1*")"),
-    y = expression(CO[2]~g/m^2/day)
+    y = expression(C~g/m^2/day)
   ) +
   theme_classic(base_size = 14) +
   theme(
@@ -230,18 +306,18 @@ scale_x_log10() +
   )
 ###########################
 
-title   <- ggdraw() + draw_label("Internal Pathway Contribution in Low-Order Stream"~ CO[2] ~"Flux",
-                                 size = 16)
+title   <- ggdraw() + draw_label("Internal Pathway Contribution in Tropical, Sub Tropical, and Boreal Streams",
+                                 size = 15)
 legend  <- get_legend(a)
 
 
 (panels  <- plot_grid(b + theme(legend.position = "none"), a + theme(legend.position = "none"),
                      ncol = 1,
-                     rel_heights = c(0.7,1), align = "v"))
+                     rel_heights = c(0.8,1), align = "v"))
   
   
   
-(body    <- plot_grid(panels, legend, ncol = 2, rel_widths = c(0.6, 0.2)))
+(body    <- plot_grid(panels, legend, ncol = 2, rel_widths = c(0.6, 0.1)))
 plot_grid(title, body, ncol = 1, rel_heights = c(0.05, 1))
 
 

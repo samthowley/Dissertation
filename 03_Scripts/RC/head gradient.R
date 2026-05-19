@@ -75,7 +75,7 @@ head.gradient <- WTdepth%>%
 
 
 head.gradient%>%
-  ggplot(aes(x = distance.from.stream, y = gradient, color=GW)) +
+  ggplot(aes(x = distance.from.stream, y = head.diff, color=GW)) +
   geom_point(size=2) +
   geom_hline(yintercept = 0, color='black')+
   theme_minimal()+
