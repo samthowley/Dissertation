@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"/c/Program Files/R/R-4.3.2/bin:$PATH\")",
+      "Bash(Rscript \"03_Scripts/Streams/analysis/Ch1_CO2_spatial_analysis.R\")"
+    ]
+  }
+}

@@ -1,12 +1,57 @@
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
+library(brms)
+
+# ============================================================
+# Full-model slope figure: Estimate per variable per site
+# ============================================================
+
+slope_df <- full_raw %>%
+  select(site, pathway, indep.var, Estimate, R2) %>%
+  mutate(
+    site      = factor(as.character(site), levels = site_order),
+    indep.var = factor(indep.var, levels = c("lQ", "TempC"),
+                       labels = c("Discharge (Q)", "Temperature (T)")),
+    bar_label = paste0(round(Estimate, 2), "\n(", round(R2, 2), ")")
+  )
+
+var_colors <- c("Discharge (Q)" = "#2166ac", "Temperature (T)" = "#d6604d")
+
+(slope_fig <- slope_df %>%
+  ggplot(aes(x = site, y = Estimate, fill = indep.var)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.7) +
+  geom_text(
+    aes(
+      label = bar_label,
+      y     = ifelse(Estimate >= 0, Estimate + 0.007, Estimate - 0.007),
+      vjust = ifelse(Estimate >= 0, 0, 1)
+    ),
+    position   = position_dodge(width = 0.75),
+    size       = 3,
+    lineheight = 0.85
+  ) +
+  geom_hline(yintercept = 0, linewidth = 0.4) +
+  scale_fill_manual(values = var_colors, name = "Predictor") +
+  scale_y_continuous(expand = expansion(mult = c(0.2, 0.3))) +
+  facet_wrap(~pathway, ncol = 1,
+             labeller = labeller(pathway = pathway_labs)) +
+  labs(y = "Slope (Estimate)",
+       title = "Full model: slopes and R² by site",
+       caption = "Values above bars: slope (R²)") +
+  theme_minimal(base_size = 11) +
+  theme(
+    legend.position    = "bottom",
+    strip.text         = element_text(size=12),
+    panel.grid.major.x = element_blank(),
+    axis.title.x = element_blank()
+  )
+)
+
 
 # ============================================================
 # R² Summary Figure: Q-graph and T-graph
 # ============================================================
-library(brms)
 
-# --- 1. Full model -------------------------------------------
 full_raw <- read_csv("04_Output/stream/models/site_specific_results.csv")
 
 full_df <- full_raw %>%
@@ -78,9 +123,9 @@ all_df <- bind_rows(full_df, int_df, dropQ_proc, dropT_proc) %>%
     site = factor(site, levels = site_order),
     slope_label = case_when(
       !is.na(est_lQ) & !is.na(est_TempC) ~
-        paste0("Q:", round(est_lQ, 3), "\nT:", round(est_TempC, 3)),
-      !is.na(est_lQ)   ~ paste0("Q:", round(est_lQ, 3)),
-      !is.na(est_TempC) ~ paste0("T:", round(est_TempC, 3)),
+        paste0("Q:", round(est_lQ, 2), "\nT:", round(est_TempC, 2)),
+      !is.na(est_lQ)   ~ paste0("Q:", round(est_lQ, 2)),
+      !is.na(est_TempC) ~ paste0("T:", round(est_TempC, 2)),
       TRUE ~ ""
     )
   )
@@ -99,7 +144,7 @@ model_labels <- c(
   "drop_lext"   = "Dropped from external"
 )
 
-pathway_labs <- c(lint = "Internal (lint)", lext = "External (lext)")
+pathway_labs <- c(lint = "Internal", lext = "External")
 
 make_r2_fig <- function(data, drop_prefix, iv_label) {
   data %>%
@@ -121,19 +166,20 @@ make_r2_fig <- function(data, drop_prefix, iv_label) {
       aes(label = slope_label, y = R2),
       position  = position_dodge(width = 0.9),
       vjust     = -0.3,
-      size      = 2.2,
+      size      = 3,
       lineheight = 0.85
     ) +
     scale_fill_manual(values = model_colors, labels = model_labels, name = NULL) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.35))) +
     facet_wrap(~pathway, ncol = 1, labeller = labeller(pathway = pathway_labs)) +
-    labs(x = "Site ID", y = expression(R^2), title = iv_label) +
+    labs(y = expression(R^2), title = iv_label) +
     theme_minimal(base_size = 11) +
     theme(
       legend.position  = "bottom",
       legend.text      = element_text(size = 9),
-      strip.text       = element_text(face = "bold"),
-      panel.grid.major.x = element_blank()
+      strip.text       = element_text(size=11),
+      panel.grid.major.x = element_blank(),
+      axis.title.x = element_blank()
     )
 }
 
@@ -142,3 +188,4 @@ make_r2_fig <- function(data, drop_prefix, iv_label) {
 (t_fig <- make_r2_fig(all_df, "T", "Temperature (T)"))
 
 plot_grid(q_fig, t_fig, ncol = 2, labels = c("A", "B"))
+

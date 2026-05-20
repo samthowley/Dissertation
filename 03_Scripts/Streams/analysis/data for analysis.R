@@ -17,7 +17,8 @@ library(weathermetrics)
 library(coin)        # permutation-based Spearman tests
 library(car)         # VIF
 library(ggrepel)     # non-overlapping site labels on plots
-library(broom)    
+library(broom) 
+library(janitor)
 
 
 
@@ -25,15 +26,15 @@ facet_order <- c("15","5","5a","6", "3", "13", "7","9")  # EDIT THIS
 
 col<-c("internal" ='red', "external"='black', 'CO2_flux'='darkgray')
 
+int.ext <- read_csv("04_Output/stream/external-internal.csv")
+
+
 temperature <- read_csv("02_Clean_data/temperature.csv")%>%
   mutate(
     TempC=fahrenheit.to.celsius(Temp_PT), Date=as.Date(Date))%>%
   group_by(ID, Date)%>%
   summarise(TempC=mean(TempC, na.rm=T))
 
-int.ext <- read_csv("04_Output/stream/external-internal.csv")%>%
-  mutate(
-    day=as.Date(Date))%>%left_join(temperature)
 
 discharge <- read_csv("02_Clean_data/discharge.csv")
 

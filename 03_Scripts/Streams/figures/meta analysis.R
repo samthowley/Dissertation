@@ -118,10 +118,12 @@ unique(pubs$Source)
 # Raw per-observation pct_internal for sites 1-13
 violin_data <- int.ext %>%
   filter(!is.na(internal), !is.na(CO2_flux), CO2_flux > 0, internal > 0) %>%
-  mutate(
-    pct_internal = (internal / CO2_flux) * 100,
-    ID = factor(ID, levels = rev(sort(unique(as.numeric(as.character(ID))))))
-  )
+  mutate(pct_internal = (internal / CO2_flux) * 100) %>%
+  filter(pct_internal < 100) %>%
+  group_by(ID) %>%
+  mutate(mean_pct = mean(pct_internal, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(ID = factor(ID, levels = unique(ID[order(-mean_pct)])))
 
 # Literature sites only (no "This Paper") for left-side density
 density_data <- pubs %>%
@@ -132,43 +134,81 @@ y_hi <- ceiling(max(c(violin_data$pct_internal, density_data$pct_internal), na.r
 
 # Right panel: violins per site
 p_violin <- ggplot(violin_data, aes(x = ID, y = pct_internal)) +
-  annotate("rect",
-           xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
-           fill = "#A8C5DA", alpha = 0.4) +
-  geom_violin(fill = "grey70", color = "grey50", alpha = 0.85) +
+  geom_rect(
+    aes(xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
+        fill = "Hotchkiss et al. (2015) global estimate (10–19%)"),
+    inherit.aes = FALSE
+  ) +
+  # #DCE8F0 = #A8C5DA blended at 40% opacity over a white background,
+  # so no alpha is needed and the legend key matches the band exactly
+  scale_fill_manual(name = NULL,
+                    values = c("Hotchkiss et al. (2015) global estimate (10–19%)" = "#DCE8F0")) +
+  geom_violin( color = "grey50", alpha = 0.85) +
+  geom_jitter(shape = 1, width = 0.15, height = 0, size = 1.2,
+              color = "grey30", alpha = 0.6) +
   coord_cartesian(ylim = c(0, y_hi)) +
   labs(x = "Site ID", y = "Internal pathway contribution (%)") +
   theme_classic(base_size = 13) +
   theme(axis.text = element_text(size = 11))
+
+# Pre-compute max density so bar lengths are a fixed proportion of the curve
+dens_max <- max(density(density_data$pct_internal[!is.na(density_data$pct_internal)])$y)
 
 # Right panel: rotated density of literature pct_internal, opening rightward
 p_density <- ggplot(density_data, aes(y = pct_internal)) +
   annotate("rect",
            xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
            fill = "#A8C5DA", alpha = 0.4) +
-  geom_density(fill = "grey70", color = "grey50", alpha = 0.85) +
-  geom_point(aes(x = 0, y = pct_internal, fill = Citation),
-             shape = 21, color = "grey30", size = 2.5, alpha = 0.9) +
-  scale_fill_brewer(palette = "Set3", name = "Citation") +
+  geom_density(color = "grey50", alpha = 0.85) +
+  geom_segment(aes(x = 0, xend = dens_max * 0.2,
+                   y = pct_internal, yend = pct_internal,
+                   color = Citation),
+               linewidth = 1.5, alpha = 0.9) +
+  scale_color_brewer(palette = "Set3", name = "Citation") +
   coord_cartesian(ylim = c(0, y_hi)) +
-  labs(x = "Density", y = "Internal pathway contribution\nto total CO₂ flux (%)") +
+  labs(x = "Density", y = NULL,
+       title = "Current Literature Estimates (2011-2026") +
   theme_classic(base_size = 13) +
   theme(
-    axis.text.y  = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.text.x  = element_text(size = 9),
-    axis.title.y = element_text(size = 11)
+    axis.text.y   = element_blank(),
+    axis.ticks.y  = element_blank(),
+    axis.title.y  = element_blank(),
+    axis.text.x   = element_text(size = 9),
+    plot.title    = element_text(size = 10, hjust = 0.5, lineheight = 1.1),
+    legend.text   = element_text(size = 9),
+    legend.title  = element_text(size = 10),
+    legend.key.size = unit(0.45, "cm")
   )
 
-# Extract legend from density panel, then strip it for combining
-density_legend <- get_legend(p_density)
+# Extract legend BEFORE stripping it from the panels
+# legend.position = "bottom" would misalign panels in plot_grid(align="h"),
+# so the legend is pulled out separately and placed below as its own row
+density_legend <- get_legend(
+  p_density + theme(
+    legend.position  = "bottom",
+    legend.text      = element_text(size = 9),
+    legend.title     = element_text(size = 10),
+    legend.key.size  = unit(0.45, "cm"),
+    legend.key       = element_blank()   # remove grey fill boxes
+  )
+)
 
 fig_title <- ggdraw() +
   draw_label(
-    expression("Internal Pathway Contribution to Stream CO"[2]*" Flux"),
+    "Internal Pathway Contribution to Tropical, Subtropical and Boreal Low-Order Streams",
     size = 14, fontface = "bold"
   )
 
+# Extract band legend from violin panel
+band_legend <- get_legend(
+  p_violin + theme(
+    legend.position  = "bottom",
+    legend.text      = element_text(size = 9),
+    legend.key       = element_blank()
+  )
+)
+
+# Both panels stripped of legends so alignment is unaffected
 panels <- plot_grid(
   p_violin + theme(legend.position = "none"),
   p_density + theme(legend.position = "none"),
@@ -176,10 +216,16 @@ panels <- plot_grid(
   rel_widths = c(0.72, 0.28)
 )
 
+# Combine both legends side-by-side below the panels
+combined_legend <- plot_grid(band_legend, density_legend,
+                              ncol = 2, rel_widths = c(0.25, 0.75))
+
 (p_violin_meta <- plot_grid(
-  plot_grid(fig_title, panels, ncol = 1, rel_heights = c(0.06, 1)),
-  density_legend,
-  ncol = 2, rel_widths = c(0.85, 0.15)
+  fig_title,
+  panels,
+  combined_legend,
+  ncol = 1,
+  rel_heights = c(0.05, 1, 0.12)
 ))
 ###########
 
