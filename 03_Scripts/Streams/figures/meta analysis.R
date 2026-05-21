@@ -109,10 +109,6 @@ pubs<-read_csv("01_Raw_data/meta_analysis_extraction.csv")%>%
   )%>%    filter(external.mn > 0, internal.mn>0.1)
 
 
-
-unique(pubs$Source)
-
-
 # ─── Figure: Violin (your sites) + Left density (literature) ──────────────
 
 # Raw per-observation pct_internal for sites 1-13
@@ -129,8 +125,15 @@ violin_data <- int.ext %>%
 density_data <- pubs %>%
   filter(Citation != "This Paper", !is.na(pct_internal))
 
-# Shared y range (round up to nearest 10)
-y_hi <- ceiling(max(c(violin_data$pct_internal, density_data$pct_internal), na.rm = TRUE) / 10) * 10
+# Shared y range — add a 5-point buffer above the max so violin labels aren't clipped
+y_hi <- ceiling(max(c(violin_data$pct_internal, density_data$pct_internal), na.rm = TRUE) / 10) * 10 + 5
+
+# Per-site summary for labels above each violin (mean %, positioned at violin top)
+violin_labels <- violin_data %>%
+  group_by(ID) %>%
+  summarise(top_y    = max(pct_internal, na.rm = TRUE),
+            mean_pct = mean(pct_internal, na.rm = TRUE),
+            .groups  = "drop")
 
 # Right panel: violins per site
 p_violin <- ggplot(violin_data, aes(x = ID, y = pct_internal)) +
@@ -143,27 +146,26 @@ p_violin <- ggplot(violin_data, aes(x = ID, y = pct_internal)) +
   # so no alpha is needed and the legend key matches the band exactly
   scale_fill_manual(name = NULL,
                     values = c("Hotchkiss et al. (2015) global estimate (10–19%)" = "#DCE8F0")) +
-  geom_violin( color = "grey50", alpha = 0.85) +
+  geom_violin(color = "grey50", alpha = 0.85) +
   geom_jitter(shape = 1, width = 0.15, height = 0, size = 1.2,
               color = "grey30", alpha = 0.6) +
+  geom_text(data = violin_labels,
+            aes(x = ID, y = top_y+0.6, label = paste0(round(mean_pct, 1), "%")),
+            vjust = -0.4, size = 4, inherit.aes = FALSE) +
   coord_cartesian(ylim = c(0, y_hi)) +
   labs(x = "Site ID", y = "Internal pathway contribution (%)") +
   theme_classic(base_size = 13) +
   theme(axis.text = element_text(size = 11))
 
-# Pre-compute max density so bar lengths are a fixed proportion of the curve
-dens_max <- max(density(density_data$pct_internal[!is.na(density_data$pct_internal)])$y)
-
 # Right panel: rotated density of literature pct_internal, opening rightward
+# geom_hline spans the full panel width — no gap between bars and density curve
 p_density <- ggplot(density_data, aes(y = pct_internal)) +
   annotate("rect",
            xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
-           fill = "#A8C5DA", alpha = 0.4) +
+           fill = "#DCE8F0") +
+  geom_hline(aes(yintercept = pct_internal, color = Citation),
+             linewidth = 1, alpha = 0.8) +
   geom_density(color = "grey50", alpha = 0.85) +
-  geom_segment(aes(x = 0, xend = dens_max * 0.2,
-                   y = pct_internal, yend = pct_internal,
-                   color = Citation),
-               linewidth = 1.5, alpha = 0.9) +
   scale_color_brewer(palette = "Set3", name = "Citation") +
   coord_cartesian(ylim = c(0, y_hi)) +
   labs(x = "Density", y = NULL,
@@ -174,9 +176,9 @@ p_density <- ggplot(density_data, aes(y = pct_internal)) +
     axis.ticks.y  = element_blank(),
     axis.title.y  = element_blank(),
     axis.text.x   = element_text(size = 9),
-    plot.title    = element_text(size = 10, hjust = 0.5, lineheight = 1.1),
+    plot.title    = element_text(size = 13, hjust = 0.5, lineheight = 1.1),
     legend.text   = element_text(size = 9),
-    legend.title  = element_text(size = 10),
+    legend.title  = element_text(size = 12),
     legend.key.size = unit(0.45, "cm")
   )
 
@@ -186,10 +188,10 @@ p_density <- ggplot(density_data, aes(y = pct_internal)) +
 density_legend <- get_legend(
   p_density + theme(
     legend.position  = "bottom",
-    legend.text      = element_text(size = 9),
-    legend.title     = element_text(size = 10),
-    legend.key.size  = unit(0.45, "cm"),
-    legend.key       = element_blank()   # remove grey fill boxes
+    legend.text      = element_text(size = 12),
+    legend.title     = element_text(size = 13, face = "bold"),
+    legend.key.size  = unit(0.65, "cm"),
+    legend.key       = element_blank()
   )
 )
 
@@ -203,7 +205,9 @@ fig_title <- ggdraw() +
 band_legend <- get_legend(
   p_violin + theme(
     legend.position  = "bottom",
-    legend.text      = element_text(size = 9),
+    legend.text      = element_text(size = 12),
+    legend.title     = element_text(size = 13, face = "bold"),
+    legend.key.size  = unit(0.65, "cm"),
     legend.key       = element_blank()
   )
 )
@@ -227,144 +231,227 @@ combined_legend <- plot_grid(band_legend, density_legend,
   ncol = 1,
   rel_heights = c(0.05, 1, 0.12)
 ))
-###########
 
 
+# ─── Figure: Internal Pathway Flux (absolute, g C m⁻² day⁻¹) ────────────────
 
+# Hotchkiss global range for internal pathway (min/max across all discharge values)
+hotch_int_lo  <- min(df$internal)
+hotch_int_hi  <- max(df$internal)
+hotch_int_lab <- "Hotchkiss et al. (2015) global range"
 
-(b<-pubs%>%
-    ggplot(aes(x = Citation, y = pct_internal, color = Source)) +
-  
-  geom_rect(aes(xmin = -Inf, xmax = Inf, ymin = 0, ymax = 19,
-                fill = "Global estimate (Hotchkiss et al. 2015)"),
+violin_data_int <- int.ext %>%
+  filter(!is.na(internal), internal > 0) %>%
+  group_by(ID) %>%
+  mutate(mean_val = mean(internal, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(ID = factor(ID, levels = unique(ID[order(-mean_val)])))
+
+density_data_int <- pubs %>%
+  filter(Citation != "This Paper", !is.na(internal.mn), internal.mn > 0)
+
+# "This Paper" per-site means for the density overlay
+this_paper_int <- int.ext.summary %>%
+  filter(!is.na(internal.mn), internal.mn > 0) %>%
+  select(Site, internal.mn)
+
+# Independent y ranges: violin uses its own spread; density uses literature + This Paper
+y_hi_int         <- ceiling(max(violin_data_int$internal, na.rm = TRUE) * 1.15)
+y_hi_density_int <- ceiling(max(c(density_data_int$internal.mn,
+                                   this_paper_int$internal.mn), na.rm = TRUE) * 1.15)
+
+violin_labels_int <- violin_data_int %>%
+  group_by(ID) %>%
+  summarise(top_y    = max(internal, na.rm = TRUE),
+            mean_val = mean(internal, na.rm = TRUE),
+            .groups  = "drop")
+
+bar_scale_int <- (y_hi_int * 0.4) / max(violin_labels_int$mean_val, na.rm = TRUE)
+
+# Unified color scale: Set3 for literature, dark slate for This Paper
+lit_cits_int <- sort(unique(density_data_int$Citation))
+lit_cols_int <- setNames(
+  RColorBrewer::brewer.pal(max(3, length(lit_cits_int)), "Set3")[seq_along(lit_cits_int)],
+  lit_cits_int
+)
+all_cols_int <- c(lit_cols_int, "This Paper" = "#2C3E50")
+
+p_violin_int <- ggplot(violin_data_int, aes(x = ID, y = internal)) +
+  geom_rect(aes(xmin = -Inf, xmax = Inf,
+                ymin = hotch_int_lo, ymax = hotch_int_hi,
+                fill = hotch_int_lab),
             inherit.aes = FALSE) +
-  geom_point(size = 3) +
-  
-  
-  #BUILD LEGEND######
-  scale_fill_manual(name = NULL, values = c("Global estimate (Hotchkiss et al. 2015)" = "lightgrey")) +
-
-  scale_color_manual(
-    name = "Source Water",
-    values = c(
-      "Riparian groundwater"            = "#E3C849",
-      "Shallow Aquifer"                 = "#EDCA7F",
-      "Wetland Seepage"                 = "#EAC34B",
-      "Groundwater-fed"                 = "#378ADD",
-      "Deeper Groundwater Seepage"      = "#008bcc",
-      "Groundwater-dominated"           = "#3885B6",
-      "Spring-fed"                      = "#5EA5C2",
-      "Mixed"                           = "#8338AC",
-      "Snowmelt + Groundwater Baseflow" = "#924CA1"
-    ),
-    breaks = c(
-      "Riparian groundwater","Shallow Aquifer", "Wetland Seepage", "Groundwater-fed",
-      "Deeper Groundwater Seepage", "Groundwater-dominated", "Spring-fed", "Mixed", "Snowmelt + Groundwater Baseflow"
-    ),
-    na.translate = FALSE
+  scale_fill_manual(name = NULL, values = c(hotch_int_lab = "#DCE8F0"),
+                    labels = paste0(hotch_int_lab, " (", round(hotch_int_lo, 1),
+                                    "–", round(hotch_int_hi, 1), " g C m⁻² day⁻¹)")) +
+  geom_violin(color = "grey50", alpha = 0.85) +
+  geom_jitter(shape = 1, width = 0.15, height = 0, size = 1.2,
+              color = "grey30", alpha = 0.6) +
+  geom_text(data = violin_labels_int,
+            aes(x = ID, y = top_y, label = round(mean_val, 2)),
+            vjust = -0.4, size = 3.5, inherit.aes = FALSE) +
+  scale_y_continuous(
+    limits   = c(0, y_hi_int),
+    name     = expression("Internal pathway flux (g C m"^{-2}~"day"^{-1}*")"),
+    sec.axis = sec_axis(~ . / bar_scale_int,
+                        name = expression("Mean internal flux (g C m"^{-2}~"day"^{-1}*")"))
   ) +
-  
-  #FORMAT FIGURE###########
-  labs(
-    x = NULL,
-    y = "Internal pathway contribution (%)",
-  ) +
+  labs(x = "Site ID") +
   theme_classic(base_size = 13) +
-  theme(
-    axis.text.x = element_text(angle = 345, hjust = 0, vjust = 1, size=10),
-    axis.text.y = element_text(size=12),
-    axis.title=element_text(size=12),
-    legend.position = "right"
-  ))
+  theme(axis.text  = element_text(size = 11))
+
+p_density_int <- ggplot(density_data_int, aes(y = internal.mn)) +
+  annotate("rect", xmin = -Inf, xmax = Inf,
+           ymin = hotch_int_lo, ymax = hotch_int_hi, fill = "#DCE8F0") +
+  geom_hline(aes(yintercept = internal.mn, color = Citation),
+             linewidth = 1, alpha = 0.8) +
+  geom_hline(data = this_paper_int,
+             aes(yintercept = internal.mn, color = "This Paper"),
+             linewidth = 0.8, alpha = 0.7) +
+  geom_density(color = "grey50", alpha = 0.85) +
+  scale_color_manual(name = "Citation", values = all_cols_int) +
+  coord_cartesian(ylim = c(0, y_hi_density_int)) +
+  labs(x = "Density",
+       y = expression("Internal pathway flux (g C m"^{-2}~"day"^{-1}*")"),
+       title = "Current Literature Estimates (2011–2026)") +
+  theme_classic(base_size = 13) +
+  theme(axis.text.y  = element_text(size = 9),
+        axis.ticks.y = element_line(),
+        axis.title.y = element_text(size = 10),
+        axis.text.x  = element_text(size = 9),
+        plot.title   = element_text(size = 13, hjust = 0.5))
+
+band_legend_int    <- get_legend(p_violin_int  + theme(legend.position = "bottom",
+                                                        legend.text = element_text(size = 12),
+                                                        legend.key  = element_blank()))
+density_legend_int <- get_legend(p_density_int + theme(legend.position = "bottom",
+                                                        legend.text = element_text(size = 12),
+                                                        legend.title = element_text(size = 13, face = "bold"),
+                                                        legend.key.size = unit(0.65, "cm"),
+                                                        legend.key = element_blank()))
+
+panels_int <- plot_grid(
+  p_violin_int  + theme(legend.position = "none"),
+  p_density_int + theme(legend.position = "none"),
+  ncol = 2, align = "h", axis = "tb", rel_widths = c(0.72, 0.28)
+)
+
+(p_flux_internal <- plot_grid(
+  ggdraw() + draw_label("Internal Pathway Flux Across Tropical, Subtropical and Boreal Low-Order Streams",
+                         size = 14, fontface = "bold"),
+  panels_int,
+  plot_grid(band_legend_int, density_legend_int, ncol = 2, rel_widths = c(0.25, 0.75)),
+  ncol = 1, rel_heights = c(0.05, 1, 0.12)
+))
 
 
-##################
+# ─── Figure: External Pathway Flux (absolute, g C m⁻² day⁻¹) ────────────────
 
-comparisons<-full_join(interp_df, pubs)
+hotch_ext_lo  <- min(df$external)
+hotch_ext_hi  <- max(df$external)
+hotch_ext_lab <- "Hotchkiss et al. (2015) global range"
 
+violin_data_ext <- int.ext %>%
+  filter(!is.na(external), external > 0, external<30) %>%
+  group_by(ID) %>%
+  mutate(mean_val = mean(external, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(ID = factor(ID, levels = unique(ID[order(-mean_val)])))
 
-a<-comparisons %>%
-  pivot_longer(cols = c("internal.mn", "CO2flux.mn"),
-               names_to = "Pathway",
-               values_to = "CO2_flux") %>%
-  ggplot(aes(x = discharge_m3_s)) +
-  
-  geom_ribbon(aes(ymin = internal_smooth - internal_se_smooth, ymax = internal_smooth + internal_se_smooth,
-                  fill = "Global Internal Pathway"), alpha = 0.7, na.rm = T) +
-  
-  geom_ribbon(aes(ymin = total_smooth - total_se_smooth, ymax = total_smooth + total_se_smooth,
-                  fill = "Total Flux (Hotchkiss et al. 2015)"), alpha = 0.7, na.rm = T) +
-  
-  geom_ribbon(aes(ymin = external_smooth - external_se_smooth, ymax = external_smooth + external_se_smooth,
-                  fill = "Global External Pathway"), alpha = 0.5, na.rm = T) +
-  geom_line(aes(y = CO2_flux, group = Site, color = Source),    # <-- replace Site with your ID column
-            alpha = 0.4, linewidth = 0.5) +
-  geom_point(aes(x = discharge_m3_s, y = CO2_flux, color = Source, shape = Pathway), size = 3) +
-  #BUILD LEGEND#############
-scale_fill_manual(name = NULL,
-                  values = c(
-                    "Total Flux (Hotchkiss et al. 2015)" = "black",
-                    "Global Internal Pathway" = "grey",
-                    "Global External Pathway" = "lightgrey"
-                  )) +
-  scale_color_manual(
-    name = "Source Water",
-    values = c(
-      "Riparian groundwater"            = "#E3C849",
-      "Shallow Aquifer"                 = "#EDCA7F",
-      "Wetland Seepage"                 = "#EAC34B",
-      "Groundwater-fed"                 = "#378ADD",
-      "Deeper Groundwater Seepage"      = "#008bcc",
-      "Groundwater-dominated"           = "#3885B6",
-      "Spring-fed"                      = "#5EA5C2",
-      "Mixed"                           = "#8338AC",
-      "Snowmelt + Groundwater Baseflow" = "#924CA1"
-    ),
-    breaks = c(
-      "Riparian groundwater", "Shallow Aquifer", "Wetland Seepage", "Groundwater-fed",
-      "Deeper Groundwater Seepage", "Groundwater-dominated", "Spring-fed", "Mixed", "Snowmelt + Groundwater Baseflow"
-    ),
-    na.translate = FALSE
-  ) +
-  scale_shape_manual(
-    name = expression(CO[2]~"Flux"),
-    values = c(
-      "internal.mn"  = 16,
-      "CO2flux.mn"   = 1
-    ),
-    labels = c(
-      "internal.mn" = "Internal Pathway",
-      "CO2flux.mn"  = "Total Flux"
-    )
-  ) +
-  #FORMAT FIGURE############
-scale_x_log10() +
-  scale_y_log10() +
-  labs(
-    x = expression("Discharge (m"^3~s^-1*")"),
-    y = expression(C~g/m^2/day)
-  ) +
-  theme_classic(base_size = 14) +
-  theme(
-    axis.text  = element_text(size = 12),
-    axis.title = element_text(size = 12),
-    legend.position = "right"
-  )
-###########################
+density_data_ext <- pubs %>%
+  filter(Citation != "This Paper", !is.na(external.mn), external.mn > 0)
 
-title   <- ggdraw() + draw_label("Internal Pathway Contribution in Tropical, Sub Tropical, and Boreal Streams",
-                                 size = 15)
-legend  <- get_legend(a)
+# "This Paper" per-site means for the density overlay
+this_paper_ext <- int.ext.summary %>%
+  filter(!is.na(external.mn), external.mn > 0) %>%
+  select(Site, external.mn)
 
+# Independent y ranges
+y_hi_ext         <- ceiling(max(violin_data_ext$external, na.rm = TRUE) * 1.15)
+y_hi_density_ext <- ceiling(max(c(density_data_ext$external.mn,
+                                   this_paper_ext$external.mn), na.rm = TRUE) * 1.15)
 
-(panels  <- plot_grid(b + theme(legend.position = "none"), a + theme(legend.position = "none"),
-                     ncol = 1,
-                     rel_heights = c(0.8,1), align = "v"))
-  
-  
-  
-(body    <- plot_grid(panels, legend, ncol = 2, rel_widths = c(0.6, 0.1)))
-plot_grid(title, body, ncol = 1, rel_heights = c(0.05, 1))
+violin_labels_ext <- violin_data_ext %>%
+  group_by(ID) %>%
+  summarise(top_y    = max(external, na.rm = TRUE),
+            mean_val = mean(external, na.rm = TRUE),
+            .groups  = "drop")
+
+bar_scale_ext <- (y_hi_ext * 0.4) / max(violin_labels_ext$mean_val, na.rm = TRUE)
+
+# Unified color scale: Set3 for literature, dark slate for This Paper
+lit_cits_ext <- sort(unique(density_data_ext$Citation))
+lit_cols_ext <- setNames(
+  RColorBrewer::brewer.pal(max(3, length(lit_cits_ext)), "Set3")[seq_along(lit_cits_ext)],
+  lit_cits_ext
+)
+all_cols_ext <- c(lit_cols_ext, "This Paper" = "#2C3E50")
+
+p_violin_ext <- ggplot(violin_data_ext, aes(x = ID, y = external)) +
+  geom_rect(aes(xmin = -Inf, xmax = Inf,
+                ymin = hotch_ext_lo, ymax = hotch_ext_hi,
+                fill = hotch_ext_lab),
+            inherit.aes = FALSE) +
+  scale_fill_manual(name = NULL, values = c(hotch_ext_lab = "#DCE8F0"),
+                    labels = paste0(hotch_ext_lab, " (", round(hotch_ext_lo, 1),
+                                    "–", round(hotch_ext_hi, 1), " g C m⁻² day⁻¹)")) +
+  geom_violin(color = "grey50", alpha = 0.85) +
+  geom_jitter(shape = 1, width = 0.15, height = 0, size = 1.2,
+              color = "grey30", alpha = 0.6) +
+  geom_text(data = violin_labels_ext,
+            aes(x = ID, y = top_y, label = round(mean_val, 2)),
+            vjust = -0.4, size = 3.5, inherit.aes = FALSE) +
+  scale_y_continuous(
+    limits   = c(0, y_hi_ext),
+    name     = expression("External pathway flux (g C m"^{-2}~"day"^{-1}*")") ) +
+  labs(x = "Site ID") +
+  theme_classic(base_size = 13) +
+  theme(axis.text  = element_text(size = 11))
+
+p_density_ext <- ggplot(density_data_ext, aes(y = external.mn)) +
+  annotate("rect", xmin = -Inf, xmax = Inf,
+           ymin = hotch_ext_lo, ymax = hotch_ext_hi, fill = "#DCE8F0") +
+  geom_hline(aes(yintercept = external.mn, color = Citation),
+             linewidth = 1, alpha = 0.8) +
+  geom_hline(data = this_paper_ext,
+             aes(yintercept = external.mn, color = "This Paper"),
+             linewidth = 0.8, alpha = 0.7) +
+  geom_density(color = "grey50", alpha = 0.85) +
+  scale_color_manual(name = "Citation", values = all_cols_ext) +
+  coord_cartesian(ylim = c(0, y_hi_density_ext)) +
+  labs(x = "Density",
+       y = expression("External pathway flux (g C m"^{-2}~"day"^{-1}*")"),
+       title = "Current Literature Estimates (2011–2026)") +
+  theme_classic(base_size = 13) +
+  theme(axis.text.y  = element_text(size = 9),
+        axis.ticks.y = element_line(),
+        axis.title.y = element_text(size = 10),
+        axis.text.x  = element_text(size = 9),
+        plot.title   = element_text(size = 13, hjust = 0.5))
+
+band_legend_ext    <- get_legend(p_violin_ext  + theme(legend.position = "bottom",
+                                                        legend.text = element_text(size = 12),
+                                                        legend.key  = element_blank()))
+density_legend_ext <- get_legend(p_density_ext + theme(legend.position = "bottom",
+                                                        legend.text = element_text(size = 12),
+                                                        legend.title = element_text(size = 13, face = "bold"),
+                                                        legend.key.size = unit(0.65, "cm"),
+                                                        legend.key = element_blank()))
+
+panels_ext <- plot_grid(
+  p_violin_ext  + theme(legend.position = "none"),
+  p_density_ext + theme(legend.position = "none"),
+  ncol = 2, align = "h", axis = "tb", rel_widths = c(0.72, 0.28)
+)
+
+(p_flux_external <- plot_grid(
+  ggdraw() + draw_label("External Pathway Flux Across Tropical, Subtropical and Boreal Low-Order Streams",
+                         size = 14, fontface = "bold"),
+  panels_ext,
+  plot_grid(band_legend_ext, density_legend_ext, ncol = 2, rel_widths = c(0.25, 0.75)),
+  ncol = 1, rel_heights = c(0.05, 1, 0.12)
+))
+
 
 
 

@@ -81,7 +81,8 @@ flashiness <- discharge %>%
     CV       = sd_Q / mean_Q,
     RB_index = sum(abs(diff(Q)), na.rm = TRUE) / sum(Q, na.rm = TRUE),
     .groups  = "drop"
-  )
+  )%>%filter(ID != '14')
+
 
 mean.pH<-pH%>% group_by(ID)%>%
   summarise(pH=mean(pH, na.rm=T))

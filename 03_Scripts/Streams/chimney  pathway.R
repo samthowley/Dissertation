@@ -96,10 +96,15 @@ mean(pathways$internal, na.rm=T)
 mean(pathways$external, na.rm=T)
 
 pathways%>%
-  group_by(ID)%>%
   summarise(
-    mean=mean(internal/CO2_flux, na.rm=T)
+    mean=mean(external/CO2_flux, na.rm=T)
   )
 
 write_csv(pathways, "04_Output/stream/external-internal.csv")
 
+test<-pathways%>%
+  mutate(
+    int.contrib=internal/CO2_flux, na.rm=T,
+    ext.contrib=external/CO2_flux, na.rm=T
+  )
+mean(test$ext.contrib)

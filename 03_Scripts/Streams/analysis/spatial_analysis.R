@@ -24,7 +24,7 @@ stopifnot("All site IDs in df must appear in spatial_df" =
 # Predictors: total.wetland.cover, CV, pH, SpC
 # Flag |rho| > 0.7 as potentially redundant.
 
-spatial_pred_cols <- c("total.wetland.cover", "CV", "pH", "SpC")
+spatial_pred_cols <- c("total.wetland.cover", "RB_index", "pH", "SpC")
 
 corr_pred_pairs <- combn(spatial_pred_cols, 2, simplify = FALSE) %>%
   map_dfr(function(pair) {
@@ -157,7 +157,7 @@ run_perm_spearman <- function(response_vec, predictor_vec, ID_labels,
 
 NRESAMPLE <- 999999 # set to 9999 for quick dev runs; restore to 99999 for final results
 
-predictors_goal1 <- c("total.wetland.cover", "CV", "pH", "SpC")
+predictors_goal1 <- c("total.wetland.cover", "RB_index", "pH", "SpC")
 
 perm_goal1 <- map(predictors_goal1, function(pred) {
   run_perm_spearman(goal1_df$mean_log_ratio, goal1_df[[pred]],
@@ -251,7 +251,7 @@ slopes_2a_wide <- slopes_2a %>%
 
 
 responses_2a  <- c("c_int", "c_ext", "c_total")
-predictors_2a <- c("total.wetland.cover", "CV", "pH", "SpC")
+predictors_2a <- c("total.wetland.cover", "RB_index", "pH", "SpC")
 
 perm_goal2a <- map2(
   rep(responses_2a, each = length(predictors_2a)),
@@ -433,7 +433,7 @@ slopes_2b_wide <- slopes_2b %>%
 
 
 responses_2b  <- c("m_int", "m_ext", "m_total")
-predictors_2b <- c("total.wetland.cover", "CV", "pH", "SpC")
+predictors_2b <- c("total.wetland.cover", "RB_index", "pH", "SpC")
 
 perm_goal2b <- map2(
   rep(responses_2b, each = length(predictors_2b)),
@@ -489,6 +489,112 @@ perm_r2_2b$sig  <- ifelse(perm_r2_2b$p_BH < 0.05, "*", "")
 print(perm_r2_2b, row.names = FALSE)
 
 
+# =============================================================================
+# SECTION 5 — GOAL 3: PATHWAY DOMINANCE AS PREDICTOR OF SENSITIVITY
+# =============================================================================
+# IV:  mean(internal / CO2_flux) per site — fraction of total emissions
+#      attributable to internal (metabolic) production.
+# DVs: discharge sensitivity slopes (c_int, c_ext, c_total),
+#      temperature sensitivity slopes (m_int, m_ext, m_total),
+#      and their corresponding r² values (6 more responses).
+# Test: permutation Spearman, BH correction across all 12 tests.
+
+pathway_dominance <- df %>%
+  filter(internal > 0, CO2_flux > 0) %>%
+  mutate(int_frac = internal / CO2_flux) %>%
+  group_by(ID) %>%
+  summarise(mean_int_frac = mean(int_frac, na.rm = TRUE), .groups = "drop")
+
+print(pathway_dominance)
+
+# Build a wide data frame: one row per site, all sensitivity metrics as columns
+# Rename r² columns from each goal to avoid collision (r2c_ = discharge, r2m_ = temp)
+
+dom_df <- pathway_dominance %>%
+  left_join(slopes_2a_wide %>% select(ID, c_int, c_ext, c_total),        by = "ID") %>%
+  left_join(r2_2a_wide     %>% select(ID, r2_int, r2_ext, r2_total) %>%
+              rename(r2c_int = r2_int, r2c_ext = r2_ext, r2c_total = r2_total), by = "ID") %>%
+  left_join(slopes_2b_wide %>% select(ID, m_int, m_ext, m_total),        by = "ID") %>%
+  left_join(r2_2b_wide     %>% select(ID, r2_int, r2_ext, r2_total) %>%
+              rename(r2m_int = r2_int, r2m_ext = r2_ext, r2m_total = r2_total), by = "ID")
+
+responses_goal3 <- c(
+  "c_int",    "c_ext",    "c_total",
+  "r2c_int",  "r2c_ext",  "r2c_total",
+  "m_int",    "m_ext",    "m_total",
+  "r2m_int",  "r2m_ext",  "r2m_total"
+)
+
+perm_goal3 <- map(responses_goal3, function(resp) {
+  run_perm_spearman(
+    dom_df[[resp]], dom_df$mean_int_frac,
+    dom_df$ID, resp, "mean_int_frac", NRESAMPLE
+  )
+}) |> list_rbind()
+
+perm_goal3$p_BH <- round(p.adjust(perm_goal3$p_raw, method = "BH"), 5)
+perm_goal3$sig  <- ifelse(perm_goal3$p_BH < 0.05, "*", "")
+
+print(perm_goal3, row.names = FALSE)
 
 
+# =============================================================================
+# SECTION 6 — ADVISOR TABLES
+# =============================================================================
+
+library(knitr)
+
+print_table <- function(title, note, data) {
+  cat(paste0("\n", strrep("-", 70), "\n"))
+  cat(paste0(title, "\n"))
+  if (!is.null(note)) cat(paste0("Note: ", note, "\n"))
+  cat(strrep("-", 70), "\n")
+  print(kable(data, format = "simple", na = "—"))
+  cat("\n")
+}
+
+# ------------------------------------------------------------------
+# TABLE 11 — Goal 3: Pathway dominance ~ sensitivity metrics
+# ------------------------------------------------------------------
+
+tbl11 <- perm_goal3 %>%
+  mutate(
+    rho   = round(rho, 3),
+    p_raw = round(p_raw, 4),
+    p_BH  = round(p_BH, 4),
+    sig   = ifelse(p_BH < 0.05, "*", ""),
+    type  = case_match(response,
+      "c_int"    ~ "Discharge slope",  "c_ext"    ~ "Discharge slope",
+      "c_total"  ~ "Discharge slope",
+      "r2c_int"  ~ "Discharge r²",     "r2c_ext"  ~ "Discharge r²",
+      "r2c_total"~ "Discharge r²",
+      "m_int"    ~ "Temperature slope","m_ext"    ~ "Temperature slope",
+      "m_total"  ~ "Temperature slope",
+      "r2m_int"  ~ "Temperature r²",   "r2m_ext"  ~ "Temperature r²",
+      "r2m_total"~ "Temperature r²"
+    ),
+    pathway = case_match(response,
+      "c_int"    ~ "Internal", "c_ext"    ~ "External", "c_total"  ~ "Total",
+      "r2c_int"  ~ "Internal", "r2c_ext"  ~ "External", "r2c_total"~ "Total",
+      "m_int"    ~ "Internal", "m_ext"    ~ "External", "m_total"  ~ "Total",
+      "r2m_int"  ~ "Internal", "r2m_ext"  ~ "External", "r2m_total"~ "Total"
+    )
+  ) %>%
+  select(type, pathway, rho, p_raw, p_BH, sig, n) %>%
+  rename(
+    `Metric type` = type,
+    `Pathway`     = pathway,
+    `Spearman rho`= rho,
+    `p (raw)`     = p_raw,
+    `p (BH-adj)`  = p_BH,
+    `Sig.`        = sig,
+    `n sites`     = n
+  ) %>%
+  arrange(`Metric type`, `Pathway`)
+
+print_table(
+  "TABLE 11 — Goal 3: Pathway Dominance (mean internal/total) ~ Sensitivity Metrics",
+  "IV: mean(internal/CO2_flux) per site. DVs: c and m slopes + r² for each pathway. BH across 12 tests.",
+  tbl11
+)
 

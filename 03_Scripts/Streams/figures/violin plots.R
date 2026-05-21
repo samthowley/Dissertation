@@ -34,7 +34,6 @@ means_df <- int.ext.df %>%
     .groups = "drop"
   )
 
-
 summary(lm(mean_ratio ~ pH.u, data = means_df))
 
 model <- lm(mean_ratio ~ pH.u, data = means_df)

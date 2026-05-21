@@ -36,6 +36,12 @@ n_days_row <- n_days %>%
   pivot_wider(names_from = ID, values_from = n_days) %>%
   mutate(Variable = "Number of days")
 
+rb_by_site <- int.ext %>%
+  filter(!is.na(Q)) %>%
+  arrange(ID, day) %>%
+  group_by(ID) %>%
+  summarise(RB = round(sum(abs(diff(Q))) / sum(Q), 3), .groups = "drop")
+
 
 wetland_perc <- read_csv("01_Raw_data/wetland cover/wetland.perc.csv")%>%
   select(ID, basin.wetland.perc)%>%
@@ -67,7 +73,8 @@ tbl.summary.means <- int.ext %>% left_join(pH) %>% left_join(SpC) %>%
     GPP      = round(mean(GPP, na.rm=T), 2),
     ER       = round(mean(ER, na.rm=T), 2),
     DOC       = round(mean(DOC, na.rm=T), 2)
-  )
+  ) %>%
+  left_join(rb_by_site, by = "ID")
 
 tbl.summary.sd <- int.ext %>% left_join(pH) %>% left_join(SpC) %>%
   left_join(master_metabolism) %>%
@@ -108,9 +115,10 @@ table.summary <- left_join(tbl.summary.means, tbl.summary.sd) %>%
     internal = paste(internal, "\u00B1", sd.internal),
     external = paste(external, "\u00B1", sd.external),
     GPP      = paste(GPP, "\u00B1", sd.GPP),
-    ER       = paste(ER, "\u00B1", sd.ER)
+    ER       = paste(ER, "\u00B1", sd.ER),
+    RB       = as.character(RB)
   ) %>%
-  select(ID, Q, medQ, velocity, depth, K600, Temp, SpC, pH, DOC, pCO2,
+  select(ID, Q, medQ, RB, velocity, depth, K600, Temp, SpC, pH, DOC, pCO2,
          CO2_flux, GPP, ER, internal, external)
 
 # ── PIVOT: sites as columns, variables as rows ────────────────────────────────
@@ -118,6 +126,7 @@ table.summary <- left_join(tbl.summary.means, tbl.summary.sd) %>%
 var_labels <- c(
   Q        = "Mean discharge (L s\u207B\u00B9)",
   medQ     = "Median discharge (L s\u207B\u00B9)",
+  RB       = "RB Index",
   velocity = "Velocity (m s\u207B\u00B9)",
   depth    = "Depth (m)",
   K600     = "k\u2086\u2080\u2080 (day\u207B\u00B9)",
@@ -140,6 +149,7 @@ table_long <- table.summary %>%
   mutate(Variable = case_match(Variable,
                                "Q"        ~ "Mean discharge (L s\u207B\u00B9)",
                                "medQ"     ~ "Median discharge (L s\u207B\u00B9)",
+                               "RB"       ~ "RB Index",
                                "velocity" ~ "Velocity (m s\u207B\u00B9)",
                                "depth"    ~ "Depth (m)",
                                "K600"     ~ "k\u2086\u2080\u2080 (day\u207B\u00B9)",
