@@ -157,6 +157,18 @@ p_violin <- ggplot(violin_data, aes(x = ID, y = pct_internal)) +
   theme_classic(base_size = 13) +
   theme(axis.text = element_text(size = 11))
 
+# Closed density path: compute manually so curve starts and ends at x=0
+dens_pct <- local({
+  x  <- density_data$pct_internal[!is.na(density_data$pct_internal)]
+  d  <- density(x, from = 0, to = y_hi, n = 512)
+  n  <- length(d$y)
+  tl <- round(n * 0.05)
+  w  <- 0.5 * (1 - cos(pi * seq(0, 1, length.out = tl)))
+  d$y[1:tl]           <- d$y[1:tl]           * w
+  d$y[(n-tl+1):n]     <- d$y[(n-tl+1):n]     * rev(w)
+  data.frame(dx = c(0, d$y, 0), dy = c(0, d$x, y_hi))
+})
+
 # Right panel: rotated density of literature pct_internal, opening rightward
 # geom_hline spans the full panel width — no gap between bars and density curve
 p_density <- ggplot(density_data, aes(y = pct_internal)) +
@@ -165,7 +177,7 @@ p_density <- ggplot(density_data, aes(y = pct_internal)) +
            fill = "#DCE8F0") +
   geom_hline(aes(yintercept = pct_internal, color = Citation),
              linewidth = 1, alpha = 0.8) +
-  geom_density(color = "grey50", alpha = 0.85) +
+  geom_path(data = dens_pct, aes(x = dx, y = dy), color = "grey50", inherit.aes = FALSE) +
   scale_color_brewer(palette = "Set3", name = "Citation") +
   coord_cartesian(ylim = c(0, y_hi)) +
   labs(x = "Density", y = NULL,
@@ -217,7 +229,7 @@ panels <- plot_grid(
   p_violin + theme(legend.position = "none"),
   p_density + theme(legend.position = "none"),
   ncol = 2, align = "h", axis = "tb",
-  rel_widths = c(0.72, 0.28)
+  rel_widths = c(0.72, 0.15)
 )
 
 # Combine both legends side-by-side below the panels
@@ -300,6 +312,17 @@ p_violin_int <- ggplot(violin_data_int, aes(x = ID, y = internal)) +
   theme_classic(base_size = 13) +
   theme(axis.text  = element_text(size = 11))
 
+dens_int <- local({
+  x  <- density_data_int$internal.mn[!is.na(density_data_int$internal.mn)]
+  d  <- density(x, from = 0, to = y_hi_density_int, n = 512)
+  n  <- length(d$y)
+  tl <- round(n * 0.05)
+  w  <- 0.5 * (1 - cos(pi * seq(0, 1, length.out = tl)))
+  d$y[1:tl]           <- d$y[1:tl]           * w
+  d$y[(n-tl+1):n]     <- d$y[(n-tl+1):n]     * rev(w)
+  data.frame(dx = c(0, d$y, 0), dy = c(0, d$x, y_hi_density_int))
+})
+
 p_density_int <- ggplot(density_data_int, aes(y = internal.mn)) +
   annotate("rect", xmin = -Inf, xmax = Inf,
            ymin = hotch_int_lo, ymax = hotch_int_hi, fill = "#DCE8F0") +
@@ -308,7 +331,7 @@ p_density_int <- ggplot(density_data_int, aes(y = internal.mn)) +
   geom_hline(data = this_paper_int,
              aes(yintercept = internal.mn, color = "This Paper"),
              linewidth = 0.8, alpha = 0.7) +
-  geom_density(color = "grey50", alpha = 0.85) +
+  geom_path(data = dens_int, aes(x = dx, y = dy), color = "grey50", inherit.aes = FALSE) +
   scale_color_manual(name = "Citation", values = all_cols_int) +
   coord_cartesian(ylim = c(0, y_hi_density_int)) +
   labs(x = "Density",
@@ -408,6 +431,17 @@ p_violin_ext <- ggplot(violin_data_ext, aes(x = ID, y = external)) +
   theme_classic(base_size = 13) +
   theme(axis.text  = element_text(size = 11))
 
+dens_ext <- local({
+  x  <- density_data_ext$external.mn[!is.na(density_data_ext$external.mn)]
+  d  <- density(x, from = 0, to = y_hi_density_ext, n = 512)
+  n  <- length(d$y)
+  tl <- round(n * 0.05)
+  w  <- 0.5 * (1 - cos(pi * seq(0, 1, length.out = tl)))
+  d$y[1:tl]           <- d$y[1:tl]           * w
+  d$y[(n-tl+1):n]     <- d$y[(n-tl+1):n]     * rev(w)
+  data.frame(dx = c(0, d$y, 0), dy = c(0, d$x, y_hi_density_ext))
+})
+
 p_density_ext <- ggplot(density_data_ext, aes(y = external.mn)) +
   annotate("rect", xmin = -Inf, xmax = Inf,
            ymin = hotch_ext_lo, ymax = hotch_ext_hi, fill = "#DCE8F0") +
@@ -416,7 +450,7 @@ p_density_ext <- ggplot(density_data_ext, aes(y = external.mn)) +
   geom_hline(data = this_paper_ext,
              aes(yintercept = external.mn, color = "This Paper"),
              linewidth = 0.8, alpha = 0.7) +
-  geom_density(color = "grey50", alpha = 0.85) +
+  geom_path(data = dens_ext, aes(x = dx, y = dy), color = "grey50", inherit.aes = FALSE) +
   scale_color_manual(name = "Citation", values = all_cols_ext) +
   coord_cartesian(ylim = c(0, y_hi_density_ext)) +
   labs(x = "Density",

@@ -16,11 +16,10 @@ stopifnot("All site IDs in df must appear in spatial_df" =
 
 
 # =============================================================================
-# SECTION 1 — SITE-LEVEL MEAN FLUX RATES
+# RESEARCH QUESTION 3 — Do spatial factors influence the flux magnitude
+# of either pathway?
+# Analysis: site-level mean flux rates ~ spatial predictors
 # =============================================================================
-# Response: mean internal flux and mean external flux per site.
-# No transformation applied — raw flux units.
-# External = CO2_flux - internal (derived residual; not independently measured).
 
 flux_rates <- df %>%
   group_by(ID) %>%
@@ -96,73 +95,3 @@ perm_rates$sig  <- ifelse(perm_rates$p_BH < 0.05, "*", "")
 
 print(perm_rates, row.names = FALSE)
 
-
-# =============================================================================
-# SECTION 3 — ADVISOR TABLES
-# =============================================================================
-
-library(knitr)
-
-print_table <- function(title, note, data) {
-  cat(paste0("\n", strrep("-", 70), "\n"))
-  cat(paste0(title, "\n"))
-  if (!is.null(note)) cat(paste0("Note: ", note, "\n"))
-  cat(strrep("-", 70), "\n")
-  print(kable(data, format = "simple", na = "—"))
-  cat("\n")
-}
-
-# ------------------------------------------------------------------
-# TABLE 1 — Site-level mean flux rates
-# ------------------------------------------------------------------
-
-tbl1 <- flux_rates %>%
-  mutate(across(where(is.numeric), ~ round(.x, 3))) %>%
-  rename(
-    Site          = ID,
-    `n (days)`    = n,
-    `Mean Int.`   = mean_int,
-    `SD Int.`     = sd_int,
-    `Median Int.` = median_int,
-    `Mean Ext.`   = mean_ext,
-    `SD Ext.`     = sd_ext,
-    `Median Ext.` = median_ext
-  )
-
-print_table(
-  "TABLE 1 — Site-Level Mean Flux Rates: Internal and External Pathways",
-  "Raw flux values (no transformation). External = CO2_flux - internal (derived residual).",
-  tbl1
-)
-
-# ------------------------------------------------------------------
-# TABLE 2 — Spearman results: mean flux rate ~ spatial predictors
-# ------------------------------------------------------------------
-
-tbl2 <- perm_rates %>%
-  mutate(
-    rho   = round(rho, 3),
-    p_raw = round(p_raw, 4),
-    p_BH  = round(p_BH, 4),
-    sig   = ifelse(p_BH < 0.05, "*", ""),
-    response = case_match(response,
-                         "mean_int" ~ "Internal",
-                         "mean_ext" ~ "External")
-  ) %>%
-  select(response, predictor, rho, p_raw, p_BH, sig, n) %>%
-  rename(
-    `Pathway`      = response,
-    `Predictor`    = predictor,
-    `Spearman rho` = rho,
-    `p (raw)`      = p_raw,
-    `p (BH-adj)`   = p_BH,
-    `Sig.`         = sig,
-    `n sites`      = n
-  ) %>%
-  arrange(Pathway, desc(abs(`Spearman rho`)))
-
-print_table(
-  "TABLE 2 — Spearman Results: Mean Flux Rate ~ Spatial Predictors",
-  "BH correction across 8 tests (2 pathways x 4 predictors). Sig. (*) = p(BH) < 0.05.",
-  tbl2
-)

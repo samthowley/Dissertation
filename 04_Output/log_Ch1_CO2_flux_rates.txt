@@ -1,0 +1,235 @@
+── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.1
+✔ ggplot2   3.5.2     ✔ tibble    3.2.1
+✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+✔ purrr     1.0.2     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+
+Attaching package: 'cowplot'
+
+The following object is masked from 'package:lubridate':
+
+    stamp
+
+
+Attaching package: 'plotly'
+
+The following object is masked from 'package:ggplot2':
+
+    last_plot
+
+The following object is masked from 'package:stats':
+
+    filter
+
+The following object is masked from 'package:graphics':
+
+    layout
+
+Loading required package: ggpp
+Registered S3 methods overwritten by 'ggpp':
+  method                  from   
+  heightDetails.titleGrob ggplot2
+  widthDetails.titleGrob  ggplot2
+
+Attaching package: 'ggpp'
+
+The following object is masked from 'package:ggplot2':
+
+    annotate
+
+Loading required package: zoo
+
+Attaching package: 'zoo'
+
+The following objects are masked from 'package:base':
+
+    as.Date, as.Date.numeric
+
+
+Attaching package: 'hydroTSM'
+
+The following object is masked from 'package:tidyr':
+
+    extract
+
+randomForest 4.7-1.2
+Type rfNews() to see new features/changes/bug fixes.
+
+Attaching package: 'randomForest'
+
+The following object is masked from 'package:dplyr':
+
+    combine
+
+The following object is masked from 'package:ggplot2':
+
+    margin
+
+corrplot 0.92 loaded
+
+Attaching package: 'Matrix'
+
+The following objects are masked from 'package:tidyr':
+
+    expand, pack, unpack
+
+Loading required package: carData
+
+Attaching package: 'car'
+
+The following object is masked from 'package:dplyr':
+
+    recode
+
+The following object is masked from 'package:purrr':
+
+    some
+
+Loading required package: survival
+
+Attaching package: 'janitor'
+
+The following objects are masked from 'package:stats':
+
+    chisq.test, fisher.test
+
+Rows: 1283 Columns: 13
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr   (1): ID
+dbl  (11): CO2, K600, depth, Q, TempC, CO2_flux, external, internal, int.ext...
+date  (1): Date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 1130634 Columns: 3
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): ID
+dbl  (1): Temp_PT
+dttm (1): Date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+`summarise()` has grouped output by 'ID'. You can override using the `.groups`
+argument.
+Rows: 914531 Columns: 3
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): ID
+dbl  (1): Q
+dttm (1): Date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 241 Columns: 8
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (4): Site, Rep, ID, chapter
+dbl  (3): bix, hix, fi
+date (1): Date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 540 Columns: 9
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (4): Site, filename, ID, chapter
+dbl  (4): DIC, DOC, TNPOC, POC
+date (1): Date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 145793 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): ID
+dbl  (2): DO, Temp_DO
+dttm (1): Date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 110630 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): ID
+dbl  (2): SpC, Temp_SpC
+dttm (1): Date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+`summarise()` has grouped output by 'ID'. You can override using the `.groups`
+argument.
+Rows: 68379 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): ID
+dbl  (2): pH, Temp_pH
+dttm (1): Date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+`summarise()` has grouped output by 'ID'. You can override using the `.groups`
+argument.
+Rows: 2962 Columns: 5
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): ID
+dbl  (3): GPP, ER, K600
+date (1): date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 2962 Columns: 6
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): ID
+dbl  (4): NEP_corrected, GPP, ER_corrected, K600
+date (1): Date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 13745 Columns: 11
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): ID
+dbl  (9): well_depth_m, total.wetland.area, basin.area, basin.wetland.perc, ...
+date (1): Date
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Joining with `by = join_by(ID)`
+Joining with `by = join_by(ID)`
+Joining with `by = join_by(ID)`
+Warning messages:
+1: package 'plotly' was built under R version 4.3.3 
+2: package 'randomForest' was built under R version 4.3.3 
+3: package 'partR2' was built under R version 4.3.3 
+4: package 'coin' was built under R version 4.3.3 
+5: package 'broom' was built under R version 4.3.3 
+6: package 'janitor' was built under R version 4.3.3 
+# A tibble: 8 × 8
+  ID        n mean_int sd_int median_int mean_ext sd_ext median_ext
+  <fct> <int>    <dbl>  <dbl>      <dbl>    <dbl>  <dbl>      <dbl>
+1 13       43     2.65  1.67        2.50    11.6    9.21      10.1 
+2 15       76     3.47  1.25        3.52     3.78   3.03       2.80
+3 3       202     3.40  1.54        3.78     5.77   3.58       6.28
+4 5       300     2.22  2.24        1.37     5.00   4.68       3.77
+5 5a       66     5.04  1.91        5.33     4.28   3.48       3.47
+6 6       167     3.88  1.47        3.46     1.79   1.04       1.55
+7 7       131     2.27  0.998       2.25     2.59   2.27       1.83
+8 9       298     1.77  1.44        1.29     1.64   1.64       1.05
+ response           predictor    rho   p_raw n    p_BH sig
+ mean_int total.wetland.cover -0.190 0.66418 8 0.88557    
+ mean_int            RB_index  0.452 0.26693 8 0.88557    
+ mean_int                  pH  0.000 1.00000 8 1.00000    
+ mean_int                 SpC -0.333 0.42743 8 0.88557    
+ mean_ext total.wetland.cover -0.214 0.61909 8 0.88557    
+ mean_ext            RB_index  0.262 0.53531 8 0.88557    
+ mean_ext                  pH  0.429 0.29879 8 0.88557    
+ mean_ext                 SpC  0.095 0.84033 8 0.96038    

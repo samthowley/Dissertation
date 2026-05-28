@@ -63,10 +63,6 @@ run_perm_spearman <- function(response_vec, predictor_vec, ID_labels,
 # =============================================================================
 # SECTION 1 — FULL MODEL: SLOPES ~ PATHWAY DOMINANCE
 # =============================================================================
-# Tests whether the slope of Q (lQ) or T (TempC) in the full model is
-# correlated with pathway dominance across sites. For example, internally
-# dominant sites may show steeper T slopes if metabolism drives more of the
-# flux signal, while externally dominant sites may show steeper Q slopes.
 
 full_slopes <- full_raw %>%
   select(site, pathway, indep.var, Estimate) %>%
@@ -103,11 +99,6 @@ cat("\nNote: power at n=8 requires |rho| >= ~0.74 for p < 0.05 (two-tailed).\n\n
 # =============================================================================
 # SECTION 2 — INTERACTION MODEL
 # =============================================================================
-# Adds a TempC × Q interaction term to the full model.
-# R² sourced from Bayesian models (bayes_R2) stored as RDS files.
-# Both lint and lext R² are extracted because the interaction is model-wide.
-# delta_R2 = R²(interaction) - R²(full) per pathway per site.
-# Positive delta = adding the interaction improves fit.
 
 int_sites <- c("13", "15", "3", "5", "5a", "6", "7", "9")
 
@@ -151,11 +142,6 @@ cat("\nNote: power at n=8 requires |rho| >= ~0.74 for p < 0.05 (two-tailed).\n\n
 # =============================================================================
 # SECTION 3 — DROP-Q MODEL
 # =============================================================================
-# Q removed from the full model for one pathway at a time.
-# Only the R² of the pathway from which Q was dropped is used
-# (pathway == dropped_from), per the user's intent.
-# delta_R2 = R²(drop-Q) - R²(full) for the affected pathway only.
-# Positive delta = dropping Q improved fit (Q was not contributing at this site).
 
 dropQ_raw <- read_csv("04_Output/stream/models/dropQ.csv") %>%
   filter(!is.na(dropped_from),
@@ -195,11 +181,6 @@ cat("\nNote: power at n=8 requires |rho| >= ~0.74 for p < 0.05 (two-tailed).\n\n
 # =============================================================================
 # SECTION 4 — DROP-T MODEL
 # =============================================================================
-# TempC removed from the full model for one pathway at a time.
-# Only the R² of the pathway from which T was dropped is used
-# (pathway == dropped_from).
-# delta_R2 = R²(drop-T) - R²(full) for the affected pathway only.
-# Positive delta = dropping T improved fit (T was not contributing at this site).
 
 dropT_raw <- read_csv("04_Output/stream/models/dropT.csv") %>%
   filter(!is.na(dropped_from),
@@ -235,59 +216,3 @@ cat("\n--- Section 4 Spearman results ---\n")
 print(perm_dropT, row.names = FALSE)
 cat("\nNote: power at n=8 requires |rho| >= ~0.74 for p < 0.05 (two-tailed).\n\n")
 
-
-# =============================================================================
-# SUMMARY TABLE — ALL SECTIONS COMBINED
-# =============================================================================
-
-print_table <- function(title, note, data) {
-  cat(paste0("\n", strrep("-", 70), "\n"))
-  cat(paste0(title, "\n"))
-  if (!is.null(note)) cat(paste0("Note: ", note, "\n"))
-  cat(strrep("-", 70), "\n")
-  print(kable(data, format = "simple", na = "—"))
-  cat("\n")
-}
-
-perm_all <- bind_rows(
-  perm_slopes %>% mutate(section = "Full model slopes"),
-  perm_int    %>% mutate(section = "Interaction"),
-  perm_dropQ  %>% mutate(section = "Drop Q"),
-  perm_dropT  %>% mutate(section = "Drop T")
-) %>%
-  mutate(
-    pathway  = ifelse(grepl("_lint", response), "Internal (lint)", "External (lext)"),
-    variable = case_when(
-      grepl("slope_lQ",    response) ~ "Q slope",
-      grepl("slope_TempC", response) ~ "T slope",
-      TRUE                           ~ "delta R²"
-    )
-  )
-
-perm_all$p_BH_global <- round(p.adjust(perm_all$p_raw, method = "BH"), 5)
-perm_all$sig_global  <- ifelse(perm_all$p_BH_global < 0.05, "*", "")
-
-tbl_combined <- perm_all %>%
-  select(section, pathway, variable, rho, p_raw, p_BH_global, sig_global, n) %>%
-  rename(
-    `Section`      = section,
-    `Pathway`      = pathway,
-    `Response`     = variable,
-    `Spearman rho` = rho,
-    `p (raw)`      = p_raw,
-    `p (BH-adj)`   = p_BH_global,
-    `Sig.`         = sig_global,
-    `n sites`      = n
-  ) %>%
-  arrange(`Section`, `Pathway`, `Response`)
-
-print_table(
-  "TABLE — Full Model Slopes and Delta R² ~ Pathway Dominance",
-  paste0(
-    "IV: mean(internal/CO2_flux) per site. ",
-    "Section 1 DV: Q or T slope from full model. ",
-    "Sections 2-4 DV: R² change vs full model (drop sections use only affected pathway). ",
-    "Positive delta = new model improves fit. BH correction across all 10 tests."
-  ),
-  tbl_combined
-)

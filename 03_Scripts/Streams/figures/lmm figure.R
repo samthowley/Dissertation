@@ -189,3 +189,4 @@ make_r2_fig <- function(data, drop_prefix, iv_label) {
 
 plot_grid(q_fig, t_fig, ncol = 2, labels = c("A", "B"))
 
+

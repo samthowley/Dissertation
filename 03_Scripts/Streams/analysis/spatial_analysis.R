@@ -14,6 +14,16 @@ spatial_df <- spatial_df %>%
 stopifnot("All site IDs in df must appear in spatial_df" =
   all(as.character(unique(df$ID)) %in% as.character(spatial_df$ID)))
 
+library(flextable)
+library(officer)
+
+predictor_order <- c(
+  "Wetland cover (%)",
+  "RB flashiness index",
+  "pH",
+  "Specific conductivity (μS cm⁻¹)"
+)
+
 
 # =============================================================================
 # SECTION 1 — PRE-ANALYSIS DIAGNOSTICS
@@ -176,7 +186,9 @@ cat("Do not over-interpret non-significant results with moderate rho.\n\n")
 
 
 # =============================================================================
-# SECTION 3 — GOAL 2a: DISCHARGE SENSITIVITY (c SLOPES)
+# RESEARCH QUESTION 2 — Do spatial factors influence the degree to which
+# discharge impacts the internal-external CO₂ regime?
+# Analysis: discharge sensitivity slopes (c) per pathway ~ spatial predictors
 # =============================================================================
 
 
@@ -213,7 +225,7 @@ fit_loglog <- function(ID_data, flux_col, min_n = 10) {
 }
 
 
-pathways_2a <- c("internal", "external", "CO2_flux")
+pathways_2a <- c("internal", "external")
 
 slopes_2a <- df %>%
   group_by(ID) %>%
@@ -245,12 +257,11 @@ slopes_2a_wide <- slopes_2a %>%
   select(ID, pathway, slope) %>%
   pivot_wider(names_from = pathway, values_from = slope) %>%
   rename(c_int   = internal,
-         c_ext   = external,
-         c_total = CO2_flux) %>%
+         c_ext   = external) %>%
   left_join(spatial_df, by = "ID")
 
 
-responses_2a  <- c("c_int", "c_ext", "c_total")
+responses_2a  <- c("c_int", "c_ext")
 predictors_2a <- c("total.wetland.cover", "RB_index", "pH", "SpC")
 
 perm_goal2a <- map2(
@@ -288,11 +299,10 @@ r2_2a_wide <- slopes_2a %>%
   select(ID, pathway, r2) %>%
   pivot_wider(names_from = pathway, values_from = r2) %>%
   rename(r2_int   = internal,
-         r2_ext   = external,
-         r2_total = CO2_flux) %>%
+         r2_ext   = external) %>%
   left_join(spatial_df, by = "ID")
 
-responses_r2_2a <- c("r2_int", "r2_ext", "r2_total")
+responses_r2_2a <- c("r2_int", "r2_ext")
 
 perm_r2_2a <- map2(
   rep(responses_r2_2a, each = length(predictors_2a)),
@@ -309,12 +319,81 @@ perm_r2_2a$sig  <- ifelse(perm_r2_2a$p_BH < 0.05, "*", "")
 print(perm_r2_2a, row.names = FALSE)
 
 
+# ── TABLE B ───────────────────────────────────────────────────────────────────
+
+tbl_B_data <- perm_goal2a %>%
+  mutate(
+    Predictor = case_match(predictor,
+      "total.wetland.cover" ~ "Wetland cover (%)",
+      "RB_index"            ~ "RB flashiness index",
+      "pH"                  ~ "pH",
+      "SpC"                 ~ "Specific conductivity (μS cm⁻¹)"
+    ),
+    Pathway = case_match(response,
+      "c_int" ~ "Internal",
+      "c_ext" ~ "External"
+    ),
+    rho  = round(rho, 3),
+    p_BH = round(p_BH, 3)
+  ) %>%
+  filter(!is.na(Pathway)) %>%
+  select(Predictor, Pathway, rho, p_BH) %>%
+  pivot_wider(names_from = Pathway, values_from = c(rho, p_BH)) %>%
+  select(Predictor, rho_Internal, p_BH_Internal, rho_External, p_BH_External) %>%
+  rename(rho_int = rho_Internal, pBH_int = p_BH_Internal,
+         rho_ext = rho_External, pBH_ext = p_BH_External) %>%
+  mutate(Predictor = factor(Predictor, levels = predictor_order)) %>%
+  arrange(Predictor) %>%
+  mutate(Predictor = as.character(Predictor))
+
+ft_B <- flextable(tbl_B_data) %>%
+  add_header_row(
+    values    = c("", "Internal", "External"),
+    colwidths = c(1, 2, 2)
+  ) %>%
+  set_header_labels(
+    Predictor = "Predictor",
+    rho_int   = "ρ",
+    pBH_int   = "p (BH-adj)",
+    rho_ext   = "ρ",
+    pBH_ext   = "p (BH-adj)"
+  ) %>%
+  font(fontname = "Aptos", part = "all") %>%
+  fontsize(size = 10, part = "all") %>%
+  align(j = 1,   align = "left",   part = "all") %>%
+  align(j = 2:5, align = "center", part = "all") %>%
+  bold(part = "header") %>%
+  bold(j = 1, part = "body") %>%
+  border_remove() %>%
+  hline_top(part = "header", border = fp_border(width = 2)) %>%
+  hline_bottom(part = "header", border = fp_border(width = 1)) %>%
+  hline_bottom(part = "body",   border = fp_border(width = 2)) %>%
+  hline(part = "header", i = 1, border = fp_border(width = 0.5)) %>%
+  vline(j = 3, part = "all",   border = fp_border(width = 0.5, style = "dashed")) %>%
+  width(j = 1,   width = 2.2) %>%
+  width(j = 2:5, width = 0.9) %>%
+  height_all(height = 0.25) %>%
+  add_header_lines(
+    "Table B. Do spatial factors influence the degree to which discharge impacts the internal–external CO₂ regime? Permutation Spearman results: discharge sensitivity slopes (c) for internal and external pathways against spatial predictors. n = 8 sites, 999,999 resamples, BH-corrected."
+  ) %>%
+  bold(part = "header", i = 1) %>%
+  align(part = "header", i = 1, align = "left") %>%
+  add_footer_lines(
+    "Note. c = log–log discharge slope from log(flux) ∼ log(Q). No test survives BH correction at α = 0.05."
+  ) %>%
+  italic(part = "footer") %>%
+  align(part = "footer", align = "left") %>%
+  fontsize(part = "footer", size = 10)
+
+save_as_docx(ft_B, path = "04_Output/TableB_discharge_sensitivity.docx")
+
 
 # =============================================================================
-# SECTION 4 — GOAL 2b: TEMPERATURE SENSITIVITY (m SLOPES)
+# RESEARCH QUESTION 1 — Do spatial factors influence the degree to which
+# temperature impacts the internal-external CO₂ regime?
+# Analysis: temperature sensitivity slopes (m) per pathway ~ spatial predictors
 # =============================================================================
 #
-# Response: log(flux) for each pathway (internal, external, CO2_flux).
 # Preferred model: log(flux) ~ TempC + Q  — partial slope on TempC = m.
 # Rationale for log: right-skewed flux distributions; m is then a proportional
 # sensitivity (% change in flux per 1°C, controlling for discharge).
@@ -379,7 +458,7 @@ fit_temp_sensitivity <- function(ID_data, flux_col, vif_threshold = 5, min_n = 1
 
 # --- 4b-d  Fit per ID per pathway ------------------------------------------
 
-pathways_2b <- c("internal", "external", "CO2_flux")
+pathways_2b <- c("internal", "external")
 
 slopes_2b <- df %>%
   group_by(ID) %>%
@@ -427,12 +506,11 @@ slopes_2b_wide <- slopes_2b %>%
   select(ID, pathway, m) %>%
   pivot_wider(names_from = pathway, values_from = m) %>%
   rename(m_int   = internal,
-         m_ext   = external,
-         m_total = CO2_flux) %>%
+         m_ext   = external) %>%
   left_join(spatial_df, by = "ID")
 
 
-responses_2b  <- c("m_int", "m_ext", "m_total")
+responses_2b  <- c("m_int", "m_ext")
 predictors_2b <- c("total.wetland.cover", "RB_index", "pH", "SpC")
 
 perm_goal2b <- map2(
@@ -468,11 +546,10 @@ r2_2b_wide <- slopes_2b %>%
   select(ID, pathway, r2) %>%
   pivot_wider(names_from = pathway, values_from = r2) %>%
   rename(r2_int   = internal,
-         r2_ext   = external,
-         r2_total = CO2_flux) %>%
+         r2_ext   = external) %>%
   left_join(spatial_df, by = "ID")
 
-responses_r2_2b <- c("r2_int", "r2_ext", "r2_total")
+responses_r2_2b <- c("r2_int", "r2_ext")
 
 perm_r2_2b <- map2(
   rep(responses_r2_2b, each = length(predictors_2b)),
@@ -487,6 +564,75 @@ perm_r2_2b$p_BH <- round(p.adjust(perm_r2_2b$p_raw, method = "BH"), 5)
 perm_r2_2b$sig  <- ifelse(perm_r2_2b$p_BH < 0.05, "*", "")
 
 print(perm_r2_2b, row.names = FALSE)
+
+
+# ── TABLE A ───────────────────────────────────────────────────────────────────
+
+tbl_A_data <- perm_goal2b %>%
+  mutate(
+    Predictor = case_match(predictor,
+      "total.wetland.cover" ~ "Wetland cover (%)",
+      "RB_index"            ~ "RB flashiness index",
+      "pH"                  ~ "pH",
+      "SpC"                 ~ "Specific conductivity (μS cm⁻¹)"
+    ),
+    Pathway = case_match(response,
+      "m_int" ~ "Internal",
+      "m_ext" ~ "External"
+    ),
+    rho  = round(rho, 3),
+    p_BH = round(p_BH, 3)
+  ) %>%
+  filter(!is.na(Pathway)) %>%
+  select(Predictor, Pathway, rho, p_BH) %>%
+  pivot_wider(names_from = Pathway, values_from = c(rho, p_BH)) %>%
+  select(Predictor, rho_Internal, p_BH_Internal, rho_External, p_BH_External) %>%
+  rename(rho_int = rho_Internal, pBH_int = p_BH_Internal,
+         rho_ext = rho_External, pBH_ext = p_BH_External) %>%
+  mutate(Predictor = factor(Predictor, levels = predictor_order)) %>%
+  arrange(Predictor) %>%
+  mutate(Predictor = as.character(Predictor))
+
+ft_A <- flextable(tbl_A_data) %>%
+  add_header_row(
+    values    = c("", "Internal", "External"),
+    colwidths = c(1, 2, 2)
+  ) %>%
+  set_header_labels(
+    Predictor = "Predictor",
+    rho_int   = "ρ",
+    pBH_int   = "p (BH-adj)",
+    rho_ext   = "ρ",
+    pBH_ext   = "p (BH-adj)"
+  ) %>%
+  font(fontname = "Aptos", part = "all") %>%
+  fontsize(size = 10, part = "all") %>%
+  align(j = 1,   align = "left",   part = "all") %>%
+  align(j = 2:5, align = "center", part = "all") %>%
+  bold(part = "header") %>%
+  bold(j = 1, part = "body") %>%
+  border_remove() %>%
+  hline_top(part = "header", border = fp_border(width = 2)) %>%
+  hline_bottom(part = "header", border = fp_border(width = 1)) %>%
+  hline_bottom(part = "body",   border = fp_border(width = 2)) %>%
+  hline(part = "header", i = 1, border = fp_border(width = 0.5)) %>%
+  vline(j = 3, part = "all",   border = fp_border(width = 0.5, style = "dashed")) %>%
+  width(j = 1,   width = 2.2) %>%
+  width(j = 2:5, width = 0.9) %>%
+  height_all(height = 0.25) %>%
+  add_header_lines(
+    "Table A. Do spatial factors influence the degree to which temperature impacts the internal–external CO₂ regime? Permutation Spearman results: temperature sensitivity slopes (m) for internal and external pathways against spatial predictors. n = 8 sites, 999,999 resamples, BH-corrected."
+  ) %>%
+  bold(part = "header", i = 1) %>%
+  align(part = "header", i = 1, align = "left") %>%
+  add_footer_lines(
+    "Note. m = partial temperature slope from log(flux) ∼ TempC + Q. No test survives BH correction at α = 0.05. Strongest (non-significant) associations: internal m ∼ wetland cover (ρ = 0.762, p = 0.037) and RB index (ρ = −0.714, p = 0.058)."
+  ) %>%
+  italic(part = "footer") %>%
+  align(part = "footer", align = "left") %>%
+  fontsize(part = "footer", size = 10)
+
+save_as_docx(ft_A, path = "04_Output/TableA_temperature_sensitivity.docx")
 
 
 # =============================================================================
@@ -511,18 +657,18 @@ print(pathway_dominance)
 # Rename r² columns from each goal to avoid collision (r2c_ = discharge, r2m_ = temp)
 
 dom_df <- pathway_dominance %>%
-  left_join(slopes_2a_wide %>% select(ID, c_int, c_ext, c_total),        by = "ID") %>%
-  left_join(r2_2a_wide     %>% select(ID, r2_int, r2_ext, r2_total) %>%
-              rename(r2c_int = r2_int, r2c_ext = r2_ext, r2c_total = r2_total), by = "ID") %>%
-  left_join(slopes_2b_wide %>% select(ID, m_int, m_ext, m_total),        by = "ID") %>%
-  left_join(r2_2b_wide     %>% select(ID, r2_int, r2_ext, r2_total) %>%
-              rename(r2m_int = r2_int, r2m_ext = r2_ext, r2m_total = r2_total), by = "ID")
+  left_join(slopes_2a_wide %>% select(ID, c_int, c_ext),        by = "ID") %>%
+  left_join(r2_2a_wide     %>% select(ID, r2_int, r2_ext) %>%
+              rename(r2c_int = r2_int, r2c_ext = r2_ext), by = "ID") %>%
+  left_join(slopes_2b_wide %>% select(ID, m_int, m_ext),        by = "ID") %>%
+  left_join(r2_2b_wide     %>% select(ID, r2_int, r2_ext) %>%
+              rename(r2m_int = r2_int, r2m_ext = r2_ext), by = "ID")
 
 responses_goal3 <- c(
-  "c_int",    "c_ext",    "c_total",
-  "r2c_int",  "r2c_ext",  "r2c_total",
-  "m_int",    "m_ext",    "m_total",
-  "r2m_int",  "r2m_ext",  "r2m_total"
+  "c_int",    "c_ext",
+  "r2c_int",  "r2c_ext",
+  "m_int",    "m_ext",
+  "r2m_int",  "r2m_ext"
 )
 
 perm_goal3 <- map(responses_goal3, function(resp) {
@@ -537,64 +683,4 @@ perm_goal3$sig  <- ifelse(perm_goal3$p_BH < 0.05, "*", "")
 
 print(perm_goal3, row.names = FALSE)
 
-
-# =============================================================================
-# SECTION 6 — ADVISOR TABLES
-# =============================================================================
-
-library(knitr)
-
-print_table <- function(title, note, data) {
-  cat(paste0("\n", strrep("-", 70), "\n"))
-  cat(paste0(title, "\n"))
-  if (!is.null(note)) cat(paste0("Note: ", note, "\n"))
-  cat(strrep("-", 70), "\n")
-  print(kable(data, format = "simple", na = "—"))
-  cat("\n")
-}
-
-# ------------------------------------------------------------------
-# TABLE 11 — Goal 3: Pathway dominance ~ sensitivity metrics
-# ------------------------------------------------------------------
-
-tbl11 <- perm_goal3 %>%
-  mutate(
-    rho   = round(rho, 3),
-    p_raw = round(p_raw, 4),
-    p_BH  = round(p_BH, 4),
-    sig   = ifelse(p_BH < 0.05, "*", ""),
-    type  = case_match(response,
-      "c_int"    ~ "Discharge slope",  "c_ext"    ~ "Discharge slope",
-      "c_total"  ~ "Discharge slope",
-      "r2c_int"  ~ "Discharge r²",     "r2c_ext"  ~ "Discharge r²",
-      "r2c_total"~ "Discharge r²",
-      "m_int"    ~ "Temperature slope","m_ext"    ~ "Temperature slope",
-      "m_total"  ~ "Temperature slope",
-      "r2m_int"  ~ "Temperature r²",   "r2m_ext"  ~ "Temperature r²",
-      "r2m_total"~ "Temperature r²"
-    ),
-    pathway = case_match(response,
-      "c_int"    ~ "Internal", "c_ext"    ~ "External", "c_total"  ~ "Total",
-      "r2c_int"  ~ "Internal", "r2c_ext"  ~ "External", "r2c_total"~ "Total",
-      "m_int"    ~ "Internal", "m_ext"    ~ "External", "m_total"  ~ "Total",
-      "r2m_int"  ~ "Internal", "r2m_ext"  ~ "External", "r2m_total"~ "Total"
-    )
-  ) %>%
-  select(type, pathway, rho, p_raw, p_BH, sig, n) %>%
-  rename(
-    `Metric type` = type,
-    `Pathway`     = pathway,
-    `Spearman rho`= rho,
-    `p (raw)`     = p_raw,
-    `p (BH-adj)`  = p_BH,
-    `Sig.`        = sig,
-    `n sites`     = n
-  ) %>%
-  arrange(`Metric type`, `Pathway`)
-
-print_table(
-  "TABLE 11 — Goal 3: Pathway Dominance (mean internal/total) ~ Sensitivity Metrics",
-  "IV: mean(internal/CO2_flux) per site. DVs: c and m slopes + r² for each pathway. BH across 12 tests.",
-  tbl11
-)
-
+  
