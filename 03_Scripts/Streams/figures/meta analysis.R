@@ -64,9 +64,6 @@ interp_df <- interp_df %>%
   )) %>%
   select(-logQ)
 
-
-
-
 int.ext.summary<-left_join(int.ext, pH)%>%
   group_by(ID)%>%
   summarise(
@@ -109,7 +106,7 @@ pubs<-read_csv("01_Raw_data/meta_analysis_extraction.csv")%>%
   )%>%    filter(external.mn > 0, internal.mn>0.1)
 
 
-# ─── Figure: Violin (your sites) + Left density (literature) ──────────────
+# ─── Figure: Violin (your sites) + Left density (literature) ────────────###########
 
 # Raw per-observation pct_internal for sites 1-13
 violin_data <- int.ext %>%
@@ -135,77 +132,75 @@ violin_labels <- violin_data %>%
             mean_pct = mean(pct_internal, na.rm = TRUE),
             .groups  = "drop")
 
-# Right panel: violins per site
+# Per-site means for "This Study" boxplot (one point per site)
+sites_mean_pct <- violin_data %>%
+  group_by(ID) %>%
+  summarise(pct_internal = mean(pct_internal, na.rm = TRUE), .groups = "drop") %>%
+  mutate(x = "")
+
+# ─── Main left panel: violin per site ────────────────────────────────────────
 p_violin <- ggplot(violin_data, aes(x = ID, y = pct_internal)) +
   geom_rect(
     aes(xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
         fill = "Hotchkiss et al. (2015) global estimate (10–19%)"),
     inherit.aes = FALSE
   ) +
-  # #DCE8F0 = #A8C5DA blended at 40% opacity over a white background,
-  # so no alpha is needed and the legend key matches the band exactly
   scale_fill_manual(name = NULL,
                     values = c("Hotchkiss et al. (2015) global estimate (10–19%)" = "#DCE8F0")) +
   geom_violin(color = "grey50", alpha = 0.85) +
   geom_jitter(shape = 1, width = 0.15, height = 0, size = 1.2,
               color = "grey30", alpha = 0.6) +
   geom_text(data = violin_labels,
-            aes(x = ID, y = top_y+0.6, label = paste0(round(mean_pct, 1), "%")),
+            aes(x = ID, y = top_y + 0.6, label = paste0(round(mean_pct, 1), "%")),
             vjust = -0.4, size = 4, inherit.aes = FALSE) +
   coord_cartesian(ylim = c(0, y_hi)) +
   labs(x = "Site ID", y = "Internal pathway contribution (%)") +
   theme_classic(base_size = 13) +
   theme(axis.text = element_text(size = 11))
 
-# Closed density path: compute manually so curve starts and ends at x=0
-dens_pct <- local({
-  x  <- density_data$pct_internal[!is.na(density_data$pct_internal)]
-  d  <- density(x, from = 0, to = y_hi, n = 512)
-  n  <- length(d$y)
-  tl <- round(n * 0.05)
-  w  <- 0.5 * (1 - cos(pi * seq(0, 1, length.out = tl)))
-  d$y[1:tl]           <- d$y[1:tl]           * w
-  d$y[(n-tl+1):n]     <- d$y[(n-tl+1):n]     * rev(w)
-  data.frame(dx = c(0, d$y, 0), dy = c(0, d$x, y_hi))
-})
-
-# Right panel: rotated density of literature pct_internal, opening rightward
-# geom_hline spans the full panel width — no gap between bars and density curve
-p_density <- ggplot(density_data, aes(y = pct_internal)) +
-  annotate("rect",
-           xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
-           fill = "#DCE8F0") +
-  geom_hline(aes(yintercept = pct_internal, color = Citation),
-             linewidth = 1, alpha = 0.8) +
-  geom_path(data = dens_pct, aes(x = dx, y = dy), color = "grey50", inherit.aes = FALSE) +
+# ─── Right-top: Literature box + jitter coloured by Citation ─────────────────
+p_box_lit <- ggplot(density_data, aes(x = "", y = pct_internal)) +
+  geom_rect(
+    aes(xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
+        fill = "Hotchkiss et al. (2015) global estimate (10–19%)"),
+    inherit.aes = FALSE
+  ) +
+  scale_fill_manual(name = NULL,
+                    values = c("Hotchkiss et al. (2015) global estimate (10–19%)" = "#DCE8F0")) +
+  geom_jitter(aes(color = Citation), width = 0.18, height = 0,
+              size = 2.5, alpha = 0.85) +
+  geom_boxplot(width = 0.45, outlier.shape = NA, color = "grey40",
+               fill = NA, linewidth = 0.8) +
   scale_color_brewer(palette = "Set3", name = "Citation") +
   coord_cartesian(ylim = c(0, y_hi)) +
-  labs(x = "Density", y = NULL,
-       title = "Current Literature Estimates (2011-2026") +
+  labs(x = "Literature\n(2011–2026)", y = NULL) +
   theme_classic(base_size = 13) +
-  theme(
-    axis.text.y   = element_blank(),
-    axis.ticks.y  = element_blank(),
-    axis.title.y  = element_blank(),
-    axis.text.x   = element_text(size = 9),
-    plot.title    = element_text(size = 13, hjust = 0.5, lineheight = 1.1),
-    legend.text   = element_text(size = 9),
-    legend.title  = element_text(size = 12),
-    legend.key.size = unit(0.45, "cm")
-  )
+  theme(axis.text.y  = element_text(size = 9),
+        axis.ticks.y = element_line(),
+        axis.title.y = element_blank(),
+        axis.text.x  = element_text(size = 11))
 
-# Extract legend BEFORE stripping it from the panels
-# legend.position = "bottom" would misalign panels in plot_grid(align="h"),
-# so the legend is pulled out separately and placed below as its own row
-density_legend <- get_legend(
-  p_density + theme(
-    legend.position  = "bottom",
-    legend.text      = element_text(size = 12),
-    legend.title     = element_text(size = 13, face = "bold"),
-    legend.key.size  = unit(0.65, "cm"),
-    legend.key       = element_blank()
-  )
-)
+# ─── Right-bottom: This study — per-site means, coloured by site ─────────────
+p_box_sites <- ggplot(sites_mean_pct, aes(x = x, y = pct_internal)) +
+  geom_rect(
+    aes(xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
+        fill = "Hotchkiss et al. (2015) global estimate (10–19%)"),
+    inherit.aes = FALSE
+  ) +
+  scale_fill_manual(name = NULL,
+                    values = c("Hotchkiss et al. (2015) global estimate (10–19%)" = "#DCE8F0")) +
+  geom_jitter(aes(color = ID), width = 0.12, height = 0,
+              size = 2.5, alpha = 0.85) +
+  geom_boxplot(width = 0.45, outlier.shape = NA, color = "grey40",
+               fill = NA, linewidth = 0.8) +
+  scale_color_brewer(palette = "Dark2", name = "Site") +
+  coord_cartesian(ylim = c(0, y_hi)) +
+  labs(x = "This Study\n(Florida, Coastal Plain)", y = NULL) +
+  theme_classic(base_size = 13) +
+  theme(axis.text.y  = element_text(size = 9),
+        axis.ticks.y = element_line(),
+        axis.title.y = element_blank(),
+        axis.text.x  = element_text(size = 11))
 
 fig_title <- ggdraw() +
   draw_label(
@@ -213,39 +208,63 @@ fig_title <- ggdraw() +
     size = 14, fontface = "bold"
   )
 
-# Extract band legend from violin panel
+# Extract legends
 band_legend <- get_legend(
   p_violin + theme(
-    legend.position  = "bottom",
-    legend.text      = element_text(size = 12),
-    legend.title     = element_text(size = 13, face = "bold"),
-    legend.key.size  = unit(0.65, "cm"),
-    legend.key       = element_blank()
+    legend.position = "bottom",
+    legend.text     = element_text(size = 11.5),
+    legend.title    = element_blank(),
+    legend.key.size = unit(0.65, "cm"),
+    legend.key      = element_blank()
   )
 )
 
-# Both panels stripped of legends so alignment is unaffected
-panels <- plot_grid(
-  p_violin + theme(legend.position = "none"),
-  p_density + theme(legend.position = "none"),
-  ncol = 2, align = "h", axis = "tb",
-  rel_widths = c(0.72, 0.15)
+citation_legend <- get_legend(
+  p_box_lit + guides(fill = "none",
+                     color = guide_legend(nrow = 3)) + theme(
+    legend.position = "bottom",
+    legend.text     = element_text(size = 11.5),
+    legend.title    = element_text(size = 12, face = "bold"),
+    legend.key.size = unit(0.65, "cm"),
+    legend.key      = element_blank()
+  )
 )
 
-# Combine both legends side-by-side below the panels
-combined_legend <- plot_grid(band_legend, density_legend,
-                              ncol = 2, rel_widths = c(0.25, 0.75))
+site_legend <- get_legend(
+  p_box_sites + guides(fill = "none",
+                       color = guide_legend(nrow = 2)) + theme(
+    legend.position = "bottom",
+    legend.text     = element_text(size = 11.5),
+    legend.title    = element_text(size = 12, face = "bold"),
+    legend.key.size = unit(0.65, "cm"),
+    legend.key      = element_blank()
+  )
+)
+
+# Flat 3-panel grid — align="hv" locks all plot areas to the same height
+panels <- plot_grid(
+  p_violin    + theme(legend.position = "none"),
+  p_box_lit   + theme(legend.position = "none"),
+  p_box_sites + theme(legend.position = "none"),
+  ncol = 3, align = "hv", axis = "tblr",
+  rel_widths = c(0.62, 0.19, 0.19)
+)
+
+bottom_legends <- plot_grid(
+  band_legend, citation_legend, site_legend,
+  ncol = 3, rel_widths = c(0.12, 0.55, 0.33)
+)
 
 (p_violin_meta <- plot_grid(
   fig_title,
   panels,
-  combined_legend,
+  bottom_legends,
   ncol = 1,
-  rel_heights = c(0.05, 1, 0.12)
+  rel_heights = c(0.05, 1, 0.22)
 ))
 
 
-# ─── Figure: Internal Pathway Flux (absolute, g C m⁻² day⁻¹) ────────────────
+# ─── Figure: Internal Pathway Flux (absolute, g C m⁻² day⁻¹) ────────────────################
 
 # Hotchkiss global range for internal pathway (min/max across all discharge values)
 hotch_int_lo  <- min(df$internal)

@@ -9,13 +9,13 @@ library(corrplot)
 df <- int.ext %>%
   left_join(DO %>%
               mutate(Date = as.Date(Date),
-                     TempC = fahrenheit.to.celsius(Temp_DO)) %>%
+                     TempC_DO = fahrenheit.to.celsius(Temp_DO)) %>%
               group_by(Date, ID) %>%
               summarise(
                 across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
                 .groups = "drop"
               ) %>%
-              select(Date, ID, TempC),
+              select(Date, ID, TempC_DO),
             by = c('Date', 'ID')) %>%
   left_join(SpC) %>%
   left_join(pH) %>%

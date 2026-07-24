@@ -26,8 +26,8 @@ facet_order <- c("15","5","5a","6", "3", "13", "7","9")  # EDIT THIS
 
 col<-c("internal" ='red', "external"='black', 'CO2_flux'='darkgray')
 
+#water quality#########
 int.ext <- read_csv("04_Output/stream/external-internal.csv")
-
 
 temperature <- read_csv("02_Clean_data/temperature.csv")%>%
   mutate(
@@ -143,3 +143,45 @@ site_power_fun <- function(data, response, id_col = ID, x_col = Q) {
     ungroup()
 }
 
+
+#meta analysis#########
+int.ext.summary<-left_join(int.ext, pH)%>%
+  group_by(ID)%>%
+  summarise(
+    discharge_m3_s= mean(Q/10^3, na.rm=T),
+    CO2flux.mn=mean(CO2_flux, na.rm=T),
+    internal.mn=mean(internal, na.rm=T),
+    external.mn=mean(external, na.rm=T),
+    pH=mean(pH, na.rm=T)
+  )%>%
+  rename(Site=ID)%>%
+  mutate(
+    Citation="This Paper",
+    Location="Florida, Coastal Plain",
+    Biome="Subtropical",
+    Source="Shallow Aquifer",
+    Source=if_else(Site==13, "Deeper Groundwater Seepage", Source),
+    Source=if_else(Site==5, "Mixed", Source)
+    
+  )
+
+
+pubs<-read_csv("01_Raw_data/meta_analysis_extraction.csv")%>%
+  select(Citation, Location, Biome, Source, Discharge_m3s, CO2_flux_gCm2day, Internal_Pathway_gCm2day, External_Pathway_gCm2day,
+         pH)%>%
+  rename(
+    discharge_m3_s = Discharge_m3s,
+    CO2flux.mn = CO2_flux_gCm2day,
+    internal.mn = Internal_Pathway_gCm2day,
+    external.mn = External_Pathway_gCm2day
+  )%>%
+  mutate(across(5:9, as.numeric))%>%
+  filter(!is.na(internal.mn))%>%
+  full_join(int.ext.summary)%>%
+  mutate( pct_internal = (internal.mn / CO2flux.mn) * 100) %>%
+  arrange(discharge_m3_s) %>%
+  mutate(
+    # Sub-label with mean discharge
+    x_label = paste0(Source, "\n(", round(discharge_m3_s, 3), " m³ s⁻¹)"),
+    x_label = factor(x_label, levels = unique(x_label))  # preserve Q order
+  )%>%    filter(external.mn > 0, internal.mn>0.1)
