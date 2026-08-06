@@ -252,3 +252,5 @@ if (nrow(near_sig_B) > 0) {
     ft_B  <- ft_B %>% bg(i = row_k, j = 2:4, bg = NEAR_SIG_COLOR, part = "body")
   }
 }
+
+save_as_docx(ft_A, ft_B, path = "05_Figures/TableAB_spearman_rank.docx")

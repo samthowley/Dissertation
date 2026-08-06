@@ -85,7 +85,7 @@ int.ext.summary<-left_join(int.ext, pH)%>%
                     )
 
 
-pubs<-read_csv("01_Raw_data/meta_analysis_extraction.csv")%>%
+pubs<-read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv")%>%
   select(Citation, Location, Biome, Source, Discharge_m3s, CO2_flux_gCm2day, Internal_Pathway_gCm2day, External_Pathway_gCm2day,
          pH)%>%
   rename(
@@ -121,6 +121,13 @@ violin_data <- int.ext %>%
 # Literature sites only (no "This Paper") for left-side density
 density_data <- pubs %>%
   filter(Citation != "This Paper", !is.na(pct_internal))
+
+# Set3 tops out at 12 colors — extend it so every citation gets a distinct color
+lit_cits_pct <- sort(unique(density_data$Citation))
+lit_cols_pct <- setNames(
+  colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(lit_cits_pct)),
+  lit_cits_pct
+)
 
 # Shared y range — add a 5-point buffer above the max so violin labels aren't clipped
 y_hi <- ceiling(max(c(violin_data$pct_internal, density_data$pct_internal), na.rm = TRUE) / 10) * 10 + 5
@@ -171,7 +178,7 @@ p_box_lit <- ggplot(density_data, aes(x = "", y = pct_internal)) +
               size = 2.5, alpha = 0.85) +
   geom_boxplot(width = 0.45, outlier.shape = NA, color = "grey40",
                fill = NA, linewidth = 0.8) +
-  scale_color_brewer(palette = "Set3", name = "Citation") +
+  scale_color_manual(name = "Citation", values = lit_cols_pct) +
   coord_cartesian(ylim = c(0, y_hi)) +
   labs(x = "Literature\n(2011–2026)", y = NULL) +
   theme_classic(base_size = 13) +
@@ -302,7 +309,7 @@ bar_scale_int <- (y_hi_int * 0.4) / max(violin_labels_int$mean_val, na.rm = TRUE
 # Unified color scale: Set3 for literature, dark slate for This Paper
 lit_cits_int <- sort(unique(density_data_int$Citation))
 lit_cols_int <- setNames(
-  RColorBrewer::brewer.pal(max(3, length(lit_cits_int)), "Set3")[seq_along(lit_cits_int)],
+  colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(lit_cits_int)),
   lit_cits_int
 )
 all_cols_int <- c(lit_cols_int, "This Paper" = "#2C3E50")
@@ -424,7 +431,7 @@ bar_scale_ext <- (y_hi_ext * 0.4) / max(violin_labels_ext$mean_val, na.rm = TRUE
 # Unified color scale: Set3 for literature, dark slate for This Paper
 lit_cits_ext <- sort(unique(density_data_ext$Citation))
 lit_cols_ext <- setNames(
-  RColorBrewer::brewer.pal(max(3, length(lit_cits_ext)), "Set3")[seq_along(lit_cits_ext)],
+  colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(lit_cits_ext)),
   lit_cits_ext
 )
 all_cols_ext <- c(lit_cols_ext, "This Paper" = "#2C3E50")
