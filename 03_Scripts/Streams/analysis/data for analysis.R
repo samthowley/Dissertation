@@ -4,7 +4,6 @@ library(cowplot)
 library(plotly)
 library(ggpmisc)
 library(openxlsx)
-library(plotly)
 library(hydroTSM)
 library(dplyr)
 library(randomForest)
@@ -14,11 +13,10 @@ library(lme4)
 library(car)
 library(partR2)
 library(weathermetrics)
-library(coin)        # permutation-based Spearman tests
-library(car)         # VIF
 library(ggrepel)     # non-overlapping site labels on plots
-library(broom) 
+library(broom)
 library(janitor)
+library(flextable)
 
 
 
@@ -152,17 +150,21 @@ int.ext.summary<-left_join(int.ext, pH)%>%
     CO2flux.mn=mean(CO2_flux, na.rm=T),
     internal.mn=mean(internal, na.rm=T),
     external.mn=mean(external, na.rm=T),
-    pH=mean(pH, na.rm=T)
+    pH=mean(pH, na.rm=T),
+    TempC=mean(TempC, na.rm=T),
   )%>%
   rename(Site=ID)%>%
   mutate(
+    DOI="This Paper",
     Citation="This Paper",
+    Site_ID="This Paper",
     Location="Florida, Coastal Plain",
-    Biome="Subtropical",
-    Source="Shallow Aquifer",
-    Source=if_else(Site==13, "Deeper Groundwater Seepage", Source),
-    Source=if_else(Site==5, "Mixed", Source)
+    Biome_Category="Subtropical",
+    Source_Water_Brief="Wetland seepage",
     
+    Source_Water_Brief=if_else(Site==13, "Mixed", Source_Water_Brief),
+    Source_Water_Brief=if_else(Site==5, "Mixed", Source_Water_Brief),
+    Mean_Annual_Precipitation_cm_yr=120
   )
 
 

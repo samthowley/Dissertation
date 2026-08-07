@@ -1,31 +1,29 @@
 
+source("03_Scripts/Streams/analysis/data for analysis.R")
 
-library(tidyverse)
-library(coin)        # permutation-based Spearman tests (project convention)
 library(FSA)         # dunnTest — post-hoc for Kruskal-Wallis
 library(pwr)         # post-hoc power for the Spearman/KW tests
-library(flextable)
 library(officer)
-
 
 # ── Data preparation ──────────────────────────────────────────────────────────
 
-raw <- read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv", show_col_types = FALSE)
+meta <- read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv", show_col_types = FALSE)%>%
+  select(1:4, 6:11, 13, 16:17)%>%
+  mutate(
+    Discharge_m3s = as.numeric(Discharge_m3s),
+    Temperature_C=as.numeric(Temperature_C)
+  )
 
-# This study's own 8 Florida sites (DOI == "THIS_STUDY") are now persisted directly
-# in meta_analysis_extraction_GENERATED_v2.csv (appended once, from the same
-# int.ext.raw/pH_cleaned.csv site-summary logic formerly built here at runtime), so
-# they no longer need to be folded in via bind_rows on every run. Do not re-append
-# them here -- that would silently double-count all 8 sites.
-stopifnot("THIS_STUDY rows missing from meta_analysis_extraction_GENERATED_v2.csv -- expected 8 site rows" =
-            sum(raw$DOI == "THIS_STUDY") == 8)
+this.study<-int.ext.summary%>%rename(
+  Internal_Pathway_gCm2day=internal.mn,
+  External_Pathway_gCm2day=external.mn,
+  Temperature_C=TempC,
+  Discharge_m3s=discharge_m3_s,
+  CO2_flux_gCm2day=CO2flux.mn
+)%>%
+  select(names(meta))
 
-df <- raw %>%
-  mutate(across(c(Internal_Pathway_gCm2day, External_Pathway_gCm2day, Temperature_C),
-                ~ na_if(., "NOT REPORTED"))) %>%
-  mutate(across(c(Internal_Pathway_gCm2day, External_Pathway_gCm2day, Temperature_C,
-                   pH, Mean_Annual_Precipitation_cm_yr, Discharge_m3s, CO2_flux_gCm2day),
-                as.numeric)) %>%
+df <- rbind(this.study, meta) %>%
   filter(!is.na(Internal_Pathway_gCm2day), !is.na(External_Pathway_gCm2day))%>%
   mutate(
     Internal.Contrib=(Internal_Pathway_gCm2day / (Internal_Pathway_gCm2day + External_Pathway_gCm2day))*100,
@@ -34,11 +32,7 @@ df <- raw %>%
   )
 
 # Rows that are multiple reaches/time-periods of ONE river/site get collapsed to a
-# paper-level average so they don't pseudoreplicate the correlation/KW tests.
-# Papers with genuinely different named rivers/streams (e.g. lol2.10195, 2018JG004912,
-# bg-19-137-2022, gcb.14895, lno.12226) and the two "don't collapse" calls
-# (jhydrol.2014.03.070 Upper/Lower SFR; 2022JG006954 Kirk's Santa Fe network) are left
-# as separate site rows.
+# paper-level average
 collapse_dois <- c(
   "10.1029/2019JG005047",   # Horgby - 4 seasons, same river
   "10.5194/bg-22-4923-2025" # same site, 3 time periods
@@ -72,11 +66,7 @@ df_final <- df %>%
     Biome_Category      = factor(Biome_Category)
   )
 
-n_papers <- length(unique(df_final$DOI))
-cat("n =", nrow(df_final), "rows across", n_papers, "papers after collapsing same-river reaches\n")
-
-
-# ── Permutation Spearman helper ─────────────────────────────────────────────────
+# ── Permutation Spearman helper ###########
 
 run_perm_spearman <- function(response_vec, predictor_vec, resp_name, pred_name,
                                nresample = 999999) {
@@ -101,9 +91,7 @@ run_perm_spearman <- function(response_vec, predictor_vec, resp_name, pred_name,
     n         = nrow(d)
   )
 }
-
-
-# ── Kruskal-Wallis + Dunn's post-hoc helper ─────────────────────────────────────
+# ── Kruskal-Wallis + Dunn's post-hoc helper ###################
 
 run_kw <- function(response_vec, group_vec, resp_name, group_name) {
   d <- data.frame(resp = response_vec, grp = group_vec) %>%
@@ -535,6 +523,39 @@ categories_5 <- df_final %>%
     .groups = "drop"
   )
 
+# How each paper's Internal_Pathway/External_Pathway values were actually derived
+# upstream of this script, in meta_analysis_pipeline.R (which produces the extraction
+# CSV this script reads). Most papers use that pipeline's default O2-metabolism formula
+# (Internal solved first from GPP/ER, RQ=1.0; External = CO2_flux - Internal, a residual),
+# but several papers solve External first from an independently measured/modeled
+# terrestrial or groundwater CO2 term (Kirk, Duvert, Lupon), derive both terms directly
+# and simultaneously from the paper's own stated source split (Taillardat, Horgby) or
+# independent models (Marzolf, Wang), or can't report one/both without fabricating a
+# number (Khadka; Moustapha at 4 of 6 stations). Kept here as a named lookup (not
+# re-derived from Unit_Conversions_Notes) so the wording stays a stable, readable summary
+# rather than that column's full per-site numeric detail.
+pathway_method <- c(
+  "10.1111/gcb.14895"              = "O2 metabolism (GPP/ER, RQ=1.0): Internal solved first; External = CO2_flux - Internal (residual).",
+  "10.1029/2022JG007048"           = "O2 metabolism (GPP/ER, RQ=1.0): Internal solved first; External = CO2_flux - Internal (residual).",
+  "10.1029/2022JG006855"           = "No metabolism data. Both terms derived directly and simultaneously from the paper's own reach-level source split applied to CO2_flux: External = 81% (porewater), Internal = 17% (in-stream metabolism); remaining 2% (CH4 oxidation) excluded from both.",
+  "10.1002/lno.12226"              = "O2 metabolism (GPP/ER, RQ=1.0): Internal solved first; External = CO2_flux - Internal (residual).",
+  "10.1029/2022JG006954"           = "External solved first: RIP+TER+AQU, the paper's own published riparian/terrestrial/aquifer mass-balance partition (not a residual). Internal from GPP/AR via the O2 formula -- both independently derived; CO2_flux mass-balance residual reported as a check, not forced to zero.",
+  "10.5194/bg-19-137-2022"         = "Internal = directly measured heterotrophic respiration (serum-bottle incubation), available at only 2 of 6 stations; External = CO2_flux - Internal (residual) where Internal available, else both NOT REPORTED.",
+  "10.1002/lno.70372"              = "O2 metabolism (GPP/ER, RQ=1.0), reach-level (not split by site); External = residual. Same Internal/External/CO2_flux value applied to both the upstream and downstream site rows.",
+  "10.1007/s10533-022-00954-4"     = "Internal = paper's own median NEP; External = paper's own median GWCO2 (groundwater CO2 flux) -- both independently measured, neither back-calculated from the other.",
+  "10.1002/lno.11134"              = "External solved first: midpoint of the paper's own stated 34-66% groundwater CO2-contribution range x CO2_flux; Internal = CO2_flux - External (residual). Paper reports percentage ranges only, no absolute fluxes.",
+  "10.1029/2018JG004912"           = "External solved first: paper's own 222Rn-traced groundwater CO2 flux (radon mass balance, not the GPP/ER formula); Internal = CO2_flux - External (residual).",
+  "10.1016/j.jhydrol.2014.03.070"  = "NOT REPORTED. No metabolism (GPP/ER/NEP) data -- a delta13C-DIC geochemical study splitting carbon into biogenic vs. geogenic sources, both 'external' under this framework; computing a split would fabricate a number the paper doesn't report.",
+  "10.5194/bg-22-4923-2025"        = "Already carbon-referenced by the authors: Internal = -NEP (paper's own sign convention, cross-checked against reported GPP/ER); External = paper's own stated 'External CO2 = FCO2 + NEP' (algebraically identical to the CO2_flux - Internal residual).",
+  "10.1002/lno.70016"              = "Already carbon-referenced by the authors (1:1 O2:C conversion, paper's explicit choice): Internal = -NEP; External = CO2_flux - Internal (residual).",
+  "10.1029/2019JG005047"           = "External = 100% of CO2_flux: paper's isotope mixing model partitions the entire CO2 source between soil respiration and carbonate weathering, both external. Internal NOT REPORTED -- paper only qualitatively concludes in-stream respiration 'contributed only marginally'.",
+  "10.1002/lol2.10195"             = "O2 metabolism, raw streamMetabolizer GPP/ER (RQ=1.0), QA-filtered to physically valid days; CO2_flux computed via Fick's law (K600 + Schmidt number). Internal solved first; External = residual.",
+  "10.1002/lno.12334"              = "Already carbon-referenced by the authors (PQ/RQ Monte Carlo): Internal = paper's own median NEP; External = CO2_flux - Internal (residual) -- negative here, a real reported finding (excess internal CO2 exported downstream as dissolved CO2/DIC rather than evading locally), not floored at zero.",
+  "10.1016/j.scitotenv.2021.146230" = "Internal (O2 mass balance) and External (222Rn/water mass balance x groundwater CO2 concentration) both independently modeled by the paper's authors, neither a residual of the other; CO2_flux is a third independent term (Fick's law). Internal+External exceeds CO2_flux here -- paper attributes the gap to carbonate buffering and downstream dissolved-CO2 export.",
+  "10.1016/j.ecolind.2021.108136"  = "Already carbon-referenced by the authors: Internal = -NEP (paper's own whole-study value); External = CO2_flux - Internal (residual)."
+)
+THIS_STUDY_METHOD <- "This study's own 8 Florida sites -- pathway partitioning computed in a separate site-level processing script, not part of this literature-extraction pipeline."
+
 papers_5 <- df %>%
   group_by(DOI) %>%
   summarise(Citation = first(Citation), n_reaches = n(), .groups = "drop") %>%
@@ -543,7 +564,8 @@ papers_5 <- df %>%
     Rows_in_analysis = ifelse(DOI %in% collapse_dois, 1L, n_reaches),
     Collapsed = ifelse(DOI %in% collapse_dois,
                         "Yes — averaged to 1 paper-level row",
-                        "No — reaches/time-periods kept separate")
+                        "No — reaches/time-periods kept separate"),
+    Pathway_Method = ifelse(DOI == "THIS_STUDY", THIS_STUDY_METHOD, unname(pathway_method[DOI]))
   ) %>%
   arrange(desc(Rows_in_analysis), desc(n_reaches))
 
@@ -552,34 +574,39 @@ print(papers_5, n = Inf)
 tbl_5_data <- papers_5 %>%
   transmute(Citation, DOI, Biome, `Source water` = Source_Water,
             `Reaches/time-periods extracted` = n_reaches,
-            `Rows in Tables 1-2` = Rows_in_analysis, `Collapsed to paper average?` = Collapsed)
+            `Rows in Tables 1-2` = Rows_in_analysis, `Collapsed to paper average?` = Collapsed,
+            `Internal/External estimation method` = Pathway_Method)
 
 ft_5 <- flextable(tbl_5_data) %>%
   set_header_labels(Citation = "Citation", DOI = "DOI", Biome = "Biome",
                      `Source water` = "Source water",
                      `Reaches/time-periods extracted` = "Reaches/time-periods extracted",
                      `Rows in Tables 1-2` = "Rows in Tables 1-2",
-                     `Collapsed to paper average?` = "Collapsed to paper average?") %>%
+                     `Collapsed to paper average?` = "Collapsed to paper average?",
+                     `Internal/External estimation method` = "Internal/External estimation method") %>%
   font(fontname = "Aptos", part = "all") %>%
-  fontsize(size = 9, part = "all") %>%
+  fontsize(size = 8, part = "all") %>%
   align(j = 1:4, align = "left",   part = "all") %>%
   align(j = 5:7, align = "center", part = "all") %>%
+  align(j = 8,   align = "left",   part = "all") %>%
   bold(part = "header") %>%
   border_remove() %>%
   hline_top(part = "header",    border = fp_border(width = 2)) %>%
   hline_bottom(part = "header", border = fp_border(width = 1)) %>%
   hline_bottom(part = "body",   border = fp_border(width = 2)) %>%
-  width(j = 1,   width = 1.6) %>%
-  width(j = 2,   width = 1.3) %>%
-  width(j = 3,   width = 1.0) %>%
-  width(j = 4,   width = 1.4) %>%
-  width(j = 5,   width = 1.1) %>%
-  width(j = 6,   width = 1.0) %>%
-  width(j = 7,   width = 1.6) %>%
+  width(j = 1,   width = 1.4) %>%
+  width(j = 2,   width = 1.1) %>%
+  width(j = 3,   width = 0.9) %>%
+  width(j = 4,   width = 1.2) %>%
+  width(j = 5,   width = 0.7) %>%
+  width(j = 6,   width = 0.7) %>%
+  width(j = 7,   width = 1.3) %>%
+  width(j = 8,   width = 2.8) %>%
   height_all(height = 0.25) %>%
   add_header_lines(paste0(
     "Table 5. Papers contributing to the Internal/External site-level tests (Tables 1-2), ",
-    "their biome/source-water categorization, and their replication structure. n = ", n_papers,
+    "their biome/source-water categorization, replication structure, and how each paper's ",
+    "Internal/External pathway values were originally derived. n = ", n_papers,
     " papers; ", nrow(df_final), " rows enter the Internal/External tests after paper-level ",
     "collapsing."
   )) %>%
@@ -601,7 +628,16 @@ ft_5 <- flextable(tbl_5_data) %>%
     "papers report genuinely distinct named rivers/reaches and are retained as separate rows ",
     "by design (see comment above collapse_dois in the analysis script). Consequently, Tables ",
     "1-2's n is not n independent papers -- several papers each contribute multiple, non-",
-    "independent rows, and results should be interpreted with that in mind."
+    "independent rows, and results should be interpreted with that in mind. Internal/External ",
+    "estimation method = condensed from meta_analysis_pipeline.R (the upstream extraction ",
+    "script): most papers use its default O2-metabolism formula (Internal solved first from ",
+    "GPP/ER, RQ=1.0, External = CO2_flux - Internal as a residual); papers noted 'External ",
+    "solved first' instead derive External from an independently measured/modeled terrestrial ",
+    "or groundwater CO2 term and back-calculate Internal as the residual; papers noted 'both ",
+    "independently' measure/model Internal and External separately, so their sum need not ",
+    "equal CO2_flux; 'NOT REPORTED' papers lack the data to compute a split without ",
+    "fabricating a number. See that script's per-paper comments for full derivations and ",
+    "exact source citations (table/page numbers)."
   )) %>%
   italic(part = "footer") %>%
   align(part = "footer", align = "left") %>%
