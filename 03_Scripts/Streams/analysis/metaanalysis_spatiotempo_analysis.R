@@ -12,6 +12,14 @@ library(officer)
 
 raw <- read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv", show_col_types = FALSE)
 
+# This study's own 8 Florida sites (DOI == "THIS_STUDY") are now persisted directly
+# in meta_analysis_extraction_GENERATED_v2.csv (appended once, from the same
+# int.ext.raw/pH_cleaned.csv site-summary logic formerly built here at runtime), so
+# they no longer need to be folded in via bind_rows on every run. Do not re-append
+# them here -- that would silently double-count all 8 sites.
+stopifnot("THIS_STUDY rows missing from meta_analysis_extraction_GENERATED_v2.csv -- expected 8 site rows" =
+            sum(raw$DOI == "THIS_STUDY") == 8)
+
 df <- raw %>%
   mutate(across(c(Internal_Pathway_gCm2day, External_Pathway_gCm2day, Temperature_C),
                 ~ na_if(., "NOT REPORTED"))) %>%

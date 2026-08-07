@@ -1,7 +1,6 @@
 
 source("03_Scripts/Streams/analysis/data for analysis.R")
 
-
 #Interpolating Hotchkiss Data###########
 
 df <- tribble(
@@ -71,7 +70,8 @@ int.ext.summary<-left_join(int.ext, pH)%>%
     CO2flux.mn=mean(CO2_flux, na.rm=T),
     internal.mn=mean(internal, na.rm=T),
     external.mn=mean(external, na.rm=T),
-    pH=mean(pH, na.rm=T)
+    pH=mean(pH, na.rm=T),
+    temp_C=mean(TempC, na.rm=T)
          )%>%
   rename(Site=ID)%>%
   mutate(
@@ -80,21 +80,27 @@ int.ext.summary<-left_join(int.ext, pH)%>%
     Biome="Subtropical",
     Source="Shallow Aquifer",
     Source=if_else(Site==13, "Deeper Groundwater Seepage", Source),
-    Source=if_else(Site==5, "Mixed", Source)
-    
+    Source=if_else(Site==5, "Mixed", Source),
+    # No rain-gauge record for this site; estimated from the Results narrative:
+    # wet season (Jun-Sep) ~150-200 mm/mo (mid 175) = 700 mm, remaining 8 mo
+    # ~50-75 mm/mo (mid 62.5) = 500 mm -> ~1200 mm = 120 cm/yr, applied to all sites.
+    precip_cm_yr = 120
+
                     )
 
 
 pubs<-read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv")%>%
   select(Citation, Location, Biome, Source, Discharge_m3s, CO2_flux_gCm2day, Internal_Pathway_gCm2day, External_Pathway_gCm2day,
-         pH)%>%
+         pH, Temperature_C, Mean_Annual_Precipitation_cm_yr)%>%
   rename(
     discharge_m3_s = Discharge_m3s,
     CO2flux.mn = CO2_flux_gCm2day,
     internal.mn = Internal_Pathway_gCm2day,
-    external.mn = External_Pathway_gCm2day
+    external.mn = External_Pathway_gCm2day,
+    temp_C = Temperature_C,
+    precip_cm_yr = Mean_Annual_Precipitation_cm_yr
   )%>%
-  mutate(across(5:9, as.numeric))%>%
+  mutate(across(5:11, as.numeric))%>%
   filter(!is.na(internal.mn))%>%
   full_join(int.ext.summary)%>%
    mutate( pct_internal = (internal.mn / CO2flux.mn) * 100) %>%
@@ -513,5 +519,37 @@ panels_ext <- plot_grid(
 ))
 
 
+# ─── Figure: Temperature vs. Internal Contribution, colored by paper ########
+
+clim_data <- pubs %>%
+  filter(!is.na(temp_C), !is.na(pct_internal))
+
+# Set3 tops out at 12 colors — extend it so every paper gets a distinct color,
+# with "This Paper" pinned to the same dark slate used in the other figures
+clim_cits <- sort(unique(clim_data$Citation[clim_data$Citation != "This Paper"]))
+clim_cols <- c(
+  setNames(colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(clim_cits)), clim_cits),
+  "This Paper" = "#2C3E50"
+)
+
+# Overall linear trend + p-value for the slope (pooled across papers)
+clim_lm <- lm(pct_internal ~ temp_C, data = clim_data)
+clim_p  <- broom::tidy(clim_lm) %>% dplyr::filter(term == "temp_C") %>% dplyr::pull(p.value)
+clim_p_label <- if (clim_p < 0.001) "p < 0.001" else paste0("p = ", signif(clim_p, 2))
+
+p_climate <- ggplot(clim_data, aes(x = temp_C, y = pct_internal, color = Citation)) +
+  geom_smooth(aes(group = 1), method = "lm", se = TRUE, color = "black",
+              linewidth = 0.8, linetype = "dashed") +
+  geom_point(size = 2.5, alpha = 0.85) +
+  scale_color_manual(name = "Citation", values = clim_cols) +
+  annotate("text", x = Inf, y = Inf, hjust = 1.1, vjust = 1.5,
+           label = clim_p_label, size = 4, fontface = "italic") +
+  labs(x = expression("Temperature ("*degree*C*")"),
+       y = "Internal pathway contribution (%)",
+       title = "Internal Pathway Contribution vs. Temperature, by Paper") +
+  theme_classic(base_size = 13) +
+  theme(plot.title = element_text(size = 13, hjust = 0.5))
+
+p_climate
 
 
