@@ -3,180 +3,43 @@ library(tidyverse)
 library(broom)
 library(flextable)
 library(officer)
-library(car)
-library(lmtest)
+library(nlme)
 
-# =============================================================================
-# TABLE SCRIPT — per-site OLS, no pooling across sites (NOT a mixed model)
-# =============================================================================
-# Single script for all descriptive + AIC/interaction tables. Fits the same
-# 4-model family (Full, Interaction, Drop Q [TempC-only], Drop T [log10Q-
-# only]) per site, for FOUR response variables — total CO2 flux, internal
-# CO2 flux, external CO2 flux, and the log10(internal/external) predominance
-# ratio:
-#   "Drop Q" (TempC-only) = the univariate/raw temperature relationship
-#     (Trend / Discharge / Temperature sections below).
-#   "Drop T" (log10Q-only) = the univariate/raw discharge relationship
-#     (Trend / Discharge / Temperature sections below).
-#   "Full" vs. "Interaction" (AIC) = does TempC:log10Q covary meaningfully
-#     (Interaction / AIC / Supplement / Standardized-effect sections below).
-# Contrast with "multivariate model.R": that script fits real Bayesian
-# linear MIXED models (brms, (1 | ID) random intercept for site, pooling
-# all 8 sites, with internal + external modeled jointly). This script does
-# not — it's 8 independent OLS fits per response, compared site-by-site.
-# All log transforms are log10; Q and flux values must be > 0.
-
+# 
 site_order <- c("3", "5", "5a", "6", "7", "9", "13", "15")
 
-# =============================================================================
-# OLS DIAGNOSTICS — is the independence assumption reasonable before AIC?
-# =============================================================================
-# Daily-resolution flux data raises an obvious question: are consecutive
-# observations within a site correlated enough to bias the per-site OLS
-# models below (Full: resp ~ TempC + log10Q) and inflate the apparent
-# precision behind the AIC-based model comparisons? Tested per site x
-# response, on the Full model's residuals (ordered by Date):
-#   1. Durbin-Watson (car::durbinWatsonTest) — standard lag-1 autocorrelation
-#      test on regression residuals.
-#   2. Residual ACF decorrelation lag — first lag at which |ACF| drops below
-#      the +-1.96/sqrt(n) band, i.e. how many observations of memory remain
-#      after TempC + log10Q are already accounted for.
-#   3. The same ACF decorrelation lag computed on log10(Q) itself (not
-#      residuals) — to directly test the assumption that discharge is
-#      "flashy" enough to decorrelate quickly, rather than just asserting it.
-#      Compared below against the Richards-Baker flashiness index (RB_index)
-#      already computed in "data for analysis.R".
-# Also reports Breusch-Pagan (lmtest::bptest, homoscedasticity) and
-# Shapiro-Wilk (normality) on the same residuals, since those are the other
-# two OLS assumptions the AIC comparisons implicitly lean on.
-# NOTE: site coverage is uneven (n = 43-300 rows over the ~19-month window),
-# so "lag 1" here means one available observation, not necessarily one
-# calendar day — see median_gap_days per site/response below.
 
-acf_decorrelation_lag <- function(x, max_lag = 60) {
-  x <- x[is.finite(x)]
-  n <- length(x)
-  if (n < 10) return(NA_integer_)
-  lag_max <- min(max_lag, n - 2)
-  bound <- 1.96 / sqrt(n)
-  a <- as.numeric(acf(x, lag.max = lag_max, plot = FALSE)$acf)[-1]  # drop lag 0
-  first_ok <- which(abs(a) < bound)
-  if (length(first_ok) == 0) NA_integer_ else first_ok[1]
-}
-
-diagnose_site <- function(d, response_name) {
-  d <- d %>% arrange(Date) %>%
-    filter(is.finite(resp), is.finite(TempC), is.finite(log10Q))
-  if (nrow(d) < 15) return(tibble())
-
-  mod        <- lm(resp ~ TempC + log10Q, data = d)
-  resid_vals <- residuals(mod)
-  gaps       <- as.numeric(diff(sort(unique(d$Date))))
-
-  dw <- tryCatch(durbinWatsonTest(mod), error = function(e) NULL)
-  bp <- tryCatch(bptest(mod), error = function(e) NULL)
-  sw <- tryCatch(shapiro.test(resid_vals), error = function(e) NULL)
-
+tidy_gls <- function(mod) {
+  tt <- summary(mod)$tTable
   tibble(
-    response         = response_name,
-    n                = nrow(d),
-    median_gap_days  = median(gaps),
-    dw_stat          = if (!is.null(dw)) unname(dw$dw) else NA_real_,
-    dw_p             = if (!is.null(dw)) dw$p else NA_real_,
-    resid_lag1_acf   = as.numeric(acf(resid_vals, lag.max = 1, plot = FALSE)$acf)[2],
-    resid_decorr_lag = acf_decorrelation_lag(resid_vals),
-    logQ_lag1_acf    = as.numeric(acf(d$log10Q, lag.max = 1, plot = FALSE)$acf)[2],
-    logQ_decorr_lag  = acf_decorrelation_lag(d$log10Q),
-    bp_p             = if (!is.null(bp)) bp$p.value else NA_real_,
-    shapiro_p        = if (!is.null(sw)) sw$p.value else NA_real_
+    term      = rownames(tt),
+    estimate  = tt[, "Value"],
+    std.error = tt[, "Std.Error"],
+    p.value   = tt[, "p-value"]
   )
 }
 
-diagnose_response <- function(response_name) {
-  d <- int.ext %>%
-    mutate(site = as.character(ID)) %>%
-    filter(Q > 0)
-
-  if (response_name == "ratio") {
-    d <- d %>% filter(internal > 0, external > 0) %>%
-      mutate(resp = log10(internal / external))
-  } else {
-    d <- d %>% filter(.data[[response_name]] > 0) %>%
-      mutate(resp = log10(.data[[response_name]]))
-  }
-  d <- d %>% mutate(log10Q = log10(Q))
-
-  res <- d %>%
-    group_by(site) %>%
-    group_map(~ diagnose_site(.x, response_name), .keep = TRUE)
-  names(res) <- sort(unique(d$site))
-  imap_dfr(res, ~ if (nrow(.x) > 0) mutate(.x, site = .y, .before = 1) else tibble())
-}
-
-set.seed(42)  # durbinWatsonTest's p-value is a bootstrap estimate; fix for reproducibility
-diagnostics_all <- map_dfr(c("CO2_flux", "internal", "external", "ratio"), diagnose_response) %>%
-  mutate(
-    site   = factor(site, levels = site_order),
-    across(c(dw_stat, resid_lag1_acf, logQ_lag1_acf), ~ round(.x, 3)),
-    dw_sig = ifelse(dw_p < 0.05, "*", ""),
-    bp_sig = ifelse(bp_p < 0.05, "*", ""),
-    sw_sig = ifelse(shapiro_p < 0.05, "*", "")
-  ) %>%
-  arrange(response, site)
-
-cat("\n#####################################################################\n")
-cat("OLS DIAGNOSTICS — Full model (resp ~ TempC + log10Q), per site x response\n")
-cat("#####################################################################\n")
-cat("dw = Durbin-Watson (lag-1 autocorrelation); bp = Breusch-Pagan (heteroscedasticity);\n")
-cat("shapiro = Shapiro-Wilk (normality). * = p < 0.05. decorr_lag = first lag where\n")
-cat("|ACF| < 1.96/sqrt(n) (NA = still autocorrelated out to the max lag searched).\n\n")
-print(as.data.frame(diagnostics_all %>%
-  select(response, site, n, median_gap_days, dw_stat, dw_p, dw_sig,
-         resid_decorr_lag, logQ_decorr_lag,
-         bp_p, bp_sig, shapiro_p, sw_sig)), row.names = FALSE)
-
-cat("\n--- Summary across all site x response combinations (n =", nrow(diagnostics_all), ") ---\n")
-cat(sprintf("Durbin-Watson significant (p<0.05): %d/%d\n",
-            sum(diagnostics_all$dw_p < 0.05, na.rm = TRUE), nrow(diagnostics_all)))
-cat(sprintf("Breusch-Pagan significant (p<0.05):  %d/%d\n",
-            sum(diagnostics_all$bp_p < 0.05, na.rm = TRUE), nrow(diagnostics_all)))
-cat(sprintf("Shapiro-Wilk significant (p<0.05):   %d/%d\n",
-            sum(diagnostics_all$shapiro_p < 0.05, na.rm = TRUE), nrow(diagnostics_all)))
-cat(sprintf("Residual decorrelation lag: median = %s (range %s-%s)\n",
-            median(diagnostics_all$resid_decorr_lag, na.rm = TRUE),
-            min(diagnostics_all$resid_decorr_lag, na.rm = TRUE),
-            max(diagnostics_all$resid_decorr_lag, na.rm = TRUE)))
-cat(sprintf("log10(Q) decorrelation lag:  median = %s (range %s-%s)\n",
-            median(diagnostics_all$logQ_decorr_lag, na.rm = TRUE),
-            min(diagnostics_all$logQ_decorr_lag, na.rm = TRUE),
-            max(diagnostics_all$logQ_decorr_lag, na.rm = TRUE)))
-cat("\nNote: median_gap_days > 1 for a site means 'lag 1' in that site's ACF/DW\n")
-cat("tests is not literally one calendar day — read decorrelation lags as lags\n")
-cat("between AVAILABLE observations, not strictly daily lags, for sparse sites.\n\n")
-
-cat("--- For reference: Richards-Baker flashiness index (RB_index) per site ---\n")
-cat("(computed on the full raw discharge record in 'data for analysis.R'; higher\n")
-cat("RB_index = flashier hydrograph. Included to test directly whether 'discharge\n")
-cat("is flashy' predicts faster residual/discharge decorrelation above, rather\n")
-cat("than assuming it.)\n\n")
-print(as.data.frame(flashiness %>%
-  mutate(site = as.character(ID)) %>%
-  filter(site %in% site_order) %>%
-  select(site, RB_index, CV) %>%
-  arrange(site)), row.names = FALSE)
-cat("\n")
-
-
-fit_family <- function(d, min_n = 10) {
-  d <- d %>% filter(is.finite(resp), is.finite(TempC), is.finite(log10Q))
+fit_family <- function(d, min_n = 15) {
+  d <- d %>% arrange(Date) %>%
+    filter(is.finite(resp), is.finite(TempC), is.finite(log10Q)) %>%
+    mutate(t = as.numeric(Date))
   if (nrow(d) < min_n) return(list(aic = tibble(), effects = tibble()))
 
+  fit_gls <- function(formula) {
+    tryCatch(
+      gls(formula, data = d, correlation = corCAR1(form = ~ t), method = "ML"),
+      error = function(e) NULL
+    )
+  }
+
   mods <- list(
-    "Full"        = lm(resp ~ TempC + log10Q, data = d),
-    "Interaction" = lm(resp ~ TempC * log10Q, data = d),
-    "Drop Q"      = lm(resp ~ TempC,          data = d),
-    "Drop T"      = lm(resp ~ log10Q,         data = d)
+    "Full"        = fit_gls(resp ~ TempC + log10Q),
+    "Interaction" = fit_gls(resp ~ TempC * log10Q),
+    "Drop Q"      = fit_gls(resp ~ TempC),
+    "Drop T"      = fit_gls(resp ~ log10Q)
   )
+  mods <- mods[!map_lgl(mods, is.null)]
+  if (length(mods) == 0) return(list(aic = tibble(), effects = tibble()))
 
   aic_tbl <- tibble(model = names(mods), AIC = map_dbl(mods, AIC), n = nrow(d)) %>%
     mutate(delta_AIC = round(AIC - min(AIC), 2))
@@ -200,7 +63,7 @@ fit_family <- function(d, min_n = 10) {
   }
 
   effects_tbl <- map_dfr(names(mods), function(nm) {
-    tidy(mods[[nm]]) %>%
+    tidy_gls(mods[[nm]]) %>%
       filter(term != "(Intercept)") %>%
       mutate(
         model         = nm,
@@ -458,8 +321,8 @@ cat("\n")
 # =============================================================================
 # STANDARDIZED EFFECT SIZE — TempC vs. log10Q, per site
 # =============================================================================
-# Raw lm() coefficients for TempC (deg C) and log10Q (log10 discharge) sit on
-# different natural scales and are NOT directly comparable in magnitude.
+# Raw gls() coefficients for TempC (deg C) and log10Q (log10 discharge) sit
+# on different natural scales and are NOT directly comparable in magnitude.
 # std_estimate = estimate x SD(predictor) / SD(response) puts both on the
 # same "SD of response per SD of predictor" scale, so |std_estimate| can be
 # compared directly to infer which variable has the bigger influence — the
@@ -629,9 +492,11 @@ ft2 <- flextable(pathway_compare_tbl) %>%
   width(j = c("Int_Std_Favors", "Ext_Std_Favors", "Tot_Std_Favors"), width = 0.55)
 
 ft2 <- style_ft(ft2,
-  "Table S2. Site-level comparison of internal, external, and total CO2 flux sensitivity to temperature and discharge: raw slopes by pathway, and standardized slopes grouped by pathway (with Temperature/Q as sub-columns) for direct magnitude comparison.",
+  "Table S2. Site-level comparison of internal, external, and total CO2 flux sensitivity to temperature and discharge (GLS with AR(1) residuals): raw slopes by pathway, and standardized slopes grouped by pathway (with Temperature/Q as sub-columns) for direct magnitude comparison.",
   paste0(
-    "Note. Flux = CO2 flux (g C m⁻² day⁻¹); Q = discharge (L s⁻¹); Total = total CO2 flux (internal + external). Temperature Slope (β) = coefficient ",
+    "Note. Flux = CO2 flux (g C m⁻² day⁻¹); Q = discharge (L s⁻¹); Total = total CO2 flux (internal + external). All models fit via generalized ",
+    "least squares with a continuous-time AR(1) residual correlation structure (nlme::corCAR1) to account for temporal autocorrelation in the daily ",
+    "flux series (see lmm_outline_synthesis.R for the residual diagnostics motivating this). Temperature Slope (β) = coefficient ",
     "from log10(flux) ~ TempC (Drop Q model), fit independently per site and pathway; units = log10(flux) per °C. Discharge Slope (c) = coefficient ",
     "from log10(flux) ~ log10(Q) (Drop T model) — this is NOT a beta, it is the exponent of the log-log discharge (C-Q) rating-curve relationship; ",
     "units = log10(flux) per log10(Q). Standardized Comparison = raw slope x SD(predictor) / SD(response), rescaling temperature and discharge ",
@@ -716,9 +581,11 @@ ft4 <- flextable(combined_table) %>%
   hline(i = group_bounds, part = "body", border = fp_border(width = 1))
 
 ft4 <- style_ft(ft4,
-  "Table S4. Main effects of temperature and discharge alongside their interaction, and the AIC comparison of additive (No Interaction) vs. interaction models, per site.",
+  "Table S4. Main effects of temperature and discharge alongside their interaction (GLS with AR(1) residuals), and the AIC comparison of additive (No Interaction) vs. interaction models, per site.",
   paste0(
-    "Note. Temperature (b) and Discharge (c) are the raw coefficients from the additive (No Interaction) model; c is the log-log discharge slope ",
+    "Note. All models fit via generalized least squares with a continuous-time AR(1) residual correlation structure (nlme::corCAR1) to account for ",
+    "temporal autocorrelation in the daily flux series (see lmm_outline_synthesis.R for the residual diagnostics motivating this). ",
+    "Temperature (b) and Discharge (c) are the raw coefficients from the additive (No Interaction) model; c is the log-log discharge slope ",
     "(see Table S2), not a beta. * indicates p < 0.05 for that term's own coefficient. Sign Match indicates whether temperature's and discharge's ",
     "main-effect coefficients share the same sign. Lower AIC indicates better fit for that site. delta_AIC = AIC(No Interaction) - AIC(Interaction); ",
     "positive values favor the interaction model. ΔAIC ≥ 2? = whether the AIC difference meets the standard rule-of-thumb threshold ",
@@ -733,21 +600,21 @@ ft2
 ft4
 
 # ── Save as Word documents (paste-ready, formatting preserved) ───────────────
-out_dir <- "C:/Dissertation/05_Figures"
-
-# Both tables are wider than a portrait page fits (S2 ~9.25in of table width
-# at 15 columns, S4 ~8.8in at 10 columns), so both are saved on a US Letter
-# landscape section with tighter margins (usable width = 11in - 2*0.5in = 10in).
-landscape_section <- prop_section(
-  page_size    = page_size(width = 8.5, height = 11, orient = "landscape", unit = "in"),
-  page_margins = page_mar(top = 0.5, bottom = 0.5, left = 0.5, right = 0.5, gutter = 0)
-)
-
-try_save <- function(ft, path) {
-  tryCatch(
-    save_as_docx(ft, path = path, pr_section = landscape_section),
-    error = function(e) warning("Could not save ", path, " — is it open in Word? (", conditionMessage(e), ")")
-  )
-}
-try_save(ft2, file.path(out_dir, "TableS2_pathway_comparison.docx"))
-try_save(ft4, file.path(out_dir, "TableS4_main_effects_aic.docx"))
+# out_dir <- "C:/Dissertation/05_Figures"
+# 
+# # Both tables are wider than a portrait page fits (S2 ~9.25in of table width
+# # at 15 columns, S4 ~8.8in at 10 columns), so both are saved on a US Letter
+# # landscape section with tighter margins (usable width = 11in - 2*0.5in = 10in).
+# landscape_section <- prop_section(
+#   page_size    = page_size(width = 8.5, height = 11, orient = "landscape", unit = "in"),
+#   page_margins = page_mar(top = 0.5, bottom = 0.5, left = 0.5, right = 0.5, gutter = 0)
+# )
+# 
+# try_save <- function(ft, path) {
+#   tryCatch(
+#     save_as_docx(ft, path = path, pr_section = landscape_section),
+#     error = function(e) warning("Could not save ", path, " — is it open in Word? (", conditionMessage(e), ")")
+#   )
+# }
+# try_save(ft2, file.path(out_dir, "TableS2_pathway_comparison_GLS.docx"))
+# try_save(ft4, file.path(out_dir, "TableS4_main_effects_aic_GLS.docx"))

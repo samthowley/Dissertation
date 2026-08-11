@@ -17,6 +17,7 @@ library(ggrepel)     # non-overlapping site labels on plots
 library(broom)
 library(janitor)
 library(flextable)
+library(officer)
 
 
 
@@ -168,22 +169,27 @@ int.ext.summary<-left_join(int.ext, pH)%>%
   )
 
 
-pubs<-read_csv("01_Raw_data/meta_analysis_extraction.csv")%>%
-  select(Citation, Location, Biome, Source, Discharge_m3s, CO2_flux_gCm2day, Internal_Pathway_gCm2day, External_Pathway_gCm2day,
-         pH)%>%
-  rename(
-    discharge_m3_s = Discharge_m3s,
-    CO2flux.mn = CO2_flux_gCm2day,
-    internal.mn = Internal_Pathway_gCm2day,
-    external.mn = External_Pathway_gCm2day
-  )%>%
-  mutate(across(5:9, as.numeric))%>%
-  filter(!is.na(internal.mn))%>%
-  full_join(int.ext.summary)%>%
-  mutate( pct_internal = (internal.mn / CO2flux.mn) * 100) %>%
-  arrange(discharge_m3_s) %>%
-  mutate(
-    # Sub-label with mean discharge
-    x_label = paste0(Source, "\n(", round(discharge_m3_s, 3), " m³ s⁻¹)"),
-    x_label = factor(x_label, levels = unique(x_label))  # preserve Q order
-  )%>%    filter(external.mn > 0, internal.mn>0.1)
+# pubs block disabled: read_csv("01_Raw_data/meta_analysis_extraction.csv") -- this raw
+# file no longer exists (superseded by meta_analysis_extraction_GENERATED_v2.csv, used
+# directly by metaanalysis_spatiotempo_analysis.R). `pubs` was never referenced anywhere
+# downstream of this file, so it's dead code; disabled rather than deleted in case the
+# old file is restored. Left commented out 2026-08-09 to unblock sourcing.
+# pubs<-read_csv("01_Raw_data/meta_analysis_extraction.csv")%>%
+#   select(Citation, Location, Biome, Source, Discharge_m3s, CO2_flux_gCm2day, Internal_Pathway_gCm2day, External_Pathway_gCm2day,
+#          pH)%>%
+#   rename(
+#     discharge_m3_s = Discharge_m3s,
+#     CO2flux.mn = CO2_flux_gCm2day,
+#     internal.mn = Internal_Pathway_gCm2day,
+#     external.mn = External_Pathway_gCm2day
+#   )%>%
+#   mutate(across(5:9, as.numeric))%>%
+#   filter(!is.na(internal.mn))%>%
+#   full_join(int.ext.summary)%>%
+#   mutate( pct_internal = (internal.mn / CO2flux.mn) * 100) %>%
+#   arrange(discharge_m3_s) %>%
+#   mutate(
+#     # Sub-label with mean discharge
+#     x_label = paste0(Source, "\n(", round(discharge_m3_s, 3), " m³ s⁻¹)"),
+#     x_label = factor(x_label, levels = unique(x_label))  # preserve Q order
+#   )%>%    filter(external.mn > 0, internal.mn>0.1)

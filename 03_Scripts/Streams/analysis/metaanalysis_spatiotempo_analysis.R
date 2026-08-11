@@ -1,8 +1,9 @@
 
-source("03_Scripts/Streams/analysis/data for analysis.R")
-
-library(FSA)         # dunnTest — post-hoc for Kruskal-Wallis
-library(pwr)         # post-hoc power for the Spearman/KW tests
+library(tidyverse)
+library(coin)         # permutation-based Spearman tests (project convention)
+library(FSA)          # dunnTest — post-hoc for Kruskal-Wallis
+library(pwr)           # post-hoc power for the Spearman/KW tests
+library(flextable)
 library(officer)
 
 # ── Data preparation ──────────────────────────────────────────────────────────
@@ -14,21 +15,39 @@ meta <- read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv", show_c
     Temperature_C=as.numeric(Temperature_C)
   )
 
-this.study<-int.ext.summary%>%rename(
-  Internal_Pathway_gCm2day=internal.mn,
-  External_Pathway_gCm2day=external.mn,
-  Temperature_C=TempC,
-  Discharge_m3s=discharge_m3_s,
-  CO2_flux_gCm2day=CO2flux.mn
-)%>%
+# This study's own site data (int.ext.summary), needed to bring 4 of the 8
+# Florida sites back into the analysis per explicit user instruction.
+source("03_Scripts/Streams/analysis/data for analysis.R")
+
+# Only sites 6 & 9 (Wetland seepage) and 5 & 13 (Mixed) are included -- the
+# other 4 of this study's 8 sites (15, 5a, 3, 7) are deliberately left out.
+# Source_Water_Brief for 5/13 vs. 6/9 already comes out right from
+# int.ext.summary's own default-then-override logic (Wetland seepage default,
+# 5 & 13 overridden to Mixed, in data for analysis.R) -- no relabeling needed
+# here, just the site filter.
+this.study <- int.ext.summary %>%
+  filter(as.character(Site) %in% c("5", "6", "9", "13")) %>%
+  rename(
+    Internal_Pathway_gCm2day = internal.mn,
+    External_Pathway_gCm2day = external.mn,
+    Temperature_C = TempC,
+    Discharge_m3s = discharge_m3_s,
+    CO2_flux_gCm2day = CO2flux.mn
+  ) %>%
   select(names(meta))
 
-df <- rbind(this.study, meta) %>%
+unique(meta$Biome_Category)
+df <- bind_rows(meta, this.study) %>%
   filter(!is.na(Internal_Pathway_gCm2day), !is.na(External_Pathway_gCm2day))%>%
   mutate(
     Internal.Contrib=(Internal_Pathway_gCm2day / (Internal_Pathway_gCm2day + External_Pathway_gCm2day))*100,
     Internal.Contrib=ifelse(Internal.Contrib>100, 100, Internal.Contrib),
-    Internal.Contrib=ifelse(Internal.Contrib<0, 0, Internal.Contrib)
+    Internal.Contrib=ifelse(Internal.Contrib<0, 0, Internal.Contrib),
+    Biome_Category = ifelse(Biome_Category %in% c("Alpine", "Boreal", "Arctic"),
+                             "Cryospheric Zone", Biome_Category),
+    Biome_Category = ifelse(Biome_Category %in% c("Mediterranean", "Arid"),
+                            "Drylands", Biome_Category)
+    
   )
 
 # Rows that are multiple reaches/time-periods of ONE river/site get collapsed to a
@@ -65,6 +84,8 @@ df_final <- df %>%
     Source_Water_Brief = factor(Source_Water_Brief),
     Biome_Category      = factor(Biome_Category)
   )
+
+n_papers <- length(unique(df_final$DOI))
 
 # ── Permutation Spearman helper ###########
 
@@ -321,8 +342,10 @@ ft_2 <- flextable(tbl_2_data) %>%
     "Note. Flux in g C m-2 day-1. Internal Contribution % = 100 x Internal / (Internal + ",
     "External), clamped to [0, 100] (n = ", nrow(df_final), "); higher values indicate ",
     "internal-pathway dominance, lower values indicate external-pathway dominance. Source ",
-    "water = Source_Water_Brief (6 levels); Biome = Biome_Category (8 levels). Small groups ",
-    "(e.g. Regulated flow, Arid) limit power for these factors -- treat as exploratory. ", kw_note
+    "water = Source_Water_Brief (", nlevels(df_final$Source_Water_Brief), " levels); Biome = ",
+    "Biome_Category (", nlevels(df_final$Biome_Category), " levels; Alpine/Boreal/Arctic pooled ",
+    "into one 'Cryospheric Zone' category, each individually a 1-2-paper group). Small groups ",
+    "(e.g. Arid) limit power for these factors -- treat as exploratory. ", kw_note
   )) %>%
   italic(part = "footer") %>%
   align(part = "footer", align = "left") %>%
@@ -400,12 +423,6 @@ ft_3 <- shade_significance(ft_3, tbl_3_data, posthoc_3, cols = 4:6, row_lookup =
 # =============================================================================
 # TABLE 4 — Post-hoc (Observed) Statistical Power
 # =============================================================================
-# This is an exploratory meta-analysis, not a pre-registered/powered design, so
-# these numbers are reported for transparency rather than as a pass/fail check.
-# Post-hoc power computed from an observed effect size is a deterministic function
-# of that test's own p-value and adds no independent information (Hoenig & Heisey
-# 2001, "The Abuse of Power") -- read it as "how detectable an effect of this
-# observed size would be," not as validation of a non-significant result.
 cat("\n=== TABLE 4: Post-hoc Power ===\n")
 
 # Spearman power via the Pearson-r approximation (pwr has no dedicated Spearman
@@ -416,9 +433,6 @@ power_spearman <- function(rho, n, sig.level = 0.05) {
            error = function(e) NA_real_)
 }
 
-# Kruskal-Wallis power via its ANOVA-equivalent eta-squared -> Cohen's f, then
-# pwr.anova.test (pwr has no dedicated KW power function; group sizes are treated
-# as balanced at n / k, which is an approximation given this data's uneven groups).
 kw_effect_and_power <- function(chi_sq, df, n, sig.level = 0.05) {
   k <- df + 1
   if (is.na(chi_sq) || n <= k) return(c(f = NA_real_, power = NA_real_))
@@ -505,14 +519,6 @@ if (length(low_power_rows) > 0) {
 # =============================================================================
 # TABLE 5 — Papers Included and Their Contribution to Tables 1-2 (pseudoreplication)
 # =============================================================================
-# Tables 1-2 test n rows, not n papers. Rows from the same paper share instrumentation,
-# sampling timing, and unmeasured basin-level characteristics that aren't fully captured
-# by biome/source-water/climate covariates, so they are not independent replicates in the
-# classical sense. Multi-reach papers are deliberately NOT collapsed (see collapse_dois
-# above) because a research objective of this analysis is to show that reach-to-reach
-# variation within a river is itself informative -- stream order alone is an oversimplified
-# predictor of internal/external regime. This table exists so that choice, and its
-# consequences for the effective n behind Tables 1-2, are visible rather than assumed.
 cat("\n=== TABLE 5: Papers Included ===\n")
 
 categories_5 <- df_final %>%
@@ -522,18 +528,6 @@ categories_5 <- df_final %>%
     Source_Water = paste(sort(unique(as.character(Source_Water_Brief))), collapse = "; "),
     .groups = "drop"
   )
-
-# How each paper's Internal_Pathway/External_Pathway values were actually derived
-# upstream of this script, in meta_analysis_pipeline.R (which produces the extraction
-# CSV this script reads). Most papers use that pipeline's default O2-metabolism formula
-# (Internal solved first from GPP/ER, RQ=1.0; External = CO2_flux - Internal, a residual),
-# but several papers solve External first from an independently measured/modeled
-# terrestrial or groundwater CO2 term (Kirk, Duvert, Lupon), derive both terms directly
-# and simultaneously from the paper's own stated source split (Taillardat, Horgby) or
-# independent models (Marzolf, Wang), or can't report one/both without fabricating a
-# number (Khadka; Moustapha at 4 of 6 stations). Kept here as a named lookup (not
-# re-derived from Unit_Conversions_Notes) so the wording stays a stable, readable summary
-# rather than that column's full per-site numeric detail.
 pathway_method <- c(
   "10.1111/gcb.14895"              = "O2 metabolism (GPP/ER, RQ=1.0): Internal solved first; External = CO2_flux - Internal (residual).",
   "10.1029/2022JG007048"           = "O2 metabolism (GPP/ER, RQ=1.0): Internal solved first; External = CO2_flux - Internal (residual).",
@@ -552,9 +546,9 @@ pathway_method <- c(
   "10.1002/lol2.10195"             = "O2 metabolism, raw streamMetabolizer GPP/ER (RQ=1.0), QA-filtered to physically valid days; CO2_flux computed via Fick's law (K600 + Schmidt number). Internal solved first; External = residual.",
   "10.1002/lno.12334"              = "Already carbon-referenced by the authors (PQ/RQ Monte Carlo): Internal = paper's own median NEP; External = CO2_flux - Internal (residual) -- negative here, a real reported finding (excess internal CO2 exported downstream as dissolved CO2/DIC rather than evading locally), not floored at zero.",
   "10.1016/j.scitotenv.2021.146230" = "Internal (O2 mass balance) and External (222Rn/water mass balance x groundwater CO2 concentration) both independently modeled by the paper's authors, neither a residual of the other; CO2_flux is a third independent term (Fick's law). Internal+External exceeds CO2_flux here -- paper attributes the gap to carbonate buffering and downstream dissolved-CO2 export.",
-  "10.1016/j.ecolind.2021.108136"  = "Already carbon-referenced by the authors: Internal = -NEP (paper's own whole-study value); External = CO2_flux - Internal (residual)."
+  "10.1016/j.ecolind.2021.108136"  = "Already carbon-referenced by the authors: Internal = -NEP (paper's own whole-study value); External = CO2_flux - Internal (residual).",
+  "This Paper"                     = "This study's own 4 Florida sites (of 8 total; 5, 6, 9, 13 only, per explicit user instruction). Internal/External computed in the site-level processing script (int.ext.summary, data for analysis.R), not this literature-extraction pipeline."
 )
-THIS_STUDY_METHOD <- "This study's own 8 Florida sites -- pathway partitioning computed in a separate site-level processing script, not part of this literature-extraction pipeline."
 
 papers_5 <- df %>%
   group_by(DOI) %>%
@@ -565,7 +559,7 @@ papers_5 <- df %>%
     Collapsed = ifelse(DOI %in% collapse_dois,
                         "Yes — averaged to 1 paper-level row",
                         "No — reaches/time-periods kept separate"),
-    Pathway_Method = ifelse(DOI == "THIS_STUDY", THIS_STUDY_METHOD, unname(pathway_method[DOI]))
+    Pathway_Method = unname(pathway_method[DOI])
   ) %>%
   arrange(desc(Rows_in_analysis), desc(n_reaches))
 
@@ -652,18 +646,8 @@ if (length(heavy_rows) > 0) {
 # =============================================================================
 # TABLE 6 — Category Rollup: Which Categories Enhance/Inhibit Each Pathway
 # =============================================================================
-# Table 3 lists every pairwise Dunn's comparison one per row (28 rows for an 8-level
-# factor) -- exhaustive, but doesn't directly answer "is this category associated with
-# MORE or LESS of a pathway than most others?" This table rolls those same comparisons
-# up to one row per category, tallying how many other categories it's significantly/
-# suggestively higher or lower than, while keeping the underlying Z/p/ph for each
-# comparison visible (not just a verdict label) so the rollup can be checked against
-# Table 3 directly.
 cat("\n=== TABLE 6: Category Rollup ===\n")
 
-# Category-level n, median, and range, one row per response x grouping-factor x
-# category, so every category appears even if it has zero significant/near-significant
-# pairs.
 category_stats <- function(value_vec, group_vec, resp_name, group_name) {
   data.frame(value = value_vec, category = group_vec) %>%
     filter(!is.na(value), !is.na(category)) %>%
@@ -682,10 +666,6 @@ group_stats_6 <- bind_rows(
   category_stats(df_final$Internal.Contrib,         df_final$Source_Water_Brief,    "Internal Contribution %", "Source water")
 )
 
-# Unfold each pairwise comparison (already computed as posthoc_3, above) into two
-# per-category rows (one from each side), classify each into a confirmed (p_BH < 0.05)
-# or suggestive (p_raw < 0.05 only) tier, and format a "opponent (Z=.., ph=..)" /
-# "opponent (Z=.., p=..)~" string for each.
 fmt_pair <- function(opponent, Z, p_raw, p_BH, tier) {
   if (tier == "confirmed") sprintf("%s (Z=%.2f, ph=%.3f)", opponent, Z, p_BH)
   else                     sprintf("%s (Z=%.2f, p=%.3f)~", opponent, Z, p_raw)
@@ -763,18 +743,32 @@ tbl_6_data$Verdict <- with(tbl_6_data, case_when(
   TRUE ~ "No signal"
 ))
 
-# Order rows within each Pathway x Grouping factor block by median value, highest
-# first -- this directly reflects the raw data (highest pathway magnitude / internal
-# contribution at top, lowest at bottom) rather than the verdict tier.
+# Ordinal scale from most enhancing to most inhibiting, "No signal" in the middle,
+# so rows can be sorted by verdict tier rather than raw median.
+verdict_levels <- c(
+  "Enhancing",
+  "Suggestive enhancing (not BH-confirmed)",
+  "Mixed (confirmed both directions)",
+  "Mixed (suggestive only)",
+  "No signal",
+  "Suggestive inhibiting (not BH-confirmed)",
+  "Inhibiting"
+)
+
+# Order rows within each Pathway x Grouping factor block by verdict tier, most
+# enhancing first, through No signal, to most inhibiting last; median (highest
+# first) breaks ties within a tier.
 tbl_6_data <- tbl_6_data %>%
   mutate(Response = factor(response, levels = response_levels_1),
          `Grouping factor` = group_var,
          Category = paste0(category, " (n=", n, ")"),
-         Median = sprintf("%.2f", median)) %>%
+         Median = sprintf("%.2f", median),
+         .verdict_rank = match(Verdict, verdict_levels)) %>%
   select(Response, `Grouping factor`, Category, Median, median, min, max,
          `Significantly/suggestively higher than`, `Significantly/suggestively lower than`,
-         Verdict) %>%
-  arrange(Response, `Grouping factor`, desc(median)) %>%
+         Verdict, .verdict_rank) %>%
+  arrange(Response, `Grouping factor`, .verdict_rank, desc(median)) %>%
+  select(-.verdict_rank) %>%
   mutate(Response = as.character(Response))
 
 print(tbl_6_data[, c("Response","Grouping factor","Category","median","Verdict")], n = Inf)
@@ -813,8 +807,9 @@ ft_6 <- flextable(tbl_6_data, col_keys = c("Response","Grouping factor","Categor
   add_header_lines(paste0(
     "Table 6. Category-level rollup of the Dunn's pairwise post-hoc comparisons from Table 3: ",
     "for each category, its median, which other categories it is significantly or suggestively ",
-    "higher/lower than, and the resulting verdict. Rows are ordered by median, highest to lowest, ",
-    "within each pathway x factor block."
+    "higher/lower than, and the resulting verdict. Rows are ordered by verdict, from most ",
+    "enhancing to No signal to most inhibiting (median, highest first, breaks ties within a ",
+    "verdict tier), within each pathway x factor block."
   )) %>%
   bold(part = "header", i = 1) %>%
   align(part = "header", i = 1, align = "left") %>%
@@ -826,10 +821,11 @@ ft_6 <- flextable(tbl_6_data, col_keys = c("Response","Grouping factor","Categor
     "0.05) and do not survive correction -- treat these as suggestive, not confirmed. Verdict is ",
     "based on the confirmed (non-~) comparisons only; where a category has no confirmed ",
     "comparisons but does have suggestive ones, the verdict is labeled accordingly. Categories ",
-    "with very small n (e.g. Alpine, Arid n=1; Mediterranean, Regulated flow n=2) rest on one or ",
-    "two papers regardless of verdict and should be treated as anecdotal. Glacial/snow melt ",
-    "(Source water) is entirely one paper (Rocher-Ros et al., Arctic biome) -- its comparisons ",
-    "cannot be distinguished from a single-paper or Arctic-biome effect. Shaded cells: green = ",
+    "with very small n (e.g. Arid n=1, 1 paper; Mediterranean n=2, 1 paper) rest on a single ",
+    "paper regardless of verdict and should be treated as anecdotal. Biome's 'Cryospheric Zone' ",
+    "category pools the Alpine, Boreal, and Arctic biomes (Rocher-Ros, Horgby, Taillardat, and ",
+    "Lupon et al. -- 4 papers), each individually a 1-2-paper group before pooling; its ",
+    "comparisons are no longer a single-paper effect the way each sub-biome's were. Shaded cells: green = ",
     "Verdict is BH-confirmed (Enhancing/Inhibiting/Mixed, confirmed). Suggestive-only and No ",
     "signal rows are left unshaded -- absence of shading does not mean absence of a row, see the ",
     "Higher/Lower than columns for the underlying suggestive comparisons."
@@ -842,6 +838,75 @@ conf_rows_6 <- which(tbl_6_data$Verdict %in% c("Enhancing", "Inhibiting", "Mixed
 if (length(conf_rows_6) > 0) ft_6 <- ft_6 %>% bg(i = conf_rows_6, j = 5:7, bg = SIG_COLOR, part = "body")
 
 
-# ── Save publication-ready tables ───────────────────────────────────────────────
+# =============================================================================
+# TABLE 7 — Category Counts: Sites and Papers per Biome / Source Water Category
+# =============================================================================
+cat("\n=== TABLE 7: Category Counts (Biome, Source Water) ===\n")
 
-save_as_docx(ft_1, ft_2, ft_3, ft_4, ft_5, ft_6, path = "05_Figures/Table_metaanalysis_spatiotempo.docx")
+category_counts <- function(group_vec, doi_vec, group_name) {
+  data.frame(category = as.character(group_vec), DOI = doi_vec, stringsAsFactors = FALSE) %>%
+    filter(!is.na(category)) %>%
+    group_by(category) %>%
+    summarise(n = n(), Citations = n_distinct(DOI), .groups = "drop") %>%
+    mutate(`Grouping factor` = group_name)
+}
+
+tbl_7_data <- bind_rows(
+  category_counts(df_final$Biome_Category,     df_final$DOI, "Biome"),
+  category_counts(df_final$Source_Water_Brief, df_final$DOI, "Source water")
+) %>%
+  transmute(`Grouping factor`, Category = category, n, Citations) %>%
+  arrange(factor(`Grouping factor`, levels = c("Biome", "Source water")), desc(n))
+
+print(tbl_7_data, n = Inf)
+
+ft_7 <- flextable(tbl_7_data) %>%
+  set_header_labels(`Grouping factor` = "Grouping factor", Category = "Category",
+                     n = "n", Citations = "Citations") %>%
+  merge_v(j = "Grouping factor") %>%
+  font(fontname = "Aptos", part = "all") %>%
+  fontsize(size = 9, part = "all") %>%
+  align(j = 1:2, align = "left",   part = "all") %>%
+  align(j = 3:4, align = "center", part = "all") %>%
+  bold(part = "header") %>%
+  bold(j = 1, part = "body") %>%
+  valign(j = 1, valign = "top", part = "body") %>%
+  border_remove() %>%
+  hline_top(part = "header",    border = fp_border(width = 2)) %>%
+  hline_bottom(part = "header", border = fp_border(width = 1)) %>%
+  hline_bottom(part = "body",   border = fp_border(width = 2)) %>%
+  width(j = 1, width = 1.2) %>%
+  width(j = 2, width = 2.0) %>%
+  width(j = 3, width = 0.8) %>%
+  width(j = 4, width = 0.9) %>%
+  height_all(height = 0.25) %>%
+  add_header_lines(paste0(
+    "Table 7. Number of site rows (n) and number of distinct papers/sources (Citations) ",
+    "contributing to each Biome and Source water category used in Tables 1-2/6, after ",
+    "same-river-reach collapsing (the same df_final rows tested in Tables 1-2). Rows within ",
+    "each grouping factor are ordered by n, highest to lowest."
+  )) %>%
+  bold(part = "header", i = 1) %>%
+  align(part = "header", i = 1, align = "left") %>%
+  add_footer_lines(paste0(
+    "Note. n = number of rows (sites/reaches/time-periods, after same-river-reach collapsing, ",
+    "as in Tables 1-2) assigned to that category. Citations = number of distinct papers/DOIs ",
+    "contributing at least one row to that category -- a category with n > Citations has ",
+    "multiple rows from the same paper (e.g. separate reaches or seasons), so its apparent ",
+    "sample size is not n independent studies. Shaded cells: Citations = 1, i.e. the category ",
+    "rests on a single paper regardless of n and should be treated as anecdotal (same caveat ",
+    "as noted for specific categories in the Table 6 footnote)."
+  )) %>%
+  italic(part = "footer") %>%
+  align(part = "footer", align = "left") %>%
+  fontsize(part = "footer", size = 10)
+
+low_n_papers_7 <- which(tbl_7_data$Citations == 1)
+if (length(low_n_papers_7) > 0) {
+  ft_7 <- ft_7 %>% bg(i = low_n_papers_7, j = 4, bg = NEAR_SIG_COLOR, part = "body")
+}
+
+
+# ── Save publication-ready tables ───────────────────────────────────────────────############
+
+#save_as_docx(ft_1, ft_2, ft_3, ft_4, ft_5, ft_6, ft_7, path = "05_Figures/Table_metaanalysis_spatiotempo.docx")
