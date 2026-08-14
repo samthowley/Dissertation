@@ -28,12 +28,12 @@ theme <- list(
   ),
   scale_color_manual(
     name="Pathway",
-    values = c('red', 'black'),
+    values = c('external'='#E69F00', 'internal'='#0072B2'),
     labels=c('external'='External Pathway', 'internal'='Internal Pathway')
   ),
   labs(
-    y = expression(C~g/m^2/day)
-  ) 
+    y = expression(CO[2]~Flux~(g~C~m^{-2}~day^{-1}))
+  )
 )
 
   

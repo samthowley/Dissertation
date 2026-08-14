@@ -126,19 +126,19 @@ pubs<-read_csv("01_Raw_data/int ext comparison.csv")%>%
   scale_fill_manual(name = NULL, values = c("Global estimate (Hotchkiss et al. 2015)" = "grey")) +
   
   scale_color_manual(
-    name = "Biome",
+    name = "Groundwater Regime",
     values = c(
-      "Deeper Groundwater Seepage"= "#E05C5C",
-      "Spring-fed"   = "#D4820A",
-      "Shallow Aquifer"     = "#378ADD",
-      "Lateral Seepage/Flow"  = "#8338AC"
+      "Deeper Groundwater Seepage" = "#CC79A7",
+      "Spring-fed"                 = "#D55E00",
+      "Shallow Aquifer"            = "#0072B2",
+      "Lateral Seepage/Flow"       = "#009E73"
     ),
     breaks = c(
-      "Deeper Groundwater Seepage","Lateral Seepage/Flow", "Shallow Aquifer", "Spring-fed"
+      "Deeper Groundwater Seepage", "Lateral Seepage/Flow", "Shallow Aquifer", "Spring-fed"
     ),
     na.translate = FALSE
   ) +
-  
+
   #FORMAT FIGURE###########
   labs(
     x = NULL,
@@ -146,7 +146,7 @@ pubs<-read_csv("01_Raw_data/int ext comparison.csv")%>%
   ) +
   theme_classic(base_size = 13) +
   theme(
-    axis.text.x = element_text(angle = 330, hjust = 0, vjust = 1, size=12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size=12),
     axis.text.y = element_text(size=12),
     axis.title=element_text(size=15),
     legend.position = "right"
@@ -172,15 +172,15 @@ ggplot(aes(x = discharge_m3_s)) +
                     values = c("Global Internal Pathway (Hotchkiss et al. 2015)" = "grey")) +
 
     scale_color_manual(
-      name = "Biome",
+      name = "Groundwater Regime",
       values = c(
-        "Deeper Groundwater Seepage"= "#E05C5C",
-        "Spring-fed"   = "#D4820A",
-        "Shallow Aquifer"     = "#378ADD",
-        "Lateral Seepage/Flow"  = "#8338AC"
+        "Deeper Groundwater Seepage" = "#CC79A7",
+        "Spring-fed"                 = "#D55E00",
+        "Shallow Aquifer"            = "#0072B2",
+        "Lateral Seepage/Flow"       = "#009E73"
       ),
       breaks = c(
-        "Deeper Groundwater Seepage","Lateral Seepage/Flow", "Shallow Aquifer", "Spring-fed"
+        "Deeper Groundwater Seepage", "Lateral Seepage/Flow", "Shallow Aquifer", "Spring-fed"
       ),
       na.translate = FALSE
     ) +
@@ -199,12 +199,14 @@ ggplot(aes(x = discharge_m3_s)) +
   scale_y_log10() +
   labs(
     x = expression("Discharge (m"^3~s^-1*")"),
-    y = expression(CO[2]~g/m^2/day)
+    y = expression(CO[2]~Flux~(g~C~m^{-2}~day^{-1})),
+    caption = "Hotchkiss et al. (2015) ribbon interpolated from published figure"
   ) +
-  theme_classic(base_size = 14)+
+  theme_classic(base_size = 13)+
     theme(
       axis.text = element_text(size=12),
       axis.title=element_text(size=15),
+      plot.caption = element_text(size=9, color="grey50", hjust=0),
       legend.position = "right"
     ))
 

@@ -78,10 +78,10 @@ common_list <-
 # Violin Plot#############
 (a <- int.ext.spat %>%
     ggplot(aes(x = ID, y = ext.contrib))+
-    geom_violin() +
-    geom_jitter( height = 0, alpha = 0.3,
-                colour = "black", size = 1.2) +
-    theme_minimal() +
+    geom_violin(color = '#E69F00', fill = '#E69F00', alpha = 0.3) +
+    geom_jitter( height = 0, alpha = 0.4,
+                colour = "#E69F00", size = 1.2) +
+    theme_classic() +
     labs(x = "Site", y = "External Contribution (%)")+
     # geom_rect(
     #   data = NULL,
@@ -103,10 +103,10 @@ common_list <-
 
 (b <- int.ext.spat %>%
     ggplot(aes(x = ID, y = int.contrib))+
-    geom_violin(color='red') +
-    geom_jitter( height = 0, alpha = 0.3,
-                 colour = "red", size = 1.2) +
-    theme_minimal() +
+    geom_violin(color = '#0072B2', fill = '#0072B2', alpha = 0.3) +
+    geom_jitter( height = 0, alpha = 0.4,
+                 colour = "#0072B2", size = 1.2) +
+    theme_classic() +
     labs(x = "Site", y = "Internal Contribution (%)")+
     # geom_rect(
     #   data = NULL,
@@ -162,13 +162,13 @@ common.layers<-list(
     ),
   scale_color_manual(
     name="Pathway",
-    values = c('red', 'black'),
-    labels=c('external'='External Pathway', 'internal'='Internal Pathway')
+    values = c('External'='#E69F00', 'Internal'='#0072B2'),
+    labels=c('External'='External Pathway', 'Internal'='Internal Pathway')
   ),
   scale_shape_manual(
     name="p-value",
     values=c(16,17),
-    labels=c('insignificant'='>0.005', 'significant'='<=0.005')
+    labels=c('insignificant'='p > 0.05', 'significant'='p ≤ 0.05')
   ),
   theme(
     axis.text = element_text(size = 12),
@@ -192,14 +192,14 @@ common.layers<-list(
   filter(pathway %in% c('External', "Internal"))%>%
   ggplot(aes(x=pH.avg, y=slope, color=pathway))+
   common.layers+
-  xlab('pH')+ylab(expression(beta[pH])))
+  xlab('Mean pH')+ylab(expression(beta[T]~"(Temperature Slope)")))
 
 
 b<-T.slopes%>%
   filter(pathway %in% c('External', "Internal"))%>%
   ggplot(aes(x=basin.wetland.perc, y=slope, color=pathway))+
   common.layers+
-  xlab("Wetland Cover Percent")+ylab(expression(beta['Wetland%']))
+  xlab("Wetland Cover (%)")+ylab(expression(beta[T]~"(Temperature Slope)"))
 
 temp_panels<-plot_grid(a+ theme(legend.position = "none"),b+ theme(legend.position = "none"), ncol=1)
 
@@ -222,14 +222,14 @@ temp_col<-plot_grid(temp_title, temp_panels,
     filter(pathway %in% c('External', "Internal"))%>%
     ggplot(aes(x=pH.avg, y=slope, color=pathway))+
     common.layers+
-    xlab('pH')+ylab(expression(beta[pH])))
+    xlab('Mean pH')+ylab(expression(beta[Q]~"(Discharge Slope)")))
 
 
 d<-q.slopes%>%
   filter(pathway %in% c('External', "Internal"))%>%
   ggplot(aes(x=basin.wetland.perc, y=slope, color=pathway))+
   common.layers+
-  xlab("Wetland Cover Percent")+ylab(expression(beta['Wetland%']))
+  xlab("Wetland Cover (%)")+ylab(expression(beta[Q]~"(Discharge Slope)"))
 
 q_panels<-plot_grid(c+ theme(legend.position = "none"),d+ theme(legend.position = "none"), ncol=1)
 

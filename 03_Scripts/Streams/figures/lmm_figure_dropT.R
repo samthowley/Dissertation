@@ -12,7 +12,7 @@ library(ggrepel)
 
 # ── Shared color / theme constants (edit once, applies to all options) ─────────
 COL_FULL <- "#2C2C2C"      # full model  — near-black
-COL_DROP <- "#4A90D9"      # drop model  — muted coral  (swap to "#4A90D9" for blue)
+COL_DROP <- "#0072B2"      # drop model  — Wong blue (colorblind-safe)
 SZ_PT    <- 3              # point size
 SZ_ERR   <- 0.4            # error bar line width
 SITE_LEVELS <- c("3","5","5a","6","7","9","13","15")
@@ -117,7 +117,7 @@ wide <- full_T %>%
   )
 
 
-COL_BOTH <- "red"    # muted slate — distinct from coral but not competing
+COL_BOTH <- "#CC79A7"  # Wong reddish-purple — colorblind-safe, distinct from blue
 
 A_colors <- c("Full (Q + T)"     = COL_FULL,
               "Drop T (pathway)" = COL_DROP,
