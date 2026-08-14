@@ -9,38 +9,22 @@ pH.avg<-pH%>%
 SpC.avg<-SpC%>%
   group_by(ID)%>%summarise(SpC.avg=round(mean(SpC, na.rm=T), 2))
 
-Q.avg<-discharge%>%
-  left_join(basin_area)%>%
-  mutate(
-    Q=Q/10^3,
-    q=Q/Shape_Area)%>%
-  group_by(ID)%>%
-  summarise(
-    Q.avg=round(mean(Q, na.rm=T),2),
-    q.avg=mean(q, na.rm=T))
+flashiness <- read_csv("04_Output/stream/flashiness.csv")%>%
+  select(-n_days)
 
 wetland_perc <- read_csv("01_Raw_data/wetland cover/wetland.perc.csv")
+
+NEP<- read_csv("04_Output/stream/gw_corrected_metabolism.csv")%>%
+  group_by(ID)%>%
+  summarise(NEP=mean(NEP_corrected, na.rm=T))
 
 T.avg<-temperature%>%
   group_by(ID)%>%summarise(T.avg=round(mean(TempC, na.rm=T), 2))
 
-int.ext.spat<-int.ext%>% left_join(pH.avg)%>%left_join(SpC.avg)%>%
-  left_join(Q.avg)%>%left_join(wetland_perc)%>%left_join(T.avg)%>%
-  left_join(basin_area, by='ID')%>%left_join(O2_CO2_fluxes, by='ID')%>%
-  mutate(
-    int.contrib=round(
-      (internal/CO2_flux)*100,2),
-    ext.contrib=round(
-      (external/CO2_flux)*100,2),
-    q=Q/10^3/Shape_Area)%>%
-  filter(int.contrib<=100, ext.contrib<=100)
 
-
-O2_CO2_fluxes <- read_csv("04_Output/O2.CO2.fluxes.csv")%>%
+DOC <- read_csv("02_Clean_data/allC_stream.csv")%>%
   group_by(ID)%>%
-  summarise(
-    RQ=round(mean(CO2_flux/O2_flux, na.rm=T), 2)
-  )
+  summarise(DOC=mean(DOC, na.rm=T))
 
 int.ext.avg<-int.ext.spat%>%
   group_by(ID)%>%
@@ -50,11 +34,19 @@ int.ext.avg<-int.ext.spat%>%
     int.contrib=mean(int.contrib, na.rm=T),
     ext.contrib=mean(ext.contrib, na.rm=T),
   )%>% 
-  left_join(pH.avg)%>%left_join(SpC.avg)%>%
-  left_join(Q.avg)%>%left_join(wetland_perc)%>%left_join(T.avg)%>%
-  left_join(O2_CO2_fluxes, by='ID')
+  left_join(pH.avg)%>%
+  left_join(SpC.avg)%>%
+  left_join(flashiness)%>%
+  left_join(NEP)%>%
+  left_join(wetland_perc)%>%
+  left_join(T.avg)%>%
+  left_join(basin_area, by='ID')%>%
+  left_join(flashiness)%>%
+  left_join(DOC)
 
+power_slopes <- read_csv("04_Output/stream/power_slopes.csv")%>%left_join(int.ext.avg)
 
+<<<<<<< HEAD
 temp_slopes <- read_csv("04_Output/stream/temp_slopes.csv")
 Q_slopes <- read_csv("04_Output/stream/Q_slopes.csv")
 q_slopes <- read_csv("04_Output/stream/q_slopes.csv")
@@ -149,6 +141,8 @@ panels <- plot_grid(a, b,
 
 
 ##comparing q, Q, and T slopes with wetland and pH############
+=======
+>>>>>>> b6b9bca21e392b13befb50799ef03426b66abe1e
 common.layers<-list(
   geom_point(size=4, aes(shape=significance)),
     geom_hline(yintercept = 0),
@@ -158,7 +152,7 @@ common.layers<-list(
     stat_poly_eq(
       aes(label = paste(..p.value.label..,  sep = " ~~ ")),
       formula = y ~ x, parse = TRUE,
-      size = 4, label.x = "right", label.y = "top", vstep = 0.05
+      size = 4, label.x = "right", label.y = "top", vstep = 0.09
     ),
   scale_color_manual(
     name="Pathway",
@@ -188,8 +182,10 @@ common.layers<-list(
   )
 
 
-(a<-T.slopes%>%
+
+power_slopes<-power_slopes%>%
   filter(pathway %in% c('External', "Internal"))%>%
+<<<<<<< HEAD
   ggplot(aes(x=pH.avg, y=slope, color=pathway))+
   common.layers+
   xlab('Mean pH')+ylab(expression(beta[T]~"(Temperature Slope)")))
@@ -255,4 +251,33 @@ legend <- get_legend(a)
 plot_grid(temp_col, q_col, legend,
                    ncol = 3,
                    rel_widths = c(1, 1, 0.2))
+=======
+  rename(`Mean pH`=pH.avg, 
+         `Wetland Percent Cover`=basin.wetland.perc,
+         `Specific Conductance (µS/cm)`=SpC.avg,
+         `R-B Index`=RB_index,
+         `CV of Daily Flows`=CV
+         )%>%
+  pivot_longer(
+    cols = c('Mean pH', 
+             'Wetland Percent Cover', 
+             "Specific Conductance (µS/cm)",
+             "R-B Index", 
+             "NEP",
+             "CV of Daily Flows", 'DOC'),
+    values_to = "metric",
+    names_to='indep'
+  ) 
+
+
+power_slopes %>%
+  filter(indep=="DOC")%>%
+  ggplot(aes(x = metric, y = b, color = pathway)) +
+  common.layers +
+  ylab(expression(beta)) +
+  facet_wrap(~ driver + indep, scales = 'free', ncol=2)+
+  theme(axis.title.x = element_blank())
+
+names(power_slopes)
+>>>>>>> b6b9bca21e392b13befb50799ef03426b66abe1e
 

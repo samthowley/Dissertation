@@ -104,7 +104,7 @@ DG_rC<-left_join(DG, depth, by=c('ID', 'day'))%>%
   select(Date, ID, Q, u_mean, m_0, m_1, depth)
 
 DG_rC<- DG_rC %>% mutate(logQ=log10(Q),logh=log10(depth)) %>%
-  filter(!ID %in% c('14', '6.3', '9.2'))
+  filter(!ID %in% c('14', '6.3', '9.2', '5.4'))
 
 split<-DG_rC %>% split(DG_rC$ID)
 write.xlsx(split, file = '04_Output/rC_DG.xlsx')

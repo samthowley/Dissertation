@@ -5,8 +5,6 @@ library(officer)
 # ── FIX THE SUMMARY TABLE FIRST ──────────────────────────────────────────────
 range(int.ext$Date, na.rm=T)
 
-DOC<-DOC%>%select(ID, day, DOC)
-
 velocity <- read_csv("02_Clean_data/velocity.csv")%>%
   mutate(day=as.Date(Date))%>%
   group_by(ID, day) %>%
@@ -28,13 +26,19 @@ master_metabolism <- read_csv("04_Output/stream/master_metabolism.csv")%>%
 
 n_days <- int.ext %>% left_join(pH) %>% left_join(SpC) %>%
   left_join(master_metabolism) %>%
-  left_join(velocity) %>% left_join(DO.avg) %>% left_join(DOC) %>%
+  left_join(velocity) %>% left_join(DO.avg) %>%
   group_by(ID) %>%
   summarise(n_days = as.character(n_distinct(day[!is.na(Q) | !is.na(CO2_flux) | !is.na(GPP)])))
 
 n_days_row <- n_days %>%
   pivot_wider(names_from = ID, values_from = n_days) %>%
   mutate(Variable = "Number of days")
+
+rb_by_site <- int.ext %>%
+  filter(!is.na(Q)) %>%
+  arrange(ID, Date) %>%
+  group_by(ID) %>%
+  summarise(RB = round(sum(abs(diff(Q))) / sum(Q), 3), .groups = "drop")
 
 
 wetland_perc <- read_csv("01_Raw_data/wetland cover/wetland.perc.csv")%>%
@@ -49,7 +53,7 @@ wetland_perc <- read_csv("01_Raw_data/wetland cover/wetland.perc.csv")%>%
 
 tbl.summary.means <- int.ext %>% left_join(pH) %>% left_join(SpC) %>%
   left_join(master_metabolism) %>%
-  left_join(velocity) %>% left_join(DO.avg) %>%left_join(DOC)%>%
+  left_join(velocity) %>% left_join(DO.avg)%>%
   group_by(ID) %>%
   summarise(
     meanQ    = round(mean(Q, na.rm=T), 1),
@@ -66,12 +70,12 @@ tbl.summary.means <- int.ext %>% left_join(pH) %>% left_join(SpC) %>%
     external = round(mean(external, na.rm=T), 2),
     GPP      = round(mean(GPP, na.rm=T), 2),
     ER       = round(mean(ER, na.rm=T), 2),
-    DOC       = round(mean(DOC, na.rm=T), 2)
-  )
+  ) %>%
+  left_join(rb_by_site, by = "ID")
 
 tbl.summary.sd <- int.ext %>% left_join(pH) %>% left_join(SpC) %>%
   left_join(master_metabolism) %>%
-  left_join(velocity) %>% left_join(DO.avg) %>%left_join(DOC)%>%
+  left_join(velocity) %>% left_join(DO.avg)%>%
   group_by(ID) %>%
   summarise(
     sd.Q        = round(sd(Q, na.rm=T), 1),
@@ -88,8 +92,6 @@ tbl.summary.sd <- int.ext %>% left_join(pH) %>% left_join(SpC) %>%
     sd.external = round(sd(external, na.rm=T), 2),
     sd.GPP      = round(sd(GPP, na.rm=T), 2),
     sd.ER       = round(sd(ER, na.rm=T), 2),
-    sd.DOC       = round(sd(DOC, na.rm=T), 2)
-    
   )
 
 table.summary <- left_join(tbl.summary.means, tbl.summary.sd) %>%
@@ -102,15 +104,15 @@ table.summary <- left_join(tbl.summary.means, tbl.summary.sd) %>%
     Temp     = paste(Temp, "\u00B1", sd.Temp),
     SpC      = paste(SpC, "\u00B1", sd.SpC),
     pH       = paste(pH, "\u00B1", sd.pH),
-    DOC       = paste(DOC, "\u00B1", sd.DOC),
     pCO2     = paste(pCO2, "\u00B1", sd.pCO2),
     CO2_flux = paste(CO2_flux, "\u00B1", sd.CO2_flux),
     internal = paste(internal, "\u00B1", sd.internal),
     external = paste(external, "\u00B1", sd.external),
     GPP      = paste(GPP, "\u00B1", sd.GPP),
-    ER       = paste(ER, "\u00B1", sd.ER)
+    ER       = paste(ER, "\u00B1", sd.ER),
+    RB       = as.character(RB)
   ) %>%
-  select(ID, Q, medQ, velocity, depth, K600, Temp, SpC, pH, DOC, pCO2,
+  select(ID, Q, medQ, RB, velocity, depth, K600, Temp, SpC, pH, pCO2,
          CO2_flux, GPP, ER, internal, external)
 
 # ── PIVOT: sites as columns, variables as rows ────────────────────────────────
@@ -118,13 +120,13 @@ table.summary <- left_join(tbl.summary.means, tbl.summary.sd) %>%
 var_labels <- c(
   Q        = "Mean discharge (L s\u207B\u00B9)",
   medQ     = "Median discharge (L s\u207B\u00B9)",
+  RB       = "RB Index",
   velocity = "Velocity (m s\u207B\u00B9)",
   depth    = "Depth (m)",
   K600     = "k\u2086\u2080\u2080 (day\u207B\u00B9)",
   Temp     = "Water temp. (\u00B0C)",
   SpC      = "Specific conductivity (\u03BCS cm\u207B\u00B9)",
   pH       = "pH",
-  DOC = "DOC (mg L\u207B\u00B9)",
   pCO2     = "pCO\u2082 (ppm)",
   CO2_flux = "CO\u2082 flux (g C m\u207B\u00B2 day\u207B\u00B9)",
   GPP      = "GPP (g O\u2082 m\u207B\u00B2 day\u207B\u00B9)",
@@ -140,13 +142,13 @@ table_long <- table.summary %>%
   mutate(Variable = case_match(Variable,
                                "Q"        ~ "Mean discharge (L s\u207B\u00B9)",
                                "medQ"     ~ "Median discharge (L s\u207B\u00B9)",
+                               "RB"       ~ "RB Index",
                                "velocity" ~ "Velocity (m s\u207B\u00B9)",
                                "depth"    ~ "Depth (m)",
                                "K600"     ~ "k\u2086\u2080\u2080 (day\u207B\u00B9)",
                                "Temp"     ~ "Water temp. (\u00B0C)",
                                "SpC"      ~ "Specific conductivity (\u03BCS cm\u207B\u00B9)",
                                "pH"       ~ "pH",
-                               "DOC" ~ "DOC (mg L\u207B\u00B9)",
                                "pCO2"     ~ "pCO\u2082 (ppm)",
                                "CO2_flux" ~ "CO\u2082 flux (g C m\u207B\u00B2 day\u207B\u00B9)",
                                "GPP"      ~ "GPP (g O\u2082 m\u207B\u00B2 day\u207B\u00B9)",
@@ -162,7 +164,7 @@ table_long <- table.summary %>%
 
 table_long <- bind_rows(table_long, wetland_perc,n_days_row)
 
-
+n_sites <- ncol(table_long) - 1   # all columns except "Variable"
 
 # ── BUILD FLEXTABLE ───────────────────────────────────────────────────────────
 

@@ -58,6 +58,11 @@ master<-master[, c("Date","Temp_PT","depth","ID","Water_press")]
 range(master$Date)
 write_csv(master, "02_Clean_data/depth.csv")
 
+
+write_csv(master%>%filter(ID=='5a'),"5a_depth.csv")
+
+ggplot(master%>%filter(ID=='5a'), aes(x=Date)) + geom_line(aes(y=depth))+facet_wrap(~ ID, ncol=5)+
+  geom_hline(yintercept = 0)+ggtitle("Post- James")
 ###########
 
 #Compile PT##########
