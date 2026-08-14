@@ -44,10 +44,6 @@ fit_family <- function(d, min_n = 15) {
   aic_tbl <- tibble(model = names(mods), AIC = map_dbl(mods, AIC), n = nrow(d)) %>%
     mutate(delta_AIC = round(AIC - min(AIC), 2))
 
-  # Standardized beta = raw slope x SD(predictor) / SD(response). Puts TempC
-  # (deg C) and log10Q (log10 discharge) on the same "SD of response per SD
-  # of predictor" scale, so |std_estimate| is directly comparable across
-  # predictors — the raw coefficients are NOT (different natural units).
   sd_resp   <- sd(d$resp)
   sd_temp   <- sd(d$TempC)
   sd_log10Q <- sd(d$log10Q)
@@ -80,9 +76,21 @@ build_response <- function(response_name) {
     mutate(site = as.character(ID)) %>%
     filter(Q > 0)
 
-  if (response_name == "ratio") {
-    d <- d %>% filter(internal > 0, external > 0) %>%
-      mutate(resp = log10(internal / external))
+  if (response_name == "pct_internal") {
+    # Internal pathway's % contribution to total CO2 flux (matches
+    # "chimney  pathway.R" lines 82-88: 100*internal/CO2_flux, clamped at
+    # the upper bound only). Replaces log10(internal/external): that ratio
+    # is undefined whenever internal or external <= 0, so it silently drops
+    # any day where the internal pathway goes net-uptake (e.g. NEP >= 0)
+    # once those days are present in int.ext — this metric doesn't require
+    # internal/external to be positive, so no equivalent filter is applied
+    # here. Not log-transformed (unlike the flux responses): it's already a
+    # bounded percentage, not a multi-order-of-magnitude flux.
+    d <- d %>% filter(is.finite(internal), is.finite(CO2_flux), CO2_flux != 0) %>%
+      mutate(
+        resp = 100 * internal / CO2_flux,
+        resp = if_else(resp > 100, 100, resp)
+      )
   } else {
     d <- d %>% filter(.data[[response_name]] > 0) %>%
       mutate(resp = log10(.data[[response_name]]))
@@ -100,15 +108,15 @@ build_response <- function(response_name) {
   )
 }
 
-responses <- c("CO2_flux", "internal", "external", "ratio")
+responses <- c("CO2_flux", "internal", "external", "pct_internal")
 results <- map(responses, build_response)
 names(results) <- responses
 
 response_labels <- c(
-  CO2_flux = "log10(Total CO2 Flux)",
-  internal = "log10(Internal CO2 Flux)",
-  external = "log10(External CO2 Flux)",
-  ratio    = "log10(Internal:External Ratio)"
+  CO2_flux     = "log10(Total CO2 Flux)",
+  internal     = "log10(Internal CO2 Flux)",
+  external     = "log10(External CO2 Flux)",
+  pct_internal = "Internal Contribution (%)"
 )
 
 sig_summary <- function(resp_name, term_name) {
@@ -142,8 +150,8 @@ cat("\n--- Internal only: log10(internal) vs. log10(Q) ---\n")
 print(as.data.frame(sig_summary("internal", "log10Q")))
 cat("\n--- External only: log10(external) vs. log10(Q) ---\n")
 print(as.data.frame(sig_summary("external", "log10Q")))
-cat("\n--- Predominance: log10(internal/external) vs. log10(Q) ---\n")
-print(as.data.frame(sig_summary("ratio", "log10Q")))
+cat("\n--- Internal Contribution %: internal/CO2_flux vs. log10(Q) ---\n")
+print(as.data.frame(sig_summary("pct_internal", "log10Q")))
 
 # Pathway comparison (paired by site) for discharge
 q_int <- results$internal$effects %>% filter(model == "Drop T", term == "log10Q") %>%
@@ -167,8 +175,8 @@ cat("\n--- Internal only: log10(internal) vs. TempC ---\n")
 print(as.data.frame(sig_summary("internal", "TempC")))
 cat("\n--- External only: log10(external) vs. TempC ---\n")
 print(as.data.frame(sig_summary("external", "TempC")))
-cat("\n--- Predominance: log10(internal/external) vs. TempC ---\n")
-print(as.data.frame(sig_summary("ratio", "TempC")))
+cat("\n--- Internal Contribution %: internal/CO2_flux vs. TempC ---\n")
+print(as.data.frame(sig_summary("pct_internal", "TempC")))
 
 t_int <- results$internal$effects %>% filter(model == "Drop Q", term == "TempC") %>%
   select(site, estimate, p.value) %>% rename(est_internal = estimate, p_internal = p.value)
@@ -535,9 +543,6 @@ combined_table <- supplement_table %>%
   left_join(aic_all_tbl, by = c("Response", "site")) %>%
   mutate(
     Response  = factor(Response, levels = response_order),
-    # Standard AIC rule of thumb (Burnham & Anderson 2002): |delta_AIC| >= 2
-    # indicates meaningful support for the better-fitting model; below that,
-    # the two models are considered indistinguishable.
     AIC_Sig   = ifelse(abs(delta_AIC) >= 2,
                         paste0("Yes (", ifelse(delta_AIC > 0, "Interaction", "No Interaction"), ")"),
                         "No")
@@ -547,21 +552,16 @@ combined_table <- supplement_table %>%
   select(Response, Site, TempC, log10Q, Sign_Match, Interaction,
          AIC_No_Interaction, AIC_Interaction, delta_AIC, AIC_Sig)
 
-# Row counts per Response block, used below to draw a divider line between
-# blocks; then strip the "log10(...)" wrapper from Response since it now
-# lives in the column header instead ("Response (log10)").
 group_bounds <- head(cumsum(as.integer(table(combined_table$Response))), -1)
 
-strip_log10 <- function(x) sub("^log10\\((.*)\\)$", "\\1", x)
 combined_table <- combined_table %>%
-  mutate(Response = factor(strip_log10(as.character(Response)),
-                           levels = strip_log10(response_order)))
+  mutate(Response = factor(as.character(Response), levels = response_order))
 
 ft4 <- flextable(combined_table) %>%
   merge_v(j = "Response") %>%
   valign(j = "Response", valign = "center", part = "body") %>%
   set_header_labels(
-    Response = "Response (log10)", Site = "Site",
+    Response = "Response", Site = "Site",
     TempC = "Temperature (b)", log10Q = "Discharge (c)",
     Sign_Match = "Sign Match", Interaction = "Interaction (b)",
     AIC_No_Interaction = "AIC: No Interaction", AIC_Interaction = "AIC: Interaction",
@@ -571,7 +571,7 @@ ft4 <- flextable(combined_table) %>%
   align(j = c("TempC", "log10Q", "Sign_Match", "Interaction",
               "AIC_No_Interaction", "AIC_Interaction", "delta_AIC", "AIC_Sig"),
         align = "center", part = "body") %>%
-  width(j = "Response", width = 1.3) %>%
+  width(j = "Response", width = 1.7) %>%
   width(j = "Site", width = 0.45) %>%
   width(j = c("TempC", "log10Q", "Interaction"), width = 0.95) %>%
   width(j = "Sign_Match", width = 0.8) %>%
@@ -602,13 +602,6 @@ ft4
 # ── Save as Word documents (paste-ready, formatting preserved) ───────────────
 # out_dir <- "C:/Dissertation/05_Figures"
 # 
-# # Both tables are wider than a portrait page fits (S2 ~9.25in of table width
-# # at 15 columns, S4 ~8.8in at 10 columns), so both are saved on a US Letter
-# # landscape section with tighter margins (usable width = 11in - 2*0.5in = 10in).
-# landscape_section <- prop_section(
-#   page_size    = page_size(width = 8.5, height = 11, orient = "landscape", unit = "in"),
-#   page_margins = page_mar(top = 0.5, bottom = 0.5, left = 0.5, right = 0.5, gutter = 0)
-# )
 # 
 # try_save <- function(ft, path) {
 #   tryCatch(

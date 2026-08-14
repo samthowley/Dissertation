@@ -29,9 +29,7 @@ master <- reduce(data, full_join, by = c("ID", 'Date'))%>%
   )
 
 
-gw_corrected <- read_csv("04_Output/stream/gw_corrected_metabolism.csv")%>%
-  filter(NEP_corrected<0)
-
+gw_corrected <- read_csv("04_Output/stream/gw_corrected_metabolism.csv")
 
 gw_corrected<-left_join(master, gw_corrected)%>%
   filter(!is.na(NEP_corrected))
@@ -71,24 +69,34 @@ pathways<-flux%>%
     internal=NEP_corrected*(-12*1.2)/32,
 
     external=abs(CO2_flux-internal),
-    int.ext.ratio=internal/external
-
     )%>%
   filter(!ID=='6a')%>%
   select(ID, Date, CO2, K600, depth, Q, TempC, CO2_flux,
-         external, internal, int.ext.ratio, NEP_corrected,
+         external, internal, NEP_corrected,
          ER_corrected)
 
-test<-pathways%>%filter(ID=='6')
-range(test$Q, na.rm=T)
+
+
+internal.contrib<-pathways%>%
+  mutate(
+    int.contrib=100*internal/CO2_flux, na.rm=T,
+    ext.contrib=100*external/CO2_flux, na.rm=T,
+    int.contrib=if_else(int.contrib>100, 100, int.contrib),
+    ext.contrib=if_else(ext.contrib>100, 100, ext.contrib),
+    int.contrib=if_else(int.contrib<0, 0, int.contrib),
+  )
+range(internal.contrib$int.contrib, na.rm=T)
+
+
+
 #ggplotly()
 
 ggplot(
-  pathways,
+  internal.contrib,
   aes(x = Q)) +
   scale_y_log10()+scale_x_log10()+
-  geom_point(aes(y = internal), color='red') +
-   geom_point(aes(y = external), color='black') +
+  geom_point(aes(y = int.contrib), color='red') +
+   geom_point(aes(y = ext.contrib), color='black') +
   # geom_point(aes(y = CO2_flux), color='purple') +
   facet_wrap(~ID, ncol = 4, scales = 'free')
 
@@ -100,11 +108,5 @@ pathways%>%
     mean=mean(external/CO2_flux, na.rm=T)
   )
 
-write_csv(pathways, "04_Output/stream/external-internal.csv")
+write_csv(internal.contrib, "04_Output/stream/external-internal.csv")
 
-test<-pathways%>%
-  mutate(
-    int.contrib=internal/CO2_flux, na.rm=T,
-    ext.contrib=external/CO2_flux, na.rm=T
-  )
-mean(test$ext.contrib)

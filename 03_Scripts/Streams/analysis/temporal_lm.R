@@ -60,6 +60,33 @@ int.ext%>%
     labels = c( "Total","External", "Internal"))+
   theme_minimal()
 
+int.ext%>%
+  pivot_longer(
+    cols      = c(int.contrib, ext.contrib),
+    names_to  = "pathway.contrib",
+    values_to = "percent"
+  )%>%
+  ggplot(
+    aes(x = Q, y = percent,
+        group = pathway.contrib, color=pathway.contrib)) +
+  geom_point() +
+  scale_y_log10()+scale_x_log10()+
+  facet_wrap(~ID, ncol = 4, scales = "free") +
+  ggtitle(expression(CO[2]~'Pathway'~'Responses'~'to'~'Discharge'))+
+  ylab('%') +
+  xlab(expression('Discharge'~'L'~s^-1))+
+  stat_poly_line(formula = y ~ x, se = FALSE)+
+  stat_poly_eq(
+    aes(label = paste(..p.value.label.., sep = " ~~ "), color=pathway.contrib,
+        group=pathway.contrib),
+    formula = y ~ x, parse = TRUE,
+    size = 4, label.x = "right", label.y = "bottom", vstep = 0.05
+  )+
+  scale_colour_manual(
+    name = "Pathway",
+    values = c( "black","red"),
+    labels = c( "External", "Internal"))+
+  theme_minimal()
 
 
 int.ext%>%
@@ -92,23 +119,50 @@ int.ext%>%
 
 
 
+int.ext%>%
+  pivot_longer(
+    cols      = c(int.contrib, ext.contrib),
+    names_to  = "pathway.contrib",
+    values_to = "percent"
+  )%>%
+  ggplot(
+    aes(x = TempC, y = percent,
+        group = pathway.contrib, color=pathway.contrib)) +
+  geom_point() +
+  scale_y_log10()+scale_x_log10()+
+  facet_wrap(~ID, ncol = 4, scales = "free") +
+  ggtitle(expression(CO[2]~'Pathway'~'Responses'~'to'~'Discharge'))+
+  ylab('%') +
+  xlab(expression("Temperature"))+
+  stat_poly_line(formula = y ~ x, se = FALSE)+
+  stat_poly_eq(
+    aes(label = paste(..p.value.label.., sep = " ~~ "), color=pathway.contrib,
+        group=pathway.contrib),
+    formula = y ~ x, parse = TRUE,
+    size = 4, label.x = "right", label.y = "bottom", vstep = 0.05
+  )+
+  scale_colour_manual(
+    name = "Pathway",
+    values = c( "black","red"),
+    labels = c( "External", "Internal"))+
+  theme_minimal()
+
+
 # =============================================================================
 # SITE x PATHWAY SUMMARY — slope and R2 for each CO2 category, per trend
 # =============================================================================
-# Two tables (discharge trend, temperature trend), sites as rows, one
-# slope/R2/p-value block per CO2 category (internal, external, CO2_flux =
-# total). Uses site_lm_table_fun() (same log-log per-site fits as Q.lm/T.lm
-# above) so predictor definitions match this script: log10(Q) for discharge,
-# log10(TempC) for temperature (NOT raw TempC — matches T.lm's convention
-# above, but differs from the raw-TempC predictor used in
-# lmm_outline_synthesis.R / gls_temporal_analysis.R).
-# best_r2_pathway = CO2 category with the highest R2 at that site.
-# largest_slope_pathway = CO2 category with the largest |slope| at that site.
 
 build_pathway_trend_table <- function(x_col_expr) {
-  cats <- c("internal", "external", "CO2_flux")
+  log_cats <- c("internal", "external", "CO2_flux")
+  pct_cat  <- "int.contrib"
+  cats     <- c(log_cats, pct_cat)
+
   fits <- map(cats, function(cat) {
-    resp_expr <- rlang::parse_expr(paste0("log10(", cat, ")"))
+    resp_expr <- if (cat %in% log_cats) {
+      rlang::parse_expr(paste0("log10(", cat, ")"))
+    } else {
+      rlang::parse_expr(cat)
+    }
     site_lm_table_fun(int.ext, !!resp_expr, ID, !!x_col_expr) %>%
       select(ID, slope, r2, p_slope) %>%
       # sig flag matches this script's own convention (Q.lm/T.lm above use
@@ -118,15 +172,15 @@ build_pathway_trend_table <- function(x_col_expr) {
   })
   tbl <- reduce(fits, left_join, by = "ID")
 
-  slope_cols <- paste0("slope_", cats)
-  r2_cols    <- paste0("r2_", cats)
+  slope_cols <- paste0("slope_", log_cats)
+  r2_cols    <- paste0("r2_", log_cats)
 
   tbl %>%
     rowwise() %>%
     mutate(
-      best_r2_pathway       = cats[which.max(c_across(all_of(r2_cols)))],
+      best_r2_pathway       = log_cats[which.max(c_across(all_of(r2_cols)))],
       best_r2_value         = max(c_across(all_of(r2_cols))),
-      largest_slope_pathway = cats[which.max(abs(c_across(all_of(slope_cols))))],
+      largest_slope_pathway = log_cats[which.max(abs(c_across(all_of(slope_cols))))],
       largest_slope_value   = c_across(all_of(slope_cols))[which.max(abs(c_across(all_of(slope_cols))))]
     ) %>%
     ungroup() %>%
@@ -137,6 +191,7 @@ build_pathway_trend_table <- function(x_col_expr) {
            slope_internal, p_slope_internal, sig_internal, r2_internal,
            slope_external, p_slope_external, sig_external, r2_external,
            slope_CO2_flux, p_slope_CO2_flux, sig_CO2_flux, r2_CO2_flux,
+           slope_int.contrib, p_slope_int.contrib, sig_int.contrib, r2_int.contrib,
            best_r2_pathway, best_r2_value, largest_slope_pathway, largest_slope_value)
 }
 
@@ -145,16 +200,16 @@ temperature_trend_table <- build_pathway_trend_table(quote(log10(TempC)))
 
 # Print wide enough that R doesn't wrap p-value/sig columns onto an invisible
 # second block (default 80-char console width was hiding them previously).
-old_width <- options(width = 200)
+old_width <- options(width = 240)
 
 cat("\n=====================================================================\n")
-cat("DISCHARGE TREND — log10(CO2 category) ~ log10(Q), per site\n")
+cat("DISCHARGE TREND — log10(CO2 category) ~ log10(Q); int.contrib (%) ~ log10(Q), per site\n")
 cat("(sig = p_slope < 0.01, matching Q.lm/T.lm's convention above)\n")
 cat("=====================================================================\n")
 print(as.data.frame(discharge_trend_table), row.names = FALSE)
 
 cat("\n=====================================================================\n")
-cat("TEMPERATURE TREND — log10(CO2 category) ~ log10(TempC), per site\n")
+cat("TEMPERATURE TREND — log10(CO2 category) ~ log10(TempC); int.contrib (%) ~ log10(TempC), per site\n")
 cat("(sig = p_slope < 0.01, matching Q.lm/T.lm's convention above)\n")
 cat("=====================================================================\n")
 print(as.data.frame(temperature_trend_table), row.names = FALSE)
@@ -162,12 +217,7 @@ print(as.data.frame(temperature_trend_table), row.names = FALSE)
 options(old_width)
 
 
-# =============================================================================
-# PUBLICATION-STYLE FLEXTABLES — same style as drop_model_table_ft.R /
-# lmm_outline_synthesis.R (Times New Roman, bold/centered header, thick
-# top/bottom rules, italic 9pt footnote). save_as_docx() left commented out
-# (not yet a manuscript-final table) — uncomment when ready.
-# =============================================================================
+
 
 style_ft <- function(ft, title, footnote) {
   ft %>%
@@ -192,14 +242,15 @@ build_trend_ft <- function(tbl, predictor_label, predictor_unit) {
   flextable(tbl) %>%
     add_header_row(
       top       = TRUE,
-      values    = c("Site", "Internal", "External", "Total CO2 Flux", "Best Fit", "Largest |Slope|"),
-      colwidths = c(1, 4, 4, 4, 2, 2)
+      values    = c("Site", "Internal", "External", "Total CO2 Flux", "Internal Contribution %", "Best Fit", "Largest |Slope|"),
+      colwidths = c(1, 4, 4, 4, 4, 2, 2)
     ) %>%
     set_header_labels(
       site = "Site",
       slope_internal = "Slope", p_slope_internal = "p", sig_internal = "Sig.", r2_internal = "R2",
       slope_external = "Slope", p_slope_external = "p", sig_external = "Sig.", r2_external = "R2",
       slope_CO2_flux = "Slope", p_slope_CO2_flux = "p", sig_CO2_flux = "Sig.", r2_CO2_flux = "R2",
+      slope_int.contrib = "Slope", p_slope_int.contrib = "p", sig_int.contrib = "Sig.", r2_int.contrib = "R2",
       best_r2_pathway = "Pathway", best_r2_value = "R2",
       largest_slope_pathway = "Pathway", largest_slope_value = "Slope"
     ) %>%
@@ -210,20 +261,23 @@ build_trend_ft <- function(tbl, predictor_label, predictor_unit) {
     align(j = setdiff(names(tbl), "site"), align = "center", part = "body") %>%
     fontsize(size = 9, part = "all") %>%
     width(j = "site", width = 0.4) %>%
-    width(j = c("slope_internal","slope_external","slope_CO2_flux",
+    width(j = c("slope_internal","slope_external","slope_CO2_flux","slope_int.contrib",
                  "largest_slope_value"), width = 0.6) %>%
-    width(j = c("p_slope_internal","p_slope_external","p_slope_CO2_flux"), width = 0.55) %>%
-    width(j = c("sig_internal","sig_external","sig_CO2_flux"), width = 0.4) %>%
-    width(j = c("r2_internal","r2_external","r2_CO2_flux","best_r2_value"), width = 0.5) %>%
+    width(j = c("p_slope_internal","p_slope_external","p_slope_CO2_flux","p_slope_int.contrib"), width = 0.55) %>%
+    width(j = c("sig_internal","sig_external","sig_CO2_flux","sig_int.contrib"), width = 0.4) %>%
+    width(j = c("r2_internal","r2_external","r2_CO2_flux","r2_int.contrib","best_r2_value"), width = 0.5) %>%
     width(j = c("best_r2_pathway","largest_slope_pathway"), width = 0.6) %>%
     style_ft(
-      paste0("Site-level ", predictor_label, " trend: log10(CO2 category) ~ log10(", predictor_unit, "), per pathway."),
+      paste0("Site-level ", predictor_label, " trend: CO2 flux categories (log10) and internal contribution % (untransformed) vs. log10(", predictor_unit, "), per pathway."),
       paste0(
-        "Note. Slope, p-value, and R2 from independent per-site, per-pathway log-log linear regressions ",
-        "(site_lm_table_fun(), matching Q.lm/T.lm above); Total CO2 Flux = internal + external. Sig. = 'Y' if p < 0.01 ",
-        "(this script's own threshold, distinct from the 0.05 threshold used in lmm_outline_synthesis.R / ",
-        "gls_temporal_analysis.R). Best Fit = pathway with the highest R2 at that site. Largest |Slope| = pathway with ",
-        "the largest-magnitude slope at that site, signed."
+        "Note. Internal/External/Total CO2 Flux: slope, p-value, and R2 from independent per-site, per-pathway log-log linear regressions ",
+        "(site_lm_table_fun(), matching Q.lm/T.lm above); Total CO2 Flux = internal + external. Internal Contribution % = 100 x internal/CO2_flux ",
+        "(clamped at 100; see \"chimney  pathway.R\"), analyzed on its natural percentage scale rather than log-transformed, so its slope is in ",
+        "percentage points and is NOT directly comparable in magnitude to the log10-flux slopes for the other three categories — its R2 and ",
+        "significance ARE comparable, since both are scale-invariant. Sig. = 'Y' if p < 0.01 (this script's own threshold, distinct from the 0.05 ",
+        "threshold used in lmm_outline_synthesis.R / gls_temporal_analysis.R). Best Fit and Largest |Slope| compare only the three log10-flux ",
+        "categories (Internal, External, Total), since Internal Contribution %'s slope units differ; see its own Slope/R2 columns for its ",
+        "individual strength."
       )
     )
 }
