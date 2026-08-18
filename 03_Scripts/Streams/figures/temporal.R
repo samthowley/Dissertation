@@ -1,123 +1,67 @@
-source("03_Scripts/Streams/analysis/data for analysis.R")
+int.ext <- read_csv("04_Output/stream/external-internal.csv")
 
-
-# --- Discharge plot ---
-disc_long <- int.ext %>%
-  pivot_longer(cols = c('external', 'internal'), names_to = "pathway", values_to = "flux")
-
-disc_stats <- disc_long %>%
-  filter(!is.na(Q), !is.na(flux), flux > 0, Q > 0) %>%
-  group_by(ID, pathway) %>%
-  summarise(
-    slope = coef(lm(log10(flux) ~ log10(Q / 1000)))[2],
-    r2    = summary(lm(log10(flux) ~ log10(Q / 1000)))$r.squared,
-    .groups = "drop"
-  ) %>%
-  mutate(
-    label = paste0("β=", round(slope, 3), ", R²=", round(r2, 3)),
-    npcy  = ifelse(pathway == "external", 0.10, 0.03)
-  )
-
-
-temperature <- temperature %>% mutate(day=as.Date(Date)) %>%
-  group_by(ID, day) %>%
-  summarise(
-    TempC=mean(TempC, na.rm=T)
-  )
-
-# --- Temperature plot ---
-temp_long <- int.ext %>% left_join(temperature) %>%
-  pivot_longer(cols = c('external', 'internal'), names_to = "pathway", values_to = "flux")
-
-temp_stats <- temp_long %>%
-  filter(!is.na(TempC), !is.na(flux), flux > 0) %>%
-  group_by(ID, pathway) %>%
-  summarise(
-    slope = coef(lm(log10(flux) ~ TempC))[2],
-    r2    = summary(lm(log10(flux) ~ TempC))$r.squared,
-    .groups = "drop"
-  ) %>%
-  mutate(
-    label = paste0("β=", round(slope, 3), ", R²=", round(r2, 3)),
-    npcy  = ifelse(pathway == "external", 0.10, 0.03)
-  )
+temp_Q<-int.ext%>%
+  pivot_longer(
+    cols      = c(internal, external),
+    names_to  = "pathway",
+    values_to = "flux"
+  )%>%
+  filter(!ID %in% c('13', '5a'))%>%
+  ggplot(
+    aes(x = Q, y = flux,
+        group = pathway, color=pathway)) +
+  geom_point() +
+  scale_y_log10()+scale_x_log10()+
+  facet_wrap(~ID,scales = "free") +
+  ggtitle(expression(CO[2]~'Pathway'~'Responses'~'to'~'Temporal Fluctuations in Discharge'))+
+  ylab(expression(C~'g'/m^2/'day')) +
+  xlab(expression('Discharge'~'L'~s^-1))+
+  stat_poly_line(formula = y ~ x, se = FALSE)+
+  stat_poly_eq(
+    aes(label = paste(..p.value.label.., sep = " ~~ "), color=pathway,
+        group=pathway),
+    formula = y ~ x, parse = TRUE,
+    size = 4, label.x = "right", label.y = "bottom", vstep = 0.05
+  )+
+  scale_colour_manual(
+    name = "Pathway",
+    values = col,
+    labels = c( "Total","External", "Internal"))+
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5))
+  
 
 
 
-#Figures########
-
-theme <- list(
-  theme_minimal(),
-  scale_y_log10(),
-  geom_point(),
-  stat_poly_line(formula = y ~ x, se = FALSE),
-  theme(
-    axis.text = element_text(size = 10),
-    axis.title = element_text(size = 13),
-    legend.position = "bottom",
-    plot.title = element_text(hjust = 0.5, size=13),
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 12),
-    panel.grid = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA)
-  ),
-  scale_color_manual(
-    name="Pathway",
-<<<<<<< HEAD
-    values = c('external'='#E69F00', 'internal'='#0072B2'),
-    labels=c('external'='External Pathway', 'internal'='Internal Pathway')
-  ),
-  labs(
-    y = expression(CO[2]~Flux~(g~C~m^{-2}~day^{-1}))
-=======
-    values = c('black','red'),
-    labels=c('external'='External Pathway', 'internal'='Internal Pathway')
-  ),
-  labs(
-    y = expression(C~g/m^2/day)
->>>>>>> b6b9bca21e392b13befb50799ef03426b66abe1e
-  )
-)
 
 
-a<-disc_long %>%
-  filter(flux>0.5)%>%
-  ggplot(aes(x=Q/10^3, y=flux, color=pathway))+
-  theme + scale_x_log10() +
-  ggtitle(expression(Discharge-CO[2]~Flux~Relationship))+
-  xlab(expression(Discharge~m^3~s^-1))+
-  facet_wrap(~ID, scales='free') +
-  geom_text_npc(
-    data = disc_stats,
-    aes(npcx = 0.98, npcy = npcy, label = label, color = pathway),
-    inherit.aes = FALSE, hjust = 1, size = 3.5
-  )
+temp_temperature<-int.ext%>%
+  pivot_longer(
+    cols      = c(internal, external),
+    names_to  = "pathway",
+    values_to = "flux"
+  )%>%  filter(!ID %in% c('13', '5a'))%>%
+  ggplot(
+    aes(x = TempC, y = flux,
+        group = pathway, color=pathway)) +
+  geom_point() +
+  scale_y_log10()+
+  facet_wrap(~ID, scales = "free") +
+  ggtitle(expression(CO[2]~'Pathway'~'Responses'~'to'~'Temporal Fluctuations in Temperature'))+
+  ylab(expression(C~'g'/m^2/'day')) +
+  xlab(expression("Temperature"))+
+  stat_poly_line(formula = y ~ x, se = FALSE)+
+  stat_poly_eq(
+    aes(label = paste(..p.value.label.., sep = " ~~ "), color=pathway,
+        group=pathway),
+    formula = y ~ x, parse = TRUE,
+    size = 4, label.x = "right", label.y = "bottom", vstep = 0.05
+  )+
+  scale_colour_manual(
+    name = "Pathway",
+    values = col,
+    labels = c( "Total","External", "Internal"))+
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5))
 
 
-b<-temp_long %>%
-  filter(flux>0.5)%>%
-  ggplot(aes(x = TempC, y = flux, color = pathway)) +
-  theme +
-  ggtitle(expression(Temperature-CO[2]~Flux~Relationship)) +
-  xlab(expression(Temperature~degree*C))+
-  facet_wrap(~ID, scales='free') +
-  geom_text_npc(
-    data = temp_stats,
-    aes(npcx = 0.98, npcy = npcy, label = label, color = pathway),
-    inherit.aes = FALSE, hjust = 1, size = 3.5
-  )
-
-
-legend_right <- get_legend(b)
-
-
-pA_left_noleg  <- a  + theme(legend.position = "none")
-pA_right_noleg <- b + theme(legend.position = "none")
-
-
-panels<-plot_grid(pA_left_noleg,pA_right_noleg, ncol=2, align = 'h')
-
-
-(figA <- plot_grid(panels, legend_left,
-                   nrow = 2,
-                   rel_heights = c(1, 0.1)))

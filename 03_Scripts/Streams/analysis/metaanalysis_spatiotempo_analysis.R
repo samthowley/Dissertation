@@ -6,7 +6,7 @@ library(pwr)           # post-hoc power for the Spearman/KW tests
 library(flextable)
 library(officer)
 
-# ── Data preparation ──────────────────────────────────────────────────────────
+# ── Data preparation ──────────────────────────────────────────────────────────###########
 
 meta <- read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv", show_col_types = FALSE)%>%
   select(1:4, 6:11, 14, 17:18)%>%
@@ -895,5 +895,5 @@ if (length(low_n_papers_7) > 0) {
 
 # ── Save publication-ready tables ───────────────────────────────────────────────############
 
-#save_as_docx(ft_1, ft_2, ft_3, ft_4, ft_5, ft_6, ft_7, path = "05_Figures/Table_metaanalysis_spatiotempo.docx")
+save_as_docx(ft_1, ft_2, ft_3, ft_4, ft_5, ft_6, ft_7, path = "05_Figures/Table_metaanalysis_spatiotempo.docx")
 

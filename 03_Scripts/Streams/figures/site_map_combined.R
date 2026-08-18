@@ -1,13 +1,4 @@
 
-# Combines the meta-analysis site map with the internal-pathway-contribution
-# figure (p_violin_meta) into one figure. Citation colors are shared between
-# the map and the box-plot panels (citation_palette.R), and the Hotchkiss et
-# al. (2015) reference uses matching fill/outline everywhere (see the
-# geom_rect/geom_polygon calls in meta analysis.R / site_map.R) -- so one
-# Citation legend, run along the bottom, honestly covers the whole figure.
-# The map keeps its own map-specific keys (dot-size = reaches/time-periods,
-# and the Hotchkiss swatch) attached alongside it instead of in that strip.
-
 source("03_Scripts/Streams/figures/meta analysis.R")
 source("03_Scripts/Streams/figures/site_map.R")
 
@@ -74,3 +65,10 @@ map_row <- plot_grid(
   rel_heights = c(0.05, 0.55, 0.65, 0.18)
 ) +
   theme(plot.background = element_rect(fill = "white", color = NA)))
+
+ggsave(
+  "05_Figures/Figure_MetaAnalysis_SiteMap_InternalPathway.jpg",
+  plot = p_map_violin_combined,
+  width = 15, height = 12.5, units = "in", dpi = 300
+)
+

@@ -81,6 +81,14 @@ int.ext.summary<-left_join(int.ext, pH)%>%
     Source="Shallow Aquifer",
     Source=if_else(Site==13, "Deeper Groundwater Seepage", Source),
     Source=if_else(Site==5, "Mixed", Source),
+    # Standardized Source_Water_Brief category (same convention as
+    # data for analysis.R / the stats pipeline): default Wetland seepage,
+    # sites 5 & 13 overridden to Mixed. "Source" above is a separate, more
+    # granular local groundwater-regime label used only for this script's
+    # own x_label; Source_Water_Brief is what the rest of the project uses.
+    Source_Water_Brief="Wetland seepage",
+    Source_Water_Brief=if_else(Site==13, "Mixed", Source_Water_Brief),
+    Source_Water_Brief=if_else(Site==5, "Mixed", Source_Water_Brief),
     # No rain-gauge record for this site; estimated from the Results narrative:
     # wet season (Jun-Sep) ~150-200 mm/mo (mid 175) = 700 mm, remaining 8 mo
     # ~50-75 mm/mo (mid 62.5) = 500 mm -> ~1200 mm = 120 cm/yr, applied to all sites.
@@ -91,7 +99,7 @@ int.ext.summary<-left_join(int.ext, pH)%>%
 
 pubs<-read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv")%>%
   select(Citation, Location, Biome, Source, Discharge_m3s, CO2_flux_gCm2day, Internal_Pathway_gCm2day, External_Pathway_gCm2day,
-         pH, Temperature_C, Mean_Annual_Precipitation_cm_yr)%>%
+         pH, Temperature_C, Mean_Annual_Precipitation_cm_yr, Source_Water_Brief)%>%
   rename(
     discharge_m3_s = Discharge_m3s,
     CO2flux.mn = CO2_flux_gCm2day,
@@ -244,12 +252,28 @@ citation_legend <- get_legend(
 )
 
 # Flat 3-panel grid — align="hv" locks all plot areas to the same height
-panels <- plot_grid(
+panels_flat <- plot_grid(
   p_violin    + theme(legend.position = "none"),
   p_box_lit   + theme(legend.position = "none"),
   p_box_sites + theme(legend.position = "none"),
   ncol = 3, align = "hv", axis = "tblr",
   rel_widths = c(0.62, 0.19, 0.19)
+)
+
+# Group titles above the violin panel and the box-plot pair -- kept as a
+# separate header row (rather than nested inside panels_flat) so the
+# align="hv"/axis="tblr" call above still lines up the three raw ggplot
+# panels directly; rel_widths here matches panels_flat's own (0.62 vs.
+# 0.19+0.19) so the labels sit over the right panels.
+panel_titles <- plot_grid(
+  ggdraw() + draw_label("BEF Stream (Individual Sites)", size = 12, fontface = "bold"),
+  ggdraw() + draw_label("This Study vs. Literature Comparison", size = 12, fontface = "bold"),
+  ncol = 2, rel_widths = c(0.62, 0.38)
+)
+
+panels <- plot_grid(
+  panel_titles, panels_flat,
+  ncol = 1, rel_heights = c(0.07, 1)
 )
 
 bottom_legends <- plot_grid(
@@ -433,7 +457,7 @@ bottom_legends_int <- plot_grid(
 ))
 
 
-# ─── Figure: External Pathway Flux (absolute, g C m⁻² day⁻¹) ────────────────
+# ─── Figure: External Pathway Flux (absolute, g C m⁻² day⁻¹) ────────────────##########
 
 hotch_ext_lo  <- min(df$external)
 hotch_ext_hi  <- max(df$external)
@@ -599,62 +623,162 @@ bottom_legends_ext <- plot_grid(
 ))
 
 
-# ─── Figure: Temperature vs. Internal Contribution, colored by paper ########
+# ─── Figure: Pathway Flux vs. Temperature / Precipitation / pH ──────────────###########
 
-clim_data <- pubs %>%
-  filter(!is.na(temp_C), !is.na(pct_internal))
-range(clim_data$external.mn, na.rm=T)
-
-excluding.Horgby<-clim_data%>% filter(Citation!='(Horgby et al., 2019)')
-range(excluding.Horgby$external.mn, na.rm=T)
-
-clim_data_long <- clim_data %>%
-  pivot_longer(
-    cols = c(internal.mn, external.mn),  # Columns you want to collapse
-    names_to = "pathway",  # New column name for the old headers
-    values_to = "flux" # New column name for the cell values
-  ) %>%
-  mutate(pathway = case_match(pathway,
-                               "internal.mn" ~ "Internal",
-                               "external.mn" ~ "External"))
-
-# Set3 tops out at 12 colors — extend it so every paper gets a distinct color,
-# with "This Paper" pinned to the same dark slate used in the other figures
-clim_cits <- sort(unique(clim_data$Citation[clim_data$Citation != "This Paper"]))
-clim_cols <- c(
-  setNames(colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(clim_cits)), clim_cits),
-  "This Paper" = "#2C3E50"
+# Common styling shared by every pathway-vs-predictor scatter plot below.
+pathway_trend_theme <- list(
+  scale_color_manual(values = c("black", "red")),
+  scale_shape_manual(name = "Source", values = c("Literature" = 16, "This Study" = 8)),
+  scale_size_manual(name = "Source", values = c("Literature" = 2.5, "This Study" = 3.5)),
+  theme_classic(base_size = 13),
+  theme(plot.title = element_text(size = 13, hjust = 0.5)),
+  scale_y_log10()
 )
 
-# Trend lines, fit on log10(flux) to match scale_y_log10() below.
-# External excludes Horgby et al. (2019): its isotope-based, 100%-external flux
-# (~18-51 g C/m2/d, alpine Vallon de Nant catchment) sits an order of magnitude
-# above every other paper and would single-handedly dictate the external slope.
-# Horgby's points still plot (as External) -- only the fit excludes them.
-trend_internal <- clim_data_long %>% filter(pathway == "Internal")
-trend_external <- clim_data_long %>% filter(pathway == "External", Citation != "(Horgby et al., 2019)")
+
+build_pathway_trend_plot <- function(predictor, x_lab, plot_title,
+                                      exclude_external = "(Horgby et al., 2019)",
+                                      exclude_external_label = "Horgby",
+                                      log_x = FALSE) {
+
+  # log_x = TRUE fits/plots log10(flux) ~ log10(predictor) instead of the raw
+  # predictor, and adds a log10 x-axis -- for a variable like discharge that
+  # spans several orders of magnitude, a linear x-scale/fit would be
+  # dominated by a couple of high-Q sites the same way Horgby dominates
+  # External on a linear y-scale.
+  predictor_term <- if (log_x) paste0("log10(", predictor, ")") else predictor
+
+  data_long <- pubs %>%
+    filter(!is.na(.data[[predictor]]), !is.na(pct_internal)) %>%
+    { if (log_x) filter(., .data[[predictor]] > 0) else . } %>%
+    pivot_longer(cols = c(internal.mn, external.mn),
+                 names_to = "pathway", values_to = "flux") %>%
+    mutate(pathway = case_match(pathway,
+                                 "internal.mn" ~ "Internal",
+                                 "external.mn" ~ "External"),
+           study_source = if_else(Citation == "This Paper", "This Study", "Literature"))
+
+  # Data behind the drawn line: literature only
+  trend_internal <- data_long %>% filter(pathway == "Internal", study_source == "Literature")
+  trend_external <- data_long %>% filter(pathway == "External", study_source == "Literature",
+                                          !Citation %in% exclude_external)
+
+  # Data behind the reported statistics: literature + This Study
+  stats_internal <- data_long %>% filter(pathway == "Internal")
+  stats_external <- data_long %>% filter(pathway == "External", !Citation %in% exclude_external)
+
+  form <- reformulate(predictor_term, response = "log10(flux)")
+  lm_internal <- lm(form, data = trend_internal)
+  lm_external <- lm(form, data = trend_external)
+  lm_internal_stats <- lm(form, data = stats_internal)
+  lm_external_stats <- lm(form, data = stats_external)
+
+  fmt_p <- function(p) if (p < 0.001) "p < 0.001" else paste0("p = ", signif(p, 2))
+  fmt_label <- function(name, model) {
+    stat <- broom::tidy(model) %>% dplyr::filter(term == predictor_term)
+    paste0(name, ": slope = ", signif(stat$estimate, 2),
+           ", R² = ", signif(summary(model)$r.squared, 2), ", ", fmt_p(stat$p.value))
+  }
+  label_internal <- fmt_label("Internal", lm_internal_stats)
+  label_external <- fmt_label(
+    paste0("External",
+           if (length(exclude_external)) paste0(" (excl. ", exclude_external_label, ")") else ""),
+    lm_external_stats
+  )
+
+  p <- ggplot(data_long, aes(x = .data[[predictor]], y = flux, color = pathway,
+                              shape = study_source, size = study_source)) +
+    geom_point(alpha = 0.85, stroke = 1) +
+    geom_smooth(data = trend_internal, method = "lm", se = FALSE, linewidth = 0.8,
+                aes(shape = NULL, size = NULL)) +
+    geom_smooth(data = trend_external, method = "lm", se = FALSE, linewidth = 0.8,
+                aes(shape = NULL, size = NULL)) +
+    annotate("text", x = Inf, y = Inf, hjust = 1.05, vjust = 1.5,
+             label = label_internal, size = 3.8, fontface = "italic") +
+    annotate("text", x = Inf, y = Inf, hjust = 1.05, vjust = 3.2,
+             label = label_external, size = 3.8, fontface = "italic") +
+    labs(x = x_lab, y = expression('C'~'g'/m^2/day), title = plot_title) +
+    pathway_trend_theme
+
+  if (log_x) p <- p + scale_x_log10()
+  p
+}
+
+(p_flux_vs_temp <- build_pathway_trend_plot(
+  predictor  = "temp_C",
+  x_lab      = expression("Mean Reach Temperature ("*degree*C*")"),
+  plot_title = "Meta-Analysis: Pathway Flux vs. Mean Stream Temperature"
+))
+
+(p_flux_vs_rain <- build_pathway_trend_plot(
+  predictor  = "precip_cm_yr",
+  x_lab      = "Mean Annual Precipitation (cm/yr)",
+  plot_title = "Meta-Analysis: Pathway Flux vs. Precipitation"
+))
+
+(p_flux_vs_pH <- build_pathway_trend_plot(
+  predictor  = "pH",
+  x_lab      = "pH",
+  plot_title = "Meta-Analysis: Pathway Flux vs. pH"
+))
+
+(p_flux_vs_Q <- build_pathway_trend_plot(
+  predictor  = "discharge_m3_s",
+  x_lab      = expression("Discharge (m"^3~s^-1*")"),
+  plot_title = "Meta-Analysis: Pathway Flux vs. Discharge",
+  log_x      = TRUE
+))
 
 
-lm_internal <- lm(log10(flux) ~ temp_C, data = trend_internal)
-lm_external <- lm(log10(flux) ~ temp_C, data = trend_external)
+plot_grid(p_flux_vs_temp, p_flux_vs_rain, p_flux_vs_pH, ncol=1)
 
-p_internal <- broom::tidy(lm_internal) %>% dplyr::filter(term == "temp_C") %>% dplyr::pull(p.value)
-p_external <- broom::tidy(lm_external) %>% dplyr::filter(term == "temp_C") %>% dplyr::pull(p.value)
 
-label_internal <- paste0("Internal: ", if (p_internal < 0.001) "p < 0.001" else paste0("p = ", signif(p_internal, 2)))
-label_external <- paste0("External (excl. Horgby): ", if (p_external < 0.001) "p < 0.001" else paste0("p = ", signif(p_external, 2)))
+#boxplots###############
+df_long<-df_final%>%
+  rename(External.Mean=External_Pathway_gCm2day,
+         Internal.Mean=Internal_Pathway_gCm2day)%>%
+  pivot_longer(
+    cols = c('External.Mean','Internal.Mean'),
+    names_to = 'pathway',
+    values_to='flux'
+  )%>%
+  mutate(
+    Source_Water_Brief = factor(Source_Water_Brief,
+                                levels = c("Groundwater-fed", "Wetland seepage", "Mixed",
+                                           "Surface runoff", "Glacial/snow melt", "Regulated flow")),
+    pathway = factor(pathway, levels = c("Internal.Mean", "External.Mean"))
+  )
 
-(p_flux_vs_temp <- ggplot(clim_data_long, aes(x = temp_C, y = flux, color = pathway, shape = pathway)) +
-  geom_point(size = 2.5, alpha = 0.85) +
-  geom_smooth(data = trend_internal, method = "lm", se = F, linewidth = 0.8) +
-  geom_smooth(data = trend_external, method = "lm", se = F, linewidth = 0.8) +
-  annotate("text", x = Inf, y = Inf, hjust = 1.05, vjust = 1.5,
-           label = label_internal, size = 3.8, fontface = "italic") +
-  annotate("text", x = Inf, y = Inf, hjust = 1.05, vjust = 3.2,
-           label = label_external, size = 3.8, fontface = "italic") +
-  labs(x = expression("Temperature ("*degree*C*")"),
-       y = expression('C'~'g'/m^2/day),
-       title = "Meta-Analysis: Pathway Flux vs. Temperature") +
+
+ggplot(df_long, aes(x = Source_Water_Brief, y = flux, fill = pathway)) +
+  geom_boxplot(position = position_dodge(width = 0.75)) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.75),
+             shape = 1, size = 1.2, color = "grey30", alpha = 0.6) +
   theme_classic(base_size = 13) +
-  theme(plot.title = element_text(size = 13, hjust = 0.5))+
-  scale_y_log10())
+  theme(axis.text = element_text(size = 11), legend.position = 'none')
+
+ggplot(df_long, aes(x = Biome_Category, y = flux, fill = pathway)) +
+  geom_boxplot(position = position_dodge(width = 0.75)) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.75),
+             shape = 1, size = 1.2, color = "grey30", alpha = 0.6) +
+  theme_classic(base_size = 13) +
+  theme(axis.text = element_text(size = 11), legend.position = "bottom")+
+  scale_y_log10()
+
+
+
+ggplot(df_final, aes(x = Biome_Category, y = Internal.Contrib)) +
+  geom_boxplot(position = position_dodge(width = 0.75)) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.75),
+             shape = 1, size = 1.2, color = "grey30", alpha = 0.6) +
+  theme_classic(base_size = 13) +
+  theme(axis.text = element_text(size = 11), legend.position = "bottom")
+
+
+ggplot(df_final, aes(x = Source_Water_Brief, y = Internal.Contrib)) +
+  geom_boxplot(position = position_dodge(width = 0.75)) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.75),
+             shape = 1, size = 1.2, color = "grey30", alpha = 0.6) +
+  theme_classic(base_size = 13) +
+  theme(axis.text = element_text(size = 11), legend.position = "bottom")#+
+  #scale_y_log10()

@@ -8,12 +8,6 @@ library(concaveman)
 # ─── Figure: Global Map of Meta-Analysis Study Site Locations ───────────────
 
 # ─── Hotchkiss et al. (2015) USGS sampling extent ───────────────────────────
-# Site IDs transcribed from the paper's own supplementary PDF (S4: USGS
-# parameter codes and site IDs for CO2 estimates), 1,453 standard 8-digit
-# NWIS site numbers (a handful of non-standard longer IDs at the end of the
-# list were dropped -- likely groundwater wells / coordinate-based IDs, not
-# comparable stream gauges). Coordinates pulled live from NWIS so this stays
-# reproducible from the source ID list rather than a cached coordinate table.
 hotchkiss_ids <- readLines("01_Raw_data/hotchkiss_2015_usgs_site_ids.txt")
 hotchkiss_sites <- readNWISsite(hotchkiss_ids) %>%
   filter(!is.na(dec_lat_va), !is.na(dec_long_va))
@@ -28,9 +22,6 @@ hotchkiss_hull <- concaveman(
   setNames(c("lon", "lat"))
 
 # APPROXIMATE coordinates, catchment/study-area level (not exact sampling
-# points) -- estimated from each paper's stated Location text, to be
-# refined with precise site coordinates. "This Paper" uses real site
-# coordinates from 01_Raw_data/Ch1 Pub Map/sites.shp instead of an estimate.
 site_coords <- tribble(
   ~Citation,                    ~lat,    ~lon,
   "(Aho et al., 2021)",          41.90,  -72.90,  # Connecticut River Watershed, NW CT
@@ -59,11 +50,6 @@ this_paper_coords <- st_read("01_Raw_data/Ch1 Pub Map/sites.shp", quiet = TRUE) 
   st_drop_geometry() %>%
   transmute(Citation = "This Paper", lat = Latitude, lon = Longitude)
 
-# n_reaches = number of site/reach rows each paper contributes in the raw
-# extraction (used to size each dot, so multi-site papers read as "heavier").
-# This is every literature DOI regardless of the Regulated-flow/source-water
-# filters applied for the statistical tests elsewhere -- a location map
-# should show every paper, not just the subset that entered those tests.
 lit_reach_counts <- read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv", show_col_types = FALSE) %>%
   count(Citation, name = "n_reaches")
 
@@ -71,10 +57,7 @@ map_points <- lit_reach_counts %>%
   left_join(site_coords, by = "Citation") %>%
   bind_rows(this_paper_coords %>% mutate(n_reaches = 1))
 
-# Deterministic small offset for points that share (or nearly share) a
-# location -- e.g. Diamond & Nguyen sample the identical Loire River site,
-# and Duvert/Rexroade/Solano are all within ~0.5 degrees near Darwin, AUS --
-# so every paper stays individually visible rather than fully overlapping.
+
 map_points <- map_points %>%
   mutate(lat_bin = round(lat), lon_bin = round(lon)) %>%
   group_by(lat_bin, lon_bin) %>%
@@ -108,7 +91,7 @@ world_map <- map_data("world")
              aes(x = lon, y = lat, fill = Citation, size = n_reaches),
              shape = 21, color = "black", stroke = 0.6, alpha = 0.9) +
   scale_fill_manual(values = map_cols, name = "Citation") +
-  scale_size_area(name = "Reaches /\ntime-periods", max_size = 9, breaks = c(1, 3, 6, 9)) +
+  scale_size_area(name = "Reaches", max_size = 9, breaks = c(1, 3, 6, 9)) +
   guides(fill = guide_legend(override.aes = list(size = 4))) +
   coord_fixed(xlim = c(-140, 155), ylim = c(-40, 75), expand = FALSE) +
   labs(x = NULL, y = NULL,
