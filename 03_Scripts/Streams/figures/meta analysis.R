@@ -63,39 +63,6 @@ interp_df <- interp_df %>%
   )) %>%
   select(-logQ)
 
-int.ext.summary<-left_join(int.ext, pH)%>%
-  group_by(ID)%>%
-  summarise(
-    discharge_m3_s= mean(Q/10^3, na.rm=T),
-    CO2flux.mn=mean(CO2_flux, na.rm=T),
-    internal.mn=mean(internal, na.rm=T),
-    external.mn=mean(external, na.rm=T),
-    pH=mean(pH, na.rm=T),
-    temp_C=mean(TempC, na.rm=T)
-         )%>%
-  rename(Site=ID)%>%
-  mutate(
-    Citation="This Paper",
-    Location="Florida, Coastal Plain",
-    Biome="Subtropical",
-    Source="Shallow Aquifer",
-    Source=if_else(Site==13, "Deeper Groundwater Seepage", Source),
-    Source=if_else(Site==5, "Mixed", Source),
-    # Standardized Source_Water_Brief category (same convention as
-    # data for analysis.R / the stats pipeline): default Wetland seepage,
-    # sites 5 & 13 overridden to Mixed. "Source" above is a separate, more
-    # granular local groundwater-regime label used only for this script's
-    # own x_label; Source_Water_Brief is what the rest of the project uses.
-    Source_Water_Brief="Wetland seepage",
-    Source_Water_Brief=if_else(Site==13, "Mixed", Source_Water_Brief),
-    Source_Water_Brief=if_else(Site==5, "Mixed", Source_Water_Brief),
-    # No rain-gauge record for this site; estimated from the Results narrative:
-    # wet season (Jun-Sep) ~150-200 mm/mo (mid 175) = 700 mm, remaining 8 mo
-    # ~50-75 mm/mo (mid 62.5) = 500 mm -> ~1200 mm = 120 cm/yr, applied to all sites.
-    precip_cm_yr = 120
-
-                    )
-
 
 pubs<-read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv")%>%
   select(Citation, Location, Biome, Source, Discharge_m3s, CO2_flux_gCm2day, Internal_Pathway_gCm2day, External_Pathway_gCm2day,
@@ -117,7 +84,34 @@ pubs<-read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv")%>%
     # Sub-label with mean discharge
     x_label = paste0(Source, "\n(", round(discharge_m3_s, 3), " m³ s⁻¹)"),
     x_label = factor(x_label, levels = unique(x_label))  # preserve Q order
-  )%>%    filter(external.mn > 0, internal.mn>0.1)
+  )
+
+
+
+int.ext.summary<-left_join(int.ext, pH)%>%
+  group_by(ID)%>%
+  summarise(
+    discharge_m3_s= mean(Q/10^3, na.rm=T),
+    CO2flux.mn=mean(CO2_flux, na.rm=T),
+    internal.mn=mean(internal, na.rm=T),
+    external.mn=mean(external, na.rm=T),
+    pH=mean(pH, na.rm=T),
+    temp_C=mean(TempC, na.rm=T)
+  )%>%
+  rename(Site=ID)%>%
+  mutate(
+    Citation="This Paper",
+    Location="Florida, Coastal Plain",
+    Biome="Subtropical",
+    Source="Shallow Aquifer",
+    Source=if_else(Site==13, "Deeper Groundwater Seepage", Source),
+    Source=if_else(Site==5, "Mixed", Source),
+    Source_Water_Brief="Wetland seepage",
+    Source_Water_Brief=if_else(Site==13, "Mixed", Source_Water_Brief),
+    Source_Water_Brief=if_else(Site==5, "Mixed", Source_Water_Brief),
+    precip_cm_yr = 120
+  )%>%select(names(pubs))
+
 
 
 # ─── Figure: Violin (your sites) + Left density (literature) ────────────###########
@@ -132,10 +126,6 @@ violin_data <- int.ext %>%
   ungroup() %>%
   mutate(ID = factor(ID, levels = unique(ID[order(-mean_pct)])))
 
-# Literature sites only (no "This Paper") for left-side density.
-# pct_internal > 100% shouldn't be possible (internal can't exceed the paper's
-# own total CO2 flux) -- excluded for now pending a data check on the source
-# rows; see violin_data above, which already applies the same exclusion.
 density_data <- pubs %>%
   filter(Citation != "This Paper", !is.na(pct_internal), pct_internal < 100)
 
@@ -195,7 +185,7 @@ p_box_lit <- ggplot(density_data, aes(x = "", y = pct_internal)) +
                fill = NA, linewidth = 0.8) +
   scale_color_manual(name = "Citation", values = lit_cols_pct) +
   coord_cartesian(ylim = c(0, y_hi)) +
-  labs(x = "Literature\n(2011–2026)", y = NULL) +
+  labs(x = "Literature\n(2014–2026)", y = NULL) +
   theme_classic(base_size = 13) +
   theme(axis.text.y  = element_text(size = 9),
         axis.ticks.y = element_line(),
@@ -260,11 +250,7 @@ panels_flat <- plot_grid(
   rel_widths = c(0.62, 0.19, 0.19)
 )
 
-# Group titles above the violin panel and the box-plot pair -- kept as a
-# separate header row (rather than nested inside panels_flat) so the
-# align="hv"/axis="tblr" call above still lines up the three raw ggplot
-# panels directly; rel_widths here matches panels_flat's own (0.62 vs.
-# 0.19+0.19) so the labels sit over the right panels.
+
 panel_titles <- plot_grid(
   ggdraw() + draw_label("BEF Stream (Individual Sites)", size = 12, fontface = "bold"),
   ggdraw() + draw_label("This Study vs. Literature Comparison", size = 12, fontface = "bold"),
@@ -290,348 +276,25 @@ bottom_legends <- plot_grid(
 ))
 
 
-# ─── Figure: Internal Pathway Flux (absolute, g C m⁻² day⁻¹) ────────────────################
-
-# Hotchkiss global range for internal pathway (min/max across all discharge values)
-hotch_int_lo  <- min(df$internal)
-hotch_int_hi  <- max(df$internal)
-hotch_int_lab <- "Hotchkiss et al. (2015) global range"
-
-# Main panel: your sites, raw per-observation internal flux by Site ID
-violin_data_int <- int.ext %>%
-  filter(!is.na(internal), internal > 0) %>%
-  group_by(ID) %>%
-  mutate(mean_val = mean(internal, na.rm = TRUE)) %>%
-  ungroup() %>%
-  mutate(ID = factor(ID, levels = unique(ID[order(-mean_val)])))
-
-density_data_int <- pubs %>%
-  filter(Citation != "This Paper", !is.na(internal.mn), internal.mn > 0)
-
-# "This Paper" per-site means for the right-hand box panel
-this_paper_int <- int.ext.summary %>%
-  filter(!is.na(internal.mn), internal.mn > 0) %>%
-  select(Site, internal.mn)
-
-# Shared y range across all three panels, same approach as the pct_internal figure
-y_hi_int <- ceiling(max(c(violin_data_int$internal, density_data_int$internal.mn,
-                           this_paper_int$internal.mn), na.rm = TRUE) * 1.15)
-
-violin_labels_int <- violin_data_int %>%
-  group_by(ID) %>%
-  summarise(top_y    = max(internal, na.rm = TRUE),
-            mean_val = mean(internal, na.rm = TRUE),
-            .groups  = "drop")
-
-# Set3 tops out at 12 colors — extend it so every paper gets a distinct color
-lit_cits_int <- sort(unique(density_data_int$Citation))
-lit_cols_int <- setNames(
-  colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(lit_cits_int)),
-  lit_cits_int
-)
-
-# ─── Main left panel: violin per site (mirrors p_violin in the pct_internal figure)
-
-p_violin_int <- ggplot(violin_data_int, aes(x = ID, y = internal)) +
-  geom_rect(
-    aes(xmin = -Inf, xmax = Inf, ymin = hotch_int_lo, ymax = hotch_int_hi,
-        fill = hotch_int_lab),
-    inherit.aes = FALSE
-  ) +
-  scale_fill_manual(name = NULL, values = c(hotch_int_lab = "#DCE8F0"),
-                    labels = paste0(hotch_int_lab, " (", round(hotch_int_lo, 1),
-                                    "–", round(hotch_int_hi, 1), " g C m⁻² day⁻¹)")) +
-  geom_violin(color = "grey50", alpha = 0.85) +
-  geom_jitter(shape = 1, width = 0.15, height = 0, size = 1.2,
-              color = "grey30", alpha = 0.6) +
-  geom_text(data = violin_labels_int,
-            aes(x = ID, y = top_y, label = round(mean_val, 2)),
-            vjust = -0.4, size = 3.5, inherit.aes = FALSE) +
-  coord_cartesian(ylim = c(0, y_hi_int)) +
-  labs(x = "Site ID", y = expression("Internal pathway flux (g C m"^{-2}~"day"^{-1}*")")) +
-  theme_classic(base_size = 13) +
-  theme(axis.text = element_text(size = 11))
-
-# ─── Right-top: Literature box + jitter coloured by Citation ─────────────────
-
-box_lit_int <- ggplot(density_data_int, aes(x = "", y = internal.mn)) +
-  geom_rect(
-    aes(xmin = -Inf, xmax = Inf, ymin = hotch_int_lo, ymax = hotch_int_hi,
-        fill = hotch_int_lab),
-    inherit.aes = FALSE
-  ) +
-  scale_fill_manual(name = NULL, values = c(hotch_int_lab = "#DCE8F0"),
-                    labels = paste0(hotch_int_lab, " (", round(hotch_int_lo, 1),
-                                    "–", round(hotch_int_hi, 1), " g C m⁻² day⁻¹)")) +
-  geom_jitter(aes(color = Citation), width = 0.18, height = 0,
-              size = 2.5, alpha = 0.85) +
-  geom_boxplot(width = 0.45, outlier.shape = NA, color = "grey40",
-               fill = NA, linewidth = 0.8) +
-  scale_color_manual(values = lit_cols_int, name = "Citation") +
-  coord_cartesian(ylim = c(0, y_hi_int)) +
-  labs(x = "Literature\n(2011–2026)", y = NULL) +
-  theme_classic(base_size = 13) +
-  theme(axis.text.y  = element_text(size = 9),
-        axis.ticks.y = element_line(),
-        axis.title.y = element_blank(),
-        axis.text.x  = element_text(size = 11))
-
-# ─── Right-bottom: This study — per-site means, coloured by site ─────────────
-
-box_sites_int <- ggplot(this_paper_int, aes(x = "", y = internal.mn)) +
-  geom_rect(
-    aes(xmin = -Inf, xmax = Inf, ymin = hotch_int_lo, ymax = hotch_int_hi,
-        fill = hotch_int_lab),
-    inherit.aes = FALSE
-  ) +
-  scale_fill_manual(name = NULL, values = c(hotch_int_lab = "#DCE8F0"),
-                    labels = paste0(hotch_int_lab, " (", round(hotch_int_lo, 1),
-                                    "–", round(hotch_int_hi, 1), " g C m⁻² day⁻¹)")) +
-  geom_jitter(aes(color = factor(Site)), width = 0.12, height = 0,
-              size = 2.5, alpha = 0.85) +
-  geom_boxplot(width = 0.45, outlier.shape = NA, color = "grey40",
-               fill = NA, linewidth = 0.8) +
-  scale_color_brewer(palette = "Dark2", name = "Site") +
-  coord_cartesian(ylim = c(0, y_hi_int)) +
-  labs(x = "This Study\n(Florida, Coastal Plain)", y = NULL) +
-  theme_classic(base_size = 13) +
-  theme(axis.text.y  = element_text(size = 9),
-        axis.ticks.y = element_line(),
-        axis.title.y = element_blank(),
-        axis.text.x  = element_text(size = 11))
-
-# Extract legends
-band_legend_int <- get_legend(
-  p_violin_int + theme(
-    legend.position = "bottom",
-    legend.text     = element_text(size = 11.5),
-    legend.title    = element_blank(),
-    legend.key.size = unit(0.65, "cm"),
-    legend.key      = element_blank()
-  )
-)
-
-citation_legend_int <- get_legend(
-  box_lit_int + guides(fill = "none",
-                       color = guide_legend(nrow = 3)) + theme(
-    legend.position = "bottom",
-    legend.text     = element_text(size = 11.5),
-    legend.title    = element_text(size = 12, face = "bold"),
-    legend.key.size = unit(0.65, "cm"),
-    legend.key      = element_blank()
-  )
-)
-
-site_legend_int <- get_legend(
-  box_sites_int + guides(fill = "none",
-                         color = guide_legend(nrow = 2)) + theme(
-    legend.position = "bottom",
-    legend.text     = element_text(size = 11.5),
-    legend.title    = element_text(size = 12, face = "bold"),
-    legend.key.size = unit(0.65, "cm"),
-    legend.key      = element_blank()
-  )
-)
-
-# Flat 3-panel grid — align="hv" locks all plot areas to the same height
-panels_int <- plot_grid(
-  p_violin_int + theme(legend.position = "none"),
-  box_lit_int  + theme(legend.position = "none"),
-  box_sites_int + theme(legend.position = "none"),
-  ncol = 3, align = "hv", axis = "tblr",
-  rel_widths = c(0.62, 0.19, 0.19)
-)
-
-bottom_legends_int <- plot_grid(
-  band_legend_int, citation_legend_int, site_legend_int,
-  ncol = 3, rel_widths = c(0.12, 0.55, 0.33)
-)
-
-(p_flux_internal <- plot_grid(
-  ggdraw() + draw_label("Internal Pathway Flux Across Tropical, Subtropical and Boreal Low-Order Streams",
-                         size = 14, fontface = "bold"),
-  panels_int,
-  bottom_legends_int,
-  ncol = 1,
-  rel_heights = c(0.05, 1, 0.22)
-))
-
-
-# ─── Figure: External Pathway Flux (absolute, g C m⁻² day⁻¹) ────────────────##########
-
-hotch_ext_lo  <- min(df$external)
-hotch_ext_hi  <- max(df$external)
-hotch_ext_lab <- "Hotchkiss et al. (2015) global range"
-
-# Main panel: your sites, raw per-observation external flux by Site ID
-violin_data_ext <- int.ext %>%
-  filter(!is.na(external), external > 0, external < 30) %>%
-  group_by(ID) %>%
-  mutate(mean_val = mean(external, na.rm = TRUE)) %>%
-  ungroup() %>%
-  mutate(ID = factor(ID, levels = unique(ID[order(-mean_val)])))
-
-density_data_ext <- pubs %>%
-  filter(Citation != "This Paper", !is.na(external.mn), external.mn > 0)
-
-# "This Paper" per-site means for the right-hand box panel
-this_paper_ext <- int.ext.summary %>%
-  filter(!is.na(external.mn), external.mn > 0) %>%
-  select(Site, external.mn)
-
-# Shared y range across all three panels, same approach as the pct_internal figure
-y_hi_ext <- ceiling(max(c(violin_data_ext$external, density_data_ext$external.mn,
-                           this_paper_ext$external.mn), na.rm = TRUE) * 1.15)
-
-violin_labels_ext <- violin_data_ext %>%
-  group_by(ID) %>%
-  summarise(top_y    = max(external, na.rm = TRUE),
-            mean_val = mean(external, na.rm = TRUE),
-            .groups  = "drop")
-
-# Set3 tops out at 12 colors — extend it so every paper gets a distinct color
-lit_cits_ext <- sort(unique(density_data_ext$Citation))
-lit_cols_ext <- setNames(
-  colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(lit_cits_ext)),
-  lit_cits_ext
-)
-
-# ─── Main left panel: violin per site (mirrors p_violin in the pct_internal figure)
-
-p_violin_ext <- ggplot(violin_data_ext, aes(x = ID, y = external)) +
-  geom_rect(
-    aes(xmin = -Inf, xmax = Inf, ymin = hotch_ext_lo, ymax = hotch_ext_hi,
-        fill = hotch_ext_lab),
-    inherit.aes = FALSE
-  ) +
-  scale_fill_manual(name = NULL, values = c(hotch_ext_lab = "#DCE8F0"),
-                    labels = paste0(hotch_ext_lab, " (", round(hotch_ext_lo, 1),
-                                    "–", round(hotch_ext_hi, 1), " g C m⁻² day⁻¹)")) +
-  geom_violin(color = "grey50", alpha = 0.85) +
-  geom_jitter(shape = 1, width = 0.15, height = 0, size = 1.2,
-              color = "grey30", alpha = 0.6) +
-  geom_text(data = violin_labels_ext,
-            aes(x = ID, y = top_y, label = round(mean_val, 2)),
-            vjust = -0.4, size = 3.5, inherit.aes = FALSE) +
-  coord_cartesian(ylim = c(0, y_hi_ext)) +
-  labs(x = "Site ID", y = expression("External pathway flux (g C m"^{-2}~"day"^{-1}*")")) +
-  theme_classic(base_size = 13) +
-  theme(axis.text = element_text(size = 11))
-
-# ─── Right-top: Literature box + jitter coloured by Citation ─────────────────
-
-box_lit_ext <- ggplot(density_data_ext, aes(x = "", y = external.mn)) +
-  geom_rect(
-    aes(xmin = -Inf, xmax = Inf, ymin = hotch_ext_lo, ymax = hotch_ext_hi,
-        fill = hotch_ext_lab),
-    inherit.aes = FALSE
-  ) +
-  scale_fill_manual(name = NULL, values = c(hotch_ext_lab = "#DCE8F0"),
-                    labels = paste0(hotch_ext_lab, " (", round(hotch_ext_lo, 1),
-                                    "–", round(hotch_ext_hi, 1), " g C m⁻² day⁻¹)")) +
-  geom_jitter(aes(color = Citation), width = 0.18, height = 0,
-              size = 2.5, alpha = 0.85) +
-  geom_boxplot(width = 0.45, outlier.shape = NA, color = "grey40",
-               fill = NA, linewidth = 0.8) +
-  scale_color_manual(values = lit_cols_ext, name = "Citation") +
-  coord_cartesian(ylim = c(0, y_hi_ext)) +
-  labs(x = "Literature\n(2011–2026)", y = NULL) +
-  theme_classic(base_size = 13) +
-  theme(axis.text.y  = element_text(size = 9),
-        axis.ticks.y = element_line(),
-        axis.title.y = element_blank(),
-        axis.text.x  = element_text(size = 11))
-
-# ─── Right-bottom: This study — per-site means, coloured by site ─────────────
-
-box_sites_ext <- ggplot(this_paper_ext, aes(x = "", y = external.mn)) +
-  geom_rect(
-    aes(xmin = -Inf, xmax = Inf, ymin = hotch_ext_lo, ymax = hotch_ext_hi,
-        fill = hotch_ext_lab),
-    inherit.aes = FALSE
-  ) +
-  scale_fill_manual(name = NULL, values = c(hotch_ext_lab = "#DCE8F0"),
-                    labels = paste0(hotch_ext_lab, " (", round(hotch_ext_lo, 1),
-                                    "–", round(hotch_ext_hi, 1), " g C m⁻² day⁻¹)")) +
-  geom_jitter(aes(color = factor(Site)), width = 0.12, height = 0,
-              size = 2.5, alpha = 0.85) +
-  geom_boxplot(width = 0.45, outlier.shape = NA, color = "grey40",
-               fill = NA, linewidth = 0.8) +
-  scale_color_brewer(palette = "Dark2", name = "Site") +
-  coord_cartesian(ylim = c(0, y_hi_ext)) +
-  labs(x = "This Study\n(Florida, Coastal Plain)", y = NULL) +
-  theme_classic(base_size = 13) +
-  theme(axis.text.y  = element_text(size = 9),
-        axis.ticks.y = element_line(),
-        axis.title.y = element_blank(),
-        axis.text.x  = element_text(size = 11))
-
-# Extract legends
-band_legend_ext <- get_legend(
-  p_violin_ext + theme(
-    legend.position = "bottom",
-    legend.text     = element_text(size = 11.5),
-    legend.title    = element_blank(),
-    legend.key.size = unit(0.65, "cm"),
-    legend.key      = element_blank()
-  )
-)
-
-citation_legend_ext <- get_legend(
-  box_lit_ext + guides(fill = "none",
-                       color = guide_legend(nrow = 3)) + theme(
-    legend.position = "bottom",
-    legend.text     = element_text(size = 11.5),
-    legend.title    = element_text(size = 12, face = "bold"),
-    legend.key.size = unit(0.65, "cm"),
-    legend.key      = element_blank()
-  )
-)
-
-site_legend_ext <- get_legend(
-  box_sites_ext + guides(fill = "none",
-                         color = guide_legend(nrow = 2)) + theme(
-    legend.position = "bottom",
-    legend.text     = element_text(size = 11.5),
-    legend.title    = element_text(size = 12, face = "bold"),
-    legend.key.size = unit(0.65, "cm"),
-    legend.key      = element_blank()
-  )
-)
-
-# Flat 3-panel grid — align="hv" locks all plot areas to the same height
-panels_ext <- plot_grid(
-  p_violin_ext + theme(legend.position = "none"),
-  box_lit_ext  + theme(legend.position = "none"),
-  box_sites_ext + theme(legend.position = "none"),
-  ncol = 3, align = "hv", axis = "tblr",
-  rel_widths = c(0.62, 0.19, 0.19)
-)
-
-bottom_legends_ext <- plot_grid(
-  band_legend_ext, citation_legend_ext, site_legend_ext,
-  ncol = 3, rel_widths = c(0.12, 0.55, 0.33)
-)
-
-(p_flux_external <- plot_grid(
-  ggdraw() + draw_label("External Pathway Flux Across Tropical, Subtropical and Boreal Low-Order Streams",
-                         size = 14, fontface = "bold"),
-  panels_ext,
-  bottom_legends_ext,
-  ncol = 1,
-  rel_heights = c(0.05, 1, 0.22)
-))
-
-
 # ─── Figure: Pathway Flux vs. Temperature / Precipitation / pH ──────────────###########
-
 # Common styling shared by every pathway-vs-predictor scatter plot below.
+
+
+spatio.data<-rbind(pubs%>%select(-x_label, -pct_internal), int.ext.summary)%>%
+  mutate(
+    pct_internal=internal.mn/(internal.mn+external.mn),
+    pct_internal=if_else(pct_internal<0, 0, pct_internal),
+    pct_internal=if_else(pct_internal>100, 100, pct_internal),
+  )
+
+
+
 pathway_trend_theme <- list(
-  scale_color_manual(values = c("black", "red")),
+  scale_color_manual(name = "Pathway", values = c("black", "red")),
   scale_shape_manual(name = "Source", values = c("Literature" = 16, "This Study" = 8)),
   scale_size_manual(name = "Source", values = c("Literature" = 2.5, "This Study" = 3.5)),
   theme_classic(base_size = 13),
-  theme(plot.title = element_text(size = 13, hjust = 0.5)),
+  theme(plot.title = element_text(size = 15, hjust = 0.5)),
   scale_y_log10()
 )
 
@@ -641,14 +304,13 @@ build_pathway_trend_plot <- function(predictor, x_lab, plot_title,
                                       exclude_external_label = "Horgby",
                                       log_x = FALSE) {
 
-  # log_x = TRUE fits/plots log10(flux) ~ log10(predictor) instead of the raw
-  # predictor, and adds a log10 x-axis -- for a variable like discharge that
-  # spans several orders of magnitude, a linear x-scale/fit would be
-  # dominated by a couple of high-Q sites the same way Horgby dominates
-  # External on a linear y-scale.
-  predictor_term <- if (log_x) paste0("log10(", predictor, ")") else predictor
-
-  data_long <- pubs %>%
+  # log_x = TRUE plots/fits on a log10 x-axis instead of the raw predictor --
+  # for a variable like discharge that spans several orders of magnitude, a
+  # linear x-scale/fit would be dominated by a couple of high-Q sites the
+  # same way Horgby dominates External on a linear y-scale. stat_poly_line/
+  # stat_poly_eq pick this transform up automatically from scale_x_log10(),
+  # the same way they already pick up scale_y_log10() from pathway_trend_theme.
+  data_long <- spatio.data %>%
     filter(!is.na(.data[[predictor]]), !is.na(pct_internal)) %>%
     { if (log_x) filter(., .data[[predictor]] > 0) else . } %>%
     pivot_longer(cols = c(internal.mn, external.mn),
@@ -667,36 +329,35 @@ build_pathway_trend_plot <- function(predictor, x_lab, plot_title,
   stats_internal <- data_long %>% filter(pathway == "Internal")
   stats_external <- data_long %>% filter(pathway == "External", !Citation %in% exclude_external)
 
-  form <- reformulate(predictor_term, response = "log10(flux)")
-  lm_internal <- lm(form, data = trend_internal)
-  lm_external <- lm(form, data = trend_external)
-  lm_internal_stats <- lm(form, data = stats_internal)
-  lm_external_stats <- lm(form, data = stats_external)
+  # Prefix labels ("Internal:", "External (excl. Horgby):") -- stat_poly_eq
+  # supplies the equation (which includes the slope)/R2/p portion itself, in
+  # the same style as temp_temperature/temp_Q in temporal.R. Prefixes must be
+  # wrapped in explicit quotes so they parse as plotmath string constants
+  # (parse = TRUE) rather than bare, invalid expression syntax.
+  prefix_internal <- paste0("'Internal: '~")
+  prefix_external <- paste0("'External",
+                             if (length(exclude_external)) paste0(" (excl. ", exclude_external_label, ")") else "",
+                             ": '~")
 
-  fmt_p <- function(p) if (p < 0.001) "p < 0.001" else paste0("p = ", signif(p, 2))
-  fmt_label <- function(name, model) {
-    stat <- broom::tidy(model) %>% dplyr::filter(term == predictor_term)
-    paste0(name, ": slope = ", signif(stat$estimate, 2),
-           ", R² = ", signif(summary(model)$r.squared, 2), ", ", fmt_p(stat$p.value))
-  }
-  label_internal <- fmt_label("Internal", lm_internal_stats)
-  label_external <- fmt_label(
-    paste0("External",
-           if (length(exclude_external)) paste0(" (excl. ", exclude_external_label, ")") else ""),
-    lm_external_stats
-  )
+  poly_formula <- y ~ x
 
   p <- ggplot(data_long, aes(x = .data[[predictor]], y = flux, color = pathway,
                               shape = study_source, size = study_source)) +
     geom_point(alpha = 0.85, stroke = 1) +
-    geom_smooth(data = trend_internal, method = "lm", se = FALSE, linewidth = 0.8,
-                aes(shape = NULL, size = NULL)) +
-    geom_smooth(data = trend_external, method = "lm", se = FALSE, linewidth = 0.8,
-                aes(shape = NULL, size = NULL)) +
-    annotate("text", x = Inf, y = Inf, hjust = 1.05, vjust = 1.5,
-             label = label_internal, size = 3.8, fontface = "italic") +
-    annotate("text", x = Inf, y = Inf, hjust = 1.05, vjust = 3.2,
-             label = label_external, size = 3.8, fontface = "italic") +
+    stat_poly_line(data = trend_internal, formula = poly_formula, se = FALSE, linewidth = 0.8,
+                   aes(shape = NULL, size = NULL)) +
+    stat_poly_line(data = trend_external, formula = poly_formula, se = FALSE, linewidth = 0.8,
+                   aes(shape = NULL, size = NULL)) +
+    stat_poly_eq(data = stats_internal, formula = poly_formula, parse = TRUE,
+                 size = 4, label.x = "right", label.y = 0.07,
+                 aes(shape = NULL, size = NULL,
+                     label = paste0(prefix_internal, after_stat(eq.label), "~'; '~",
+                                    after_stat(rr.label), "~'; '~", after_stat(p.value.label)))) +
+    stat_poly_eq(data = stats_external, formula = poly_formula, parse = TRUE,
+                 size = 4, label.x = "right", label.y = 0.03,
+                 aes(shape = NULL, size = NULL,
+                     label = paste0(prefix_external, after_stat(eq.label), "~'; '~",
+                                    after_stat(rr.label), "~'; '~", after_stat(p.value.label)))) +
     labs(x = x_lab, y = expression('C'~'g'/m^2/day), title = plot_title) +
     pathway_trend_theme
 

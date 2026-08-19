@@ -16,10 +16,10 @@ Q.lm%>%filter(pathway=='external')
 
 
 T.lm<-rbind(
-  site_lm_table_fun(int.ext, log10(internal), ID, log10(TempC))%>%
+  site_lm_table_fun(int.ext, log10(internal), ID, TempC)%>%
     mutate(pathway='internal',
            significant=if_else(p_slope<0.01, 'Y', 'N')),
-  site_lm_table_fun(int.ext, log10(external), ID, log10(TempC))%>%
+  site_lm_table_fun(int.ext, log10(external), ID, TempC)%>%
     mutate(pathway='external',
            significant=if_else(p_slope<0.01, 'Y', 'N'))
   )
@@ -78,7 +78,7 @@ build_pathway_trend_table <- function(x_col_expr) {
 }
 
 discharge_trend_table   <- build_pathway_trend_table(quote(log10(Q)))
-temperature_trend_table <- build_pathway_trend_table(quote(log10(TempC)))
+temperature_trend_table <- build_pathway_trend_table(quote(TempC))
 
 # Print wide enough that R doesn't wrap p-value/sig columns onto an invisible
 # second block (default 80-char console width was hiding them previously).
@@ -91,7 +91,7 @@ cat("=====================================================================\n")
 print(as.data.frame(discharge_trend_table), row.names = FALSE)
 
 cat("\n=====================================================================\n")
-cat("TEMPERATURE TREND — log10(CO2 category) ~ log10(TempC); int.contrib (%) ~ log10(TempC), per site\n")
+cat("TEMPERATURE TREND — log10(CO2 category) ~ TempC; int.contrib (%) ~ TempC, per site\n")
 cat("(sig = p_slope < 0.01, matching Q.lm/T.lm's convention above)\n")
 cat("=====================================================================\n")
 print(as.data.frame(temperature_trend_table), row.names = FALSE)
@@ -120,7 +120,7 @@ style_ft <- function(ft, title, footnote) {
     font(fontname = "Times New Roman", part = "footer")
 }
 
-build_trend_ft <- function(tbl, predictor_label, predictor_unit) {
+build_trend_ft <- function(tbl, predictor_label, predictor_expr) {
   flextable(tbl) %>%
     add_header_row(
       top       = TRUE,
@@ -150,10 +150,10 @@ build_trend_ft <- function(tbl, predictor_label, predictor_unit) {
     width(j = c("r2_internal","r2_external","r2_CO2_flux","r2_int.contrib","best_r2_value"), width = 0.5) %>%
     width(j = c("best_r2_pathway","largest_slope_pathway"), width = 0.6) %>%
     style_ft(
-      paste0("Site-level ", predictor_label, " trend: CO2 flux categories (log10) and internal contribution % (untransformed) vs. log10(", predictor_unit, "), per pathway."),
+      paste0("Site-level ", predictor_label, " trend: CO2 flux categories (log10) and internal contribution % (untransformed) vs. ", predictor_expr, ", per pathway."),
       paste0(
-        "Note. Internal/External/Total CO2 Flux: slope, p-value, and R2 from independent per-site, per-pathway log-log linear regressions ",
-        "(site_lm_table_fun(), matching Q.lm/T.lm above); Total CO2 Flux = internal + external. Internal Contribution % = 100 x internal/CO2_flux ",
+        "Note. Internal/External/Total CO2 Flux: slope, p-value, and R2 from independent per-site, per-pathway linear regressions of log10(flux) ",
+        "vs. ", predictor_expr, " (site_lm_table_fun(), matching Q.lm/T.lm above); Total CO2 Flux = internal + external. Internal Contribution % = 100 x internal/CO2_flux ",
         "(clamped at 100; see \"chimney  pathway.R\"), analyzed on its natural percentage scale rather than log-transformed, so its slope is in ",
         "percentage points and is NOT directly comparable in magnitude to the log10-flux slopes for the other three categories — its R2 and ",
         "significance ARE comparable, since both are scale-invariant. Sig. = 'Y' if p < 0.01 (this script's own threshold, distinct from the 0.05 ",
@@ -164,7 +164,7 @@ build_trend_ft <- function(tbl, predictor_label, predictor_unit) {
     )
 }
 
-ft_discharge_trend   <- build_trend_ft(discharge_trend_table,   "discharge",   "Q")
+ft_discharge_trend   <- build_trend_ft(discharge_trend_table,   "discharge",   "log10(Q)")
 ft_temperature_trend <- build_trend_ft(temperature_trend_table, "temperature", "TempC")
 
 ft_discharge_trend

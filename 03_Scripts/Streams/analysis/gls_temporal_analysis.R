@@ -599,15 +599,6 @@ ft4 <- style_ft(ft4,
 ft2
 ft4
 
-# ── Save as Word documents (paste-ready, formatting preserved) ───────────────
-# out_dir <- "C:/Dissertation/05_Figures"
-# 
-# 
-# try_save <- function(ft, path) {
-#   tryCatch(
-#     save_as_docx(ft, path = path, pr_section = landscape_section),
-#     error = function(e) warning("Could not save ", path, " — is it open in Word? (", conditionMessage(e), ")")
-#   )
-# }
-# try_save(ft2, file.path(out_dir, "TableS2_pathway_comparison_GLS.docx"))
-# try_save(ft4, file.path(out_dir, "TableS4_main_effects_aic_GLS.docx"))
+#── Save as Word documents (paste-ready, formatting preserved) ───────────────
+save_as_docx(ft2, path = "05_Figures/Table_pathway_comparison_GLS.docx")
+save_as_docx(ft4, path = "05_Figures/Table_main_effects_aic_GLS.docx")
