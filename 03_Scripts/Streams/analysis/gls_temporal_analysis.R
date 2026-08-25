@@ -134,24 +134,6 @@ sig_summary <- function(resp_name, term_name) {
   )
 }
 
-cat("\n#####################################################################\n")
-cat("TREND IN LOG10(TOTAL CO2 FLUX)\n")
-cat("#####################################################################\n")
-cat("\n--- CO2_flux vs. TempC (univariate, Drop Q model) ---\n")
-print(as.data.frame(sig_summary("CO2_flux", "TempC")))
-cat("\n--- CO2_flux vs. log10(Q) (univariate, Drop T model) ---\n")
-print(as.data.frame(sig_summary("CO2_flux", "log10Q")))
-
-
-cat("\n\n#####################################################################\n")
-cat("DISCHARGE\n")
-cat("#####################################################################\n")
-cat("\n--- Internal only: log10(internal) vs. log10(Q) ---\n")
-print(as.data.frame(sig_summary("internal", "log10Q")))
-cat("\n--- External only: log10(external) vs. log10(Q) ---\n")
-print(as.data.frame(sig_summary("external", "log10Q")))
-cat("\n--- Internal Contribution %: internal/CO2_flux vs. log10(Q) ---\n")
-print(as.data.frame(sig_summary("pct_internal", "log10Q")))
 
 # Pathway comparison (paired by site) for discharge
 q_int <- results$internal$effects %>% filter(model == "Drop T", term == "log10Q") %>%
@@ -160,23 +142,8 @@ q_ext <- results$external$effects %>% filter(model == "Drop T", term == "log10Q"
   select(site, estimate, p.value) %>% rename(est_external = estimate, p_external = p.value)
 q_compare <- q_int %>% left_join(q_ext, by = "site") %>%
   mutate(favors = ifelse(abs(est_internal) > abs(est_external), "internal", "external"))
-cat("\n--- Discharge: pathway comparison (favors larger |slope|) ---\n")
-cat(sprintf("%d/%d sites favor internal; %d/%d favor external\n",
-            sum(q_compare$favors == "internal"), nrow(q_compare),
-            sum(q_compare$favors == "external"), nrow(q_compare)))
-cat(sprintf("Median slope: internal = %.4f, external = %.4f\n",
-            median(q_compare$est_internal), median(q_compare$est_external)))
 
 
-cat("\n\n#####################################################################\n")
-cat("TEMPERATURE\n")
-cat("#####################################################################\n")
-cat("\n--- Internal only: log10(internal) vs. TempC ---\n")
-print(as.data.frame(sig_summary("internal", "TempC")))
-cat("\n--- External only: log10(external) vs. TempC ---\n")
-print(as.data.frame(sig_summary("external", "TempC")))
-cat("\n--- Internal Contribution %: internal/CO2_flux vs. TempC ---\n")
-print(as.data.frame(sig_summary("pct_internal", "TempC")))
 
 t_int <- results$internal$effects %>% filter(model == "Drop Q", term == "TempC") %>%
   select(site, estimate, p.value) %>% rename(est_internal = estimate, p_internal = p.value)
@@ -184,21 +151,12 @@ t_ext <- results$external$effects %>% filter(model == "Drop Q", term == "TempC")
   select(site, estimate, p.value) %>% rename(est_external = estimate, p_external = p.value)
 t_compare <- t_int %>% left_join(t_ext, by = "site") %>%
   mutate(favors = ifelse(abs(est_internal) > abs(est_external), "internal", "external"))
-cat("\n--- Temperature: pathway comparison (favors larger |slope|) ---\n")
-cat(sprintf("%d/%d sites favor internal; %d/%d favor external\n",
-            sum(t_compare$favors == "internal"), nrow(t_compare),
-            sum(t_compare$favors == "external"), nrow(t_compare)))
-cat(sprintf("Median slope: internal = %.4f, external = %.4f\n",
-            median(t_compare$est_internal), median(t_compare$est_external)))
 
 
 # =============================================================================
 # INTERACTION — does TempC:log10Q covary, by AIC, for each response
 # =============================================================================
 
-cat("\n\n#####################################################################\n")
-cat("INTERACTION — does TempC:log10Q covary, by AIC, for each response\n")
-cat("#####################################################################\n")
 
 interaction_summary <- function(resp_name) {
   aic <- results[[resp_name]]$aic %>%
@@ -217,11 +175,6 @@ interaction_summary <- function(resp_name) {
     coef_sig_n        = sum(coef_sig$sig, na.rm = TRUE)
   )
 }
-
-interaction_all <- map_dfr(responses, interaction_summary)
-cat("\n--- Interaction (TempC:log10Q) support by response variable, across 8 sites ---\n")
-print(as.data.frame(interaction_all))
-cat("\n")
 
 
 # =============================================================================
@@ -253,10 +206,6 @@ print_aic_table <- function(resp_name) {
   print(as.data.frame(tbl), row.names = FALSE)
   cat("\n")
 }
-
-cat("\n\n#####################################################################\n")
-cat("AIC TABLES — No Interaction vs. Interaction, per site\n")
-cat("#####################################################################\n")
 
 walk(responses, print_aic_table)
 

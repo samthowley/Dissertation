@@ -103,6 +103,9 @@ site_lm_table_fun <- function(data, response, id_col = ID, x_col = Q) {
   y_name <- rlang::quo_name(response)
 
   data %>%
+    # lm() drops NAs but not the -Inf/NaN that log10() yields on zero/negative
+    # values (e.g. Q <= 0 at sites 5/5a), so drop non-finite rows per fit here
+    filter(is.finite(!!response), is.finite(!!x_col)) %>%
     group_by(!!id_col) %>%
     tidyr::nest() %>%
     mutate(
@@ -160,14 +163,13 @@ int.ext.summary<-left_join(int.ext, pH)%>%
     Citation="This Paper",
     Site_ID="This Paper",
     Location="Florida, Coastal Plain",
-    Biome_Category="Subtropical",
+    Biome="Subtropical",
     Source_Water_Brief="Wetland seepage",
     
     Source_Water_Brief=if_else(Site==13, "Mixed", Source_Water_Brief),
     Source_Water_Brief=if_else(Site==5, "Mixed", Source_Water_Brief),
-    Mean_Annual_Precipitation_cm_yr=120
+    precip_cm_yr=120
   )
-
 
 # pubs block disabled: read_csv("01_Raw_data/meta_analysis_extraction.csv") -- this raw
 # file no longer exists (superseded by meta_analysis_extraction_GENERATED_v2.csv, used

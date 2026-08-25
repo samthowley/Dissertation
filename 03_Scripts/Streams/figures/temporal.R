@@ -32,9 +32,6 @@ temp_Q<-int.ext%>%
   
 
 
-
-
-
 temp_temperature<-int.ext%>%
   pivot_longer(
     cols      = c(internal, external),

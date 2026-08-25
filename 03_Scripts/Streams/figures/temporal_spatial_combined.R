@@ -33,3 +33,20 @@ ggsave(
   width = 18, height = 13, units = "in", dpi = 300
 )
 
+
+
+
+temporal<-plot_grid(
+    temp_temperature+
+      theme(legend.position = "none"), 
+
+    temp_Q+
+      theme(legend.position = "none"), 
+
+  ncol=2)
+
+ggsave(
+  "05_Figures/Figure_Temporal analysis.jpg",
+  plot = temporal,
+  width = 26, height = 8, units = "in", dpi = 300)
+  

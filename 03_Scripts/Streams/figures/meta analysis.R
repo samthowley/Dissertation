@@ -86,8 +86,6 @@ pubs<-read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv")%>%
     x_label = factor(x_label, levels = unique(x_label))  # preserve Q order
   )
 
-
-
 int.ext.summary<-left_join(int.ext, pH)%>%
   group_by(ID)%>%
   summarise(
@@ -96,21 +94,20 @@ int.ext.summary<-left_join(int.ext, pH)%>%
     internal.mn=mean(internal, na.rm=T),
     external.mn=mean(external, na.rm=T),
     pH=mean(pH, na.rm=T),
-    temp_C=mean(TempC, na.rm=T)
+    TempC=mean(TempC, na.rm=T),
   )%>%
   rename(Site=ID)%>%
   mutate(
+    DOI="This Paper",
     Citation="This Paper",
+    Site_ID="This Paper",
     Location="Florida, Coastal Plain",
-    Biome="Subtropical",
-    Source="Shallow Aquifer",
-    Source=if_else(Site==13, "Deeper Groundwater Seepage", Source),
-    Source=if_else(Site==5, "Mixed", Source),
+    Biome_Category="Subtropical",
     Source_Water_Brief="Wetland seepage",
     Source_Water_Brief=if_else(Site==13, "Mixed", Source_Water_Brief),
     Source_Water_Brief=if_else(Site==5, "Mixed", Source_Water_Brief),
-    precip_cm_yr = 120
-  )%>%select(names(pubs))
+    Mean_Annual_Precipitation_cm_yr=120
+  )
 
 
 
@@ -277,17 +274,13 @@ bottom_legends <- plot_grid(
 
 
 # ─── Figure: Pathway Flux vs. Temperature / Precipitation / pH ──────────────###########
-# Common styling shared by every pathway-vs-predictor scatter plot below.
 
-
-spatio.data<-rbind(pubs%>%select(-x_label, -pct_internal), int.ext.summary)%>%
+spatio.data<-bind_rows(pubs%>%filter(Citation != "This Paper"), int.ext.summary)%>%
   mutate(
-    pct_internal=internal.mn/(internal.mn+external.mn),
+    pct_internal=(internal.mn/(internal.mn+external.mn))*100,
     pct_internal=if_else(pct_internal<0, 0, pct_internal),
     pct_internal=if_else(pct_internal>100, 100, pct_internal),
   )
-
-
 
 pathway_trend_theme <- list(
   scale_color_manual(name = "Pathway", values = c("black", "red")),
@@ -391,10 +384,14 @@ build_pathway_trend_plot <- function(predictor, x_lab, plot_title,
 ))
 
 
-plot_grid(p_flux_vs_temp, p_flux_vs_rain, p_flux_vs_pH, ncol=1)
+plot_grid(p_flux_vs_temp, p_flux_vs_rain, p_flux_vs_pH, p_flux_vs_Q)
 
 
 #boxplots###############
+# df_final is built by the spatiotempo analysis script; source it if this
+# session hasn't run it yet (it also rebuilds the stats tables + docx).
+if (!exists("df_final")) source("03_Scripts/Streams/analysis/metaanalysis_spatiotempo_analysis.R")
+
 df_long<-df_final%>%
   rename(External.Mean=External_Pathway_gCm2day,
          Internal.Mean=Internal_Pathway_gCm2day)%>%

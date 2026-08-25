@@ -85,7 +85,6 @@ internal.contrib<-pathways%>%
     ext.contrib=if_else(ext.contrib>100, 100, ext.contrib),
     int.contrib=if_else(int.contrib<0, 0, int.contrib),
   )
-range(internal.contrib$int.contrib, na.rm=T)
 
 
 
@@ -95,8 +94,8 @@ ggplot(
   internal.contrib,
   aes(x = Q)) +
   scale_y_log10()+scale_x_log10()+
-  geom_point(aes(y = int.contrib), color='red') +
-   geom_point(aes(y = ext.contrib), color='black') +
+  geom_point(aes(y = internal), color='red') +
+   geom_point(aes(y = external), color='black') +
   # geom_point(aes(y = CO2_flux), color='purple') +
   facet_wrap(~ID, ncol = 4, scales = 'free')
 
