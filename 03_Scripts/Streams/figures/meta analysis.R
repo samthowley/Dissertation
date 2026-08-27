@@ -212,7 +212,7 @@ p_box_sites <- ggplot(sites_mean_pct, aes(x = x, y = pct_internal)) +
 
 fig_title <- ggdraw() +
   draw_label(
-    "Internal Pathway Contribution to Tropical, Subtropical and Boreal Low-Order Streams",
+    expression("Internal Pathway Contribution to Total Stream"~CO[2]~"Flux"),
     size = 14, fontface = "bold"
   )
 
@@ -240,16 +240,15 @@ citation_legend <- get_legend(
 
 # Flat 3-panel grid — align="hv" locks all plot areas to the same height
 panels_flat <- plot_grid(
-  p_violin    + theme(legend.position = "none"),
   p_box_lit   + theme(legend.position = "none"),
   p_box_sites + theme(legend.position = "none"),
-  ncol = 3, align = "hv", axis = "tblr",
-  rel_widths = c(0.62, 0.19, 0.19)
+  ncol = 2, align = "hv", axis = "tblr",
+  rel_widths = c(0.62, 0.4)
 )
 
 
 panel_titles <- plot_grid(
-  ggdraw() + draw_label("BEF Stream (Individual Sites)", size = 12, fontface = "bold"),
+  ggdraw() + draw_label("Current Literature 2014-2026", size = 12, fontface = "bold"),
   ggdraw() + draw_label("This Study vs. Literature Comparison", size = 12, fontface = "bold"),
   ncol = 2, rel_widths = c(0.62, 0.38)
 )

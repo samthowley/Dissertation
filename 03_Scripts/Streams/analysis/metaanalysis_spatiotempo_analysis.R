@@ -903,27 +903,27 @@ cat("\n=== TABLE 8: Negative Pathway Estimates ===\n")
 # (Aho et al. 2021, Connecticut River) -- the point of this table is to show
 # every negative estimate regardless of whether it entered Tables 1-2.
 neg_reasons <- c(
-  "Aho et al., 2021|Connecticut River (Thompsonville gauge)" =
+  "(Aho et al., 2021)|Connecticut River (Thompsonville gauge)" =
     "Net autotrophic (GPP 20.9 > |ER| 17.8 gO2/m2/d); wide, reservoir-influenced mainstem, light not limiting.",
-  "Kirk & Cohen, 2023|ICHE" =
+  "(Kirk & Cohen, 2023)|ICHE" =
     "Net autotrophic (GPP 7.8 ~ |ER| 7.4 gO2/m2/d); spring-fed clear-water karst river, dense submerged vegetation.",
-  "Aho et al., 2021|Nepaug River" =
+  "(Aho et al., 2021)|Nepaug River" =
     "Internal = 165% of CO2_flux; RQ=1.0 assumption may overestimate Internal, and/or downstream export of dissolved CO2.",
-  "Aho et al., 2021|Phelps Brook" =
+  "(Aho et al., 2021)|Phelps Brook" =
     "Internal = 101% of CO2_flux; at the boundary, likely assumption/measurement noise rather than a real surplus.",
-  "Carter et al., 2022|CBP" =
+  "(Carter et al., 2022)|CBP" =
     "Internal = 106% of CO2_flux; at the boundary, likely assumption/measurement noise.",
-  "Carter et al., 2022|PM" =
+  "(Carter et al., 2022)|PM" =
     "Internal = 129% of CO2_flux; groundwater-exchanging Piedmont stream, plausible downstream export.",
-  "Carter et al., 2022|UNHC" =
+  "(Carter et al., 2022)|UNHC" =
     "Internal = 122% of CO2_flux; same system as PM, plausible downstream export.",
-  "Rocher-Ros et al., 2019|M1" =
+  "(Rocher-Ros et al., 2019)|M1" =
     "Internal = 185% of CO2_flux; Arctic tundra headwater, low gas-transfer velocity plausibly favors downstream export over local evasion.",
-  "Rocher-Ros et al., 2019|M10" =
+  "(Rocher-Ros et al., 2019)|M10" =
     "Internal = 176% of CO2_flux; same Arctic system as M1.",
-  "Rocher-Ros et al., 2019|M6" =
+  "(Rocher-Ros et al., 2019)|M6" =
     "Internal = 125% of CO2_flux; same Arctic system as M1.",
-  "Solano et al., 2023|Manton Creek" =
+  "(Solano et al., 2023)|Manton Creek" =
     "Internal = 123% of CO2_flux; paper's OWN reported finding (Discussion) -- NEP exceeds local evasion, surplus attributed to downstream export as dissolved CO2/DIC. Not an artifact of this pipeline's assumptions."
 )
 

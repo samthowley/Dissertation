@@ -27,8 +27,10 @@ site_coords <- tribble(
   "(Aho et al., 2021)",          41.90,  -72.90,  # Connecticut River Watershed, NW CT
   "(Bernal et al., 2022)",       41.75,    2.50,  # La Tordera catchment, Catalonia, Spain
   "(Carter et al., 2022)",       35.97,  -79.05,  # New Hope Creek, Duke Forest, NC
+  "(Demars, 2019)",              57.92,   -2.55,  # Glensaugh research station, Aberdeenshire, Scotland, UK
   "(Diamond et al., 2025)",      47.60,    2.60,  # Loire River at Dampierre, France
   "(Duvert et al., 2019)",      -13.50,  131.30,  # Daly/Howard River, Northern Territory, AUS
+  "(Gomez-Gener et al., 2016)",  42.15,    2.75,  # Fluvia River network, Catalonia, NE Spain
   "(Gong et al., 2021)",         31.30,  119.40,  # Tianmu Lake catchment, Zhejiang/Jiangsu, China
   "(Horgby et al., 2019)",       46.25,    7.10,  # Vallon de Nant, Swiss Alps
   "(Khadka et al., 2014)",       29.85,  -82.60,  # Santa Fe River watershed, north-central FL
