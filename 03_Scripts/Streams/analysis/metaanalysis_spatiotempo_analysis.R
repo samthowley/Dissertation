@@ -893,7 +893,153 @@ if (length(low_n_papers_7) > 0) {
 }
 
 
+# =============================================================================
+# TABLE 8 — Negative Pathway Estimates: Audit of Internal < 0 and External < 0
+# =============================================================================
+cat("\n=== TABLE 8: Negative Pathway Estimates ===\n")
+
+# Built from `meta` (NA-filtered only), NOT `df`/`df_final`, so this audit also
+# catches the one row `df` already silently drops via the Regulated-flow filter
+# (Aho et al. 2021, Connecticut River) -- the point of this table is to show
+# every negative estimate regardless of whether it entered Tables 1-2.
+neg_reasons <- c(
+  "Aho et al., 2021|Connecticut River (Thompsonville gauge)" =
+    "Net autotrophic (GPP 20.9 > |ER| 17.8 gO2/m2/d); wide, reservoir-influenced mainstem, light not limiting.",
+  "Kirk & Cohen, 2023|ICHE" =
+    "Net autotrophic (GPP 7.8 ~ |ER| 7.4 gO2/m2/d); spring-fed clear-water karst river, dense submerged vegetation.",
+  "Aho et al., 2021|Nepaug River" =
+    "Internal = 165% of CO2_flux; RQ=1.0 assumption may overestimate Internal, and/or downstream export of dissolved CO2.",
+  "Aho et al., 2021|Phelps Brook" =
+    "Internal = 101% of CO2_flux; at the boundary, likely assumption/measurement noise rather than a real surplus.",
+  "Carter et al., 2022|CBP" =
+    "Internal = 106% of CO2_flux; at the boundary, likely assumption/measurement noise.",
+  "Carter et al., 2022|PM" =
+    "Internal = 129% of CO2_flux; groundwater-exchanging Piedmont stream, plausible downstream export.",
+  "Carter et al., 2022|UNHC" =
+    "Internal = 122% of CO2_flux; same system as PM, plausible downstream export.",
+  "Rocher-Ros et al., 2019|M1" =
+    "Internal = 185% of CO2_flux; Arctic tundra headwater, low gas-transfer velocity plausibly favors downstream export over local evasion.",
+  "Rocher-Ros et al., 2019|M10" =
+    "Internal = 176% of CO2_flux; same Arctic system as M1.",
+  "Rocher-Ros et al., 2019|M6" =
+    "Internal = 125% of CO2_flux; same Arctic system as M1.",
+  "Solano et al., 2023|Manton Creek" =
+    "Internal = 123% of CO2_flux; paper's OWN reported finding (Discussion) -- NEP exceeds local evasion, surplus attributed to downstream export as dissolved CO2/DIC. Not an artifact of this pipeline's assumptions."
+)
+
+neg_key <- paste(meta$Citation, meta$Site_ID, sep = "|")
+neg_rows <- meta %>%
+  mutate(key = neg_key,
+         Internal_Pct_of_CO2flux = 100 * Internal_Pathway_gCm2day / CO2_flux_gCm2day) %>%
+  filter((!is.na(Internal_Pathway_gCm2day) & Internal_Pathway_gCm2day < 0) |
+         (!is.na(External_Pathway_gCm2day) & External_Pathway_gCm2day < 0))
+
+n_per_citation_8 <- meta %>%
+  filter(!is.na(Internal_Pathway_gCm2day), !is.na(External_Pathway_gCm2day)) %>%
+  count(Citation, name = "n_sites_this_citation")
+
+# A row can be negative on Internal, External, or (in principle) both -- keep
+# one output row per pathway that is negative, so a hypothetical double-negative
+# site would appear twice, once per pathway.
+tbl_8_data <- neg_rows %>%
+  left_join(n_per_citation_8, by = "Citation") %>%
+  mutate(
+    in_df_final = Source_Water_Brief != "Regulated flow",
+    Exclusion_reason = ifelse(in_df_final, NA_character_,
+                               "Excluded from Tables 1-2 by the Source_Water_Brief != 'Regulated flow' filter"),
+    Reason = unname(neg_reasons[key])
+  ) %>%
+  { bind_rows(
+      filter(., Internal_Pathway_gCm2day < 0) %>%
+        transmute(Pathway = "Internal", Citation, Site_ID, key,
+                  Estimate = Internal_Pathway_gCm2day, CO2_flux_gCm2day,
+                  Internal_Pct_of_CO2flux, n_sites_this_citation, in_df_final,
+                  Exclusion_reason, Reason),
+      filter(., !is.na(External_Pathway_gCm2day) & External_Pathway_gCm2day < 0) %>%
+        transmute(Pathway = "External", Citation, Site_ID, key,
+                  Estimate = External_Pathway_gCm2day, CO2_flux_gCm2day,
+                  Internal_Pct_of_CO2flux, n_sites_this_citation, in_df_final,
+                  Exclusion_reason, Reason)
+    ) } %>%
+  mutate(
+    `Sites remaining if removed` = n_sites_this_citation - 1L,
+    `In Tables 1-2?` = ifelse(in_df_final, "Yes", "No"),
+    Estimate = round(Estimate, 3),
+    `Internal % of CO2 flux` = round(Internal_Pct_of_CO2flux, 1)
+  ) %>%
+  arrange(factor(Pathway, levels = c("Internal", "External")), Citation, Site_ID) %>%
+  select(Pathway, Citation, `Site` = Site_ID, Estimate, `CO2 flux` = CO2_flux_gCm2day,
+         `Internal % of CO2 flux`, `Sites for this citation` = n_sites_this_citation,
+         `Sites remaining if removed`, `In Tables 1-2?`, Reason)
+
+print(tbl_8_data, n = Inf)
+
+ft_8 <- flextable(tbl_8_data) %>%
+  set_header_labels(Pathway = "Pathway", Citation = "Citation", Site = "Site",
+                     Estimate = "Estimate", `CO2 flux` = "CO2 flux",
+                     `Internal % of CO2 flux` = "Internal % of CO2 flux",
+                     `Sites for this citation` = "Sites (citation)",
+                     `Sites remaining if removed` = "Remaining if removed",
+                     `In Tables 1-2?` = "In Tables 1-2?", Reason = "Why negative") %>%
+  merge_v(j = "Pathway") %>%
+  font(fontname = "Aptos", part = "all") %>%
+  fontsize(size = 9, part = "all") %>%
+  align(j = 1:3, align = "left",   part = "all") %>%
+  align(j = 4:9, align = "center", part = "all") %>%
+  align(j = 10,  align = "left",   part = "all") %>%
+  bold(part = "header") %>%
+  bold(j = 1, part = "body") %>%
+  valign(j = 1, valign = "top", part = "body") %>%
+  border_remove() %>%
+  hline_top(part = "header",    border = fp_border(width = 2)) %>%
+  hline_bottom(part = "header", border = fp_border(width = 1)) %>%
+  hline_bottom(part = "body",   border = fp_border(width = 2)) %>%
+  width(j = 1,  width = 0.8) %>%
+  width(j = 2,  width = 1.5) %>%
+  width(j = 3,  width = 1.3) %>%
+  width(j = 4,  width = 0.7) %>%
+  width(j = 5,  width = 0.7) %>%
+  width(j = 6,  width = 0.9) %>%
+  width(j = 7,  width = 0.8) %>%
+  width(j = 8,  width = 0.9) %>%
+  width(j = 9,  width = 0.8) %>%
+  width(j = 10, width = 3.2) %>%
+  height_all(height = 0.3) %>%
+  add_header_lines(paste0(
+    "Table 8. Every site with a negative Internal or negative External CO2 pathway estimate ",
+    "(n = ", nrow(tbl_8_data), " estimates across ", n_distinct(tbl_8_data$Citation),
+    " papers), with the estimate itself, how many other sites remain for that citation if the ",
+    "row is dropped, whether the row survives into the Tables 1-2 tests, and why the estimate ",
+    "is negative."
+  )) %>%
+  bold(part = "header", i = 1) %>%
+  align(part = "header", i = 1, align = "left") %>%
+  add_footer_lines(paste0(
+    "Note. Flux in g C m-2 day-1. Internal % of CO2 flux = 100 x Internal / CO2_flux (uncapped, ",
+    "unlike Internal.Contrib used elsewhere, which is capped to [0,100] against Internal+External); ",
+    "shown here for context on how far the estimate departs from a closed mass balance. Negative ",
+    "Internal = net autotrophic (GPP exceeds respiratory demand); negative External = Internal ",
+    "alone exceeds measured CO2_flux, so the External_Pathway = CO2_flux - Internal residual goes ",
+    "below zero -- this is the arithmetic signature of unmeasured downstream export of dissolved ",
+    "CO2/DIC (or, for the smallest cases, RQ-assumption/measurement noise), not a modeled sink. ",
+    "'Sites (citation)' / 'Remaining if removed' count only that citation's rows with valid ",
+    "Internal AND External values (i.e. rows eligible for Tables 1-2 before any filtering). ",
+    "'In Tables 1-2?' = No only for the one row (Aho et al. 2021, Connecticut River) excluded by ",
+    "the Source_Water_Brief != 'Regulated flow' filter upstream of df_final; every other row here ",
+    "is retained (the three Rocher-Ros sites are recoded from 'Glacial/snow melt' to 'Surface ",
+    "runoff' there, per that same recoding step, but are not otherwise excluded or collapsed)."
+  )) %>%
+  italic(part = "footer") %>%
+  align(part = "footer", align = "left") %>%
+  fontsize(part = "footer", size = 10)
+
+excluded_rows_8 <- which(tbl_8_data$`In Tables 1-2?` == "No")
+if (length(excluded_rows_8) > 0) {
+  ft_8 <- ft_8 %>% bg(i = excluded_rows_8, j = 1:10, bg = UNDERPOWERED_COLOR, part = "body")
+}
+
+
 # ── Save publication-ready tables ───────────────────────────────────────────────############
 
-save_as_docx(ft_1, ft_2, ft_3, ft_4, ft_5, ft_6, ft_7, path = "05_Figures/Table_metaanalysis_spatiotempo.docx")
+save_as_docx(ft_1, ft_2, ft_3, ft_4, ft_5, ft_6, ft_7, ft_8, path = "05_Figures/Table_metaanalysis_spatiotempo.docx")
 
