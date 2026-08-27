@@ -34,14 +34,21 @@ fit_family <- function(d, min_n = 15) {
 
   mods <- list(
     "Full"        = fit_gls(resp ~ TempC + log10Q),
-    "Interaction" = fit_gls(resp ~ TempC * log10Q),
-    "Drop Q"      = fit_gls(resp ~ TempC),
-    "Drop T"      = fit_gls(resp ~ log10Q)
+    "Interaction" = fit_gls(resp ~ TempC * log10Q)
   )
   mods <- mods[!map_lgl(mods, is.null)]
   if (length(mods) == 0) return(list(aic = tibble(), effects = tibble()))
 
-  aic_tbl <- tibble(model = names(mods), AIC = map_dbl(mods, AIC), n = nrow(d)) %>%
+  # R2 = squared correlation between fitted and observed values (pseudo-R2
+  # for GLS, since correlated residuals break the standard OLS SS partition).
+  r_squared <- function(mod) cor(fitted(mod), d$resp)^2
+
+  aic_tbl <- tibble(
+    model   = names(mods),
+    AIC     = map_dbl(mods, AIC),
+    n       = nrow(d),
+    R2      = map_dbl(mods, r_squared)
+  ) %>%
     mutate(delta_AIC = round(AIC - min(AIC), 2))
 
   sd_resp   <- sd(d$resp)
@@ -119,40 +126,6 @@ response_labels <- c(
   pct_internal = "Internal Contribution (%)"
 )
 
-sig_summary <- function(resp_name, term_name) {
-  eff <- results[[resp_name]]$effects %>%
-    filter(model %in% c("Drop Q", "Drop T"), term == term_name) %>%
-    mutate(site = factor(site, levels = site_order), sig = p.value < 0.05) %>%
-    arrange(site)
-  tibble(
-    response   = resp_name,
-    n_sig      = sum(eff$sig),
-    n_sites    = nrow(eff),
-    n_positive = sum(eff$estimate > 0),
-    n_negative = sum(eff$estimate < 0),
-    median_est = median(eff$estimate)
-  )
-}
-
-
-# Pathway comparison (paired by site) for discharge
-q_int <- results$internal$effects %>% filter(model == "Drop T", term == "log10Q") %>%
-  select(site, estimate, p.value) %>% rename(est_internal = estimate, p_internal = p.value)
-q_ext <- results$external$effects %>% filter(model == "Drop T", term == "log10Q") %>%
-  select(site, estimate, p.value) %>% rename(est_external = estimate, p_external = p.value)
-q_compare <- q_int %>% left_join(q_ext, by = "site") %>%
-  mutate(favors = ifelse(abs(est_internal) > abs(est_external), "internal", "external"))
-
-
-
-t_int <- results$internal$effects %>% filter(model == "Drop Q", term == "TempC") %>%
-  select(site, estimate, p.value) %>% rename(est_internal = estimate, p_internal = p.value)
-t_ext <- results$external$effects %>% filter(model == "Drop Q", term == "TempC") %>%
-  select(site, estimate, p.value) %>% rename(est_external = estimate, p_external = p.value)
-t_compare <- t_int %>% left_join(t_ext, by = "site") %>%
-  mutate(favors = ifelse(abs(est_internal) > abs(est_external), "internal", "external"))
-
-
 # =============================================================================
 # INTERACTION — does TempC:log10Q covary, by AIC, for each response
 # =============================================================================
@@ -180,9 +153,6 @@ interaction_summary <- function(resp_name) {
 # =============================================================================
 # AIC TABLES — No Interaction vs. Interaction, per site
 # =============================================================================
-# "No Interaction" = Full model (resp ~ TempC + log10Q)
-# "Interaction"     = Interaction model (resp ~ TempC * log10Q)
-# Lower AIC = better fit for that site.
 
 print_aic_table <- function(resp_name) {
   tbl <- results[[resp_name]]$aic %>%
@@ -227,12 +197,25 @@ fmt_est <- function(est, p) {
   sprintf("%.2f%s", r, ifelse(p < 0.05, "*", ""))
 }
 
+# p-values printed to 3 decimals; anything smaller than that just reads "<0.001"
+# rather than rounding to a misleading "0.000".
+fmt_p <- function(p) ifelse(p < 0.001, "<0.001", sprintf("%.3f", round(p, 3)))
+
+# delta_AIC gets the same star convention as the coefficients, but the
+# threshold is the Burnham & Anderson (2002) |delta_AIC| >= 2 rule of thumb,
+# not a p-value.
+fmt_delta_aic <- function(d) {
+  r <- round(d, 2)
+  r[r == 0] <- 0
+  sprintf("%.2f%s", r, ifelse(abs(d) >= 2, "*", ""))
+}
+
 build_supplement_row <- function(resp_name) {
   temp_main <- results[[resp_name]]$effects %>%
-    filter(model == "Drop Q", term == "TempC") %>%
+    filter(model == "Full", term == "TempC") %>%
     select(site, estimate, p.value) %>% rename(TempC_est = estimate, TempC_p = p.value)
   q_main <- results[[resp_name]]$effects %>%
-    filter(model == "Drop T", term == "log10Q") %>%
+    filter(model == "Full", term == "log10Q") %>%
     select(site, estimate, p.value) %>% rename(log10Q_est = estimate, log10Q_p = p.value)
   inter <- results[[resp_name]]$effects %>%
     filter(model == "Interaction", term == "TempC:log10Q") %>%
@@ -250,18 +233,13 @@ build_supplement_row <- function(resp_name) {
     mutate(
       Response    = response_labels[[resp_name]],
       site        = factor(site, levels = site_order),
-      Sign_Match  = case_when(
-        sign(TempC_est) > 0 & sign(log10Q_est) > 0 ~ "Same (+)",
-        sign(TempC_est) < 0 & sign(log10Q_est) < 0 ~ "Same (-)",
-        TRUE                                        ~ "Different"
-      ),
       TempC       = fmt_est(TempC_est, TempC_p),
       log10Q      = fmt_est(log10Q_est, log10Q_p),
       Interaction = fmt_est(Inter_est, Inter_p),
       delta_AIC   = round(AIC_noInt - AIC_int, 2)
     ) %>%
     arrange(site) %>%
-    select(Response, site, TempC, log10Q, Sign_Match, Interaction, delta_AIC)
+    select(Response, site, TempC, log10Q, Interaction, delta_AIC)
 }
 
 supplement_table <- map_dfr(responses, build_supplement_row)
@@ -288,11 +266,11 @@ cat("\n")
 
 build_std_row <- function(resp_name) {
   temp_std <- results[[resp_name]]$effects %>%
-    filter(model == "Drop Q", term == "TempC") %>%
+    filter(model == "Full", term == "TempC") %>%
     select(site, std_estimate, p.value) %>%
     rename(TempC_std = std_estimate, TempC_p = p.value)
   q_std <- results[[resp_name]]$effects %>%
-    filter(model == "Drop T", term == "log10Q") %>%
+    filter(model == "Full", term == "log10Q") %>%
     select(site, std_estimate, p.value) %>%
     rename(log10Q_std = std_estimate, log10Q_p = p.value)
 
@@ -301,7 +279,7 @@ build_std_row <- function(resp_name) {
     mutate(
       Response = response_labels[[resp_name]],
       site     = factor(site, levels = site_order),
-      Favors   = ifelse(abs(TempC_std) > abs(log10Q_std), "TempC", "log10Q")
+      Favors   = ifelse(abs(TempC_std) > abs(log10Q_std), "TempC", "Q")
     ) %>%
     arrange(site) %>%
     select(Response, site, TempC_std, TempC_p, log10Q_std, log10Q_p, Favors)
@@ -352,123 +330,12 @@ style_ft <- function(ft, title, footnote) {
     font(fontname = "Times New Roman", part = "footer")
 }
 
-# ── Table S2: Site-level comparison, one row per site ────────────────────────
-# Three column blocks, each now split Internal / External / Total: (1)
-# Temperature raw slope (β); (2) Discharge raw slope (c — the exponent of
-# the log-log C-Q relationship, NOT a beta); (3) standardized slopes grouped
-# by pathway (Internal, External, Total), with Temperature/Q as sub-columns
-# so their magnitudes are directly comparable within each pathway. Favors
-# columns live only in the standardized block (Temperature vs. Q, per
-# pathway) — the raw blocks dropped theirs to keep the table to one page.
-
-extract_pathway_term <- function(pathway_name, term_name) {
-  results[[pathway_name]]$effects %>%
-    filter(model %in% c("Drop Q", "Drop T"), term == term_name) %>%
-    select(site, estimate, std_estimate)
-}
-
-temp_int <- extract_pathway_term("internal", "TempC")  %>%
-  rename(TempC_int_raw = estimate, TempC_int_std = std_estimate)
-temp_ext <- extract_pathway_term("external", "TempC")  %>%
-  rename(TempC_ext_raw = estimate, TempC_ext_std = std_estimate)
-temp_tot <- extract_pathway_term("CO2_flux", "TempC")  %>%
-  rename(TempC_tot_raw = estimate, TempC_tot_std = std_estimate)
-disc_int <- extract_pathway_term("internal", "log10Q") %>%
-  rename(Q_int_raw = estimate, Q_int_std = std_estimate)
-disc_ext <- extract_pathway_term("external", "log10Q") %>%
-  rename(Q_ext_raw = estimate, Q_ext_std = std_estimate)
-disc_tot <- extract_pathway_term("CO2_flux", "log10Q") %>%
-  rename(Q_tot_raw = estimate, Q_tot_std = std_estimate)
-
-pathway_compare_tbl <- temp_int %>%
-  left_join(temp_ext, by = "site") %>%
-  left_join(temp_tot, by = "site") %>%
-  left_join(disc_int, by = "site") %>%
-  left_join(disc_ext, by = "site") %>%
-  left_join(disc_tot, by = "site") %>%
-  mutate(
-    site           = factor(site, levels = site_order),
-    Int_Std_Favors = ifelse(abs(TempC_int_std) > abs(Q_int_std), "Temp", "Q"),
-    Ext_Std_Favors = ifelse(abs(TempC_ext_std) > abs(Q_ext_std), "Temp", "Q"),
-    Tot_Std_Favors = ifelse(abs(TempC_tot_std) > abs(Q_tot_std), "Temp", "Q")
-  ) %>%
-  arrange(site) %>%
-  mutate(across(c(Q_int_raw, Q_ext_raw, Q_tot_raw,
-                  TempC_int_std, TempC_ext_std, TempC_tot_std, Q_int_std, Q_ext_std, Q_tot_std),
-                ~ round(.x, 2))) %>%
-  # Temperature raw slopes are uniformly tiny (0.001-0.05) and lose almost all
-  # distinguishing precision when rounded to hundredths, so they're shown in
-  # scientific notation instead.
-  mutate(across(c(TempC_int_raw, TempC_ext_raw, TempC_tot_raw),
-                ~ formatC(.x, format = "e", digits = 2))) %>%
-  rename(Site = site) %>%
-  select(Site,
-         TempC_int_raw, TempC_ext_raw, TempC_tot_raw,
-         Q_int_raw, Q_ext_raw, Q_tot_raw,
-         TempC_int_std, Q_int_std, Int_Std_Favors,
-         TempC_ext_std, Q_ext_std, Ext_Std_Favors,
-         TempC_tot_std, Q_tot_std, Tot_Std_Favors)
-
-ft2 <- flextable(pathway_compare_tbl) %>%
-  add_header_row(
-    top       = TRUE,
-    values    = c("Site", "", "", "Internal", "External", "Total"),
-    colwidths = c(1, 3, 3, 3, 3, 3)
-  ) %>%
-  add_header_row(
-    top       = TRUE,
-    values    = c("Site", "Temperature Slope (β; log10[g C m⁻² day⁻¹]·°C⁻¹)",
-                  "Discharge Slope (c; log10[g C m⁻² day⁻¹]·log10[L s⁻¹]⁻¹)",
-                  "Standardized Comparison"),
-    colwidths = c(1, 3, 3, 9)
-  ) %>%
-  set_header_labels(
-    Site = "Site",
-    TempC_int_raw = "Internal", TempC_ext_raw = "External", TempC_tot_raw = "Total",
-    Q_int_raw = "Internal",     Q_ext_raw = "External",      Q_tot_raw = "Total",
-    TempC_int_std = "Temperature", Q_int_std = "Q", Int_Std_Favors = "Favors",
-    TempC_ext_std = "Temperature", Q_ext_std = "Q", Ext_Std_Favors = "Favors",
-    TempC_tot_std = "Temperature", Q_tot_std = "Q", Tot_Std_Favors = "Favors"
-  ) %>%
-  merge_at(part = "header", i = 1:3, j = 1) %>%
-  merge_at(part = "header", i = 1:2, j = 2:4) %>%
-  merge_at(part = "header", i = 1:2, j = 5:7) %>%
-  valign(part = "header", valign = "center") %>%
-  bold(j = "Site", part = "body") %>%
-  align(j = "Site", align = "left", part = "all") %>%
-  align(j = c("TempC_int_raw", "TempC_ext_raw", "TempC_tot_raw", "Q_int_raw", "Q_ext_raw", "Q_tot_raw",
-              "TempC_int_std", "TempC_ext_std", "TempC_tot_std", "Q_int_std", "Q_ext_std", "Q_tot_std",
-              "Int_Std_Favors", "Ext_Std_Favors", "Tot_Std_Favors"),
-        align = "center", part = "body") %>%
-  fontsize(size = 9, part = "all") %>%
-  width(j = "Site", width = 0.4) %>%
-  width(j = c("TempC_int_raw", "TempC_ext_raw", "TempC_tot_raw"), width = 0.8) %>%
-  width(j = c("Q_int_raw", "Q_ext_raw", "Q_tot_raw"), width = 0.6) %>%
-  width(j = c("TempC_int_std", "TempC_ext_std", "TempC_tot_std",
-              "Q_int_std", "Q_ext_std", "Q_tot_std"), width = 0.55) %>%
-  width(j = c("Int_Std_Favors", "Ext_Std_Favors", "Tot_Std_Favors"), width = 0.55)
-
-ft2 <- style_ft(ft2,
-  "Table S2. Site-level comparison of internal, external, and total CO2 flux sensitivity to temperature and discharge (GLS with AR(1) residuals): raw slopes by pathway, and standardized slopes grouped by pathway (with Temperature/Q as sub-columns) for direct magnitude comparison.",
-  paste0(
-    "Note. Flux = CO2 flux (g C m⁻² day⁻¹); Q = discharge (L s⁻¹); Total = total CO2 flux (internal + external). All models fit via generalized ",
-    "least squares with a continuous-time AR(1) residual correlation structure (nlme::corCAR1) to account for temporal autocorrelation in the daily ",
-    "flux series (see lmm_outline_synthesis.R for the residual diagnostics motivating this). Temperature Slope (β) = coefficient ",
-    "from log10(flux) ~ TempC (Drop Q model), fit independently per site and pathway; units = log10(flux) per °C. Discharge Slope (c) = coefficient ",
-    "from log10(flux) ~ log10(Q) (Drop T model) — this is NOT a beta, it is the exponent of the log-log discharge (C-Q) rating-curve relationship; ",
-    "units = log10(flux) per log10(Q). Standardized Comparison = raw slope x SD(predictor) / SD(response), rescaling temperature and discharge ",
-    "coefficients onto the same \"SD of response per SD of predictor\" scale, grouped by pathway with Temperature and Q shown side by side within ",
-    "each so their magnitudes are directly comparable. Favors = predictor (Temp or Q) with the larger absolute standardized slope for that pathway, ",
-    "based on absolute standardized slope values."
-  )
-) %>%
-  fontsize(size = 8, part = "footer")
-
-
-# ── Table S4: Main effects vs. interaction, merged with the AIC comparison ───
-# Combines the former S4 (AIC of the additive vs. interaction models) and S5
-# (main-effect coefficients vs. the interaction term) into one table, so
-# delta_AIC sits directly alongside the two AIC values it's computed from.
+# ── Master table: one row per Response x Site ────────────────────────────────
+# Single flextable covering all 4 responses (CO2_flux, internal, external,
+# pct_internal) x 8 sites: raw + standardized joint-model slopes with exact
+# p-values, the interaction term, delta_AIC (starred at the |delta_AIC| >= 2
+# rule-of-thumb threshold), a single "best-supported model" pseudo-R2, and
+# which predictor the standardized slopes favor.
 
 aic_all_tbl <- map_dfr(responses, function(resp_name) {
   results[[resp_name]]$aic %>%
@@ -478,76 +345,106 @@ aic_all_tbl <- map_dfr(responses, function(resp_name) {
       site     = factor(site, levels = site_order),
       model    = case_when(model == "Full" ~ "No_Interaction", TRUE ~ model)
     ) %>%
-    select(Response, site, model, AIC) %>%
-    pivot_wider(names_from = model, values_from = AIC)
+    select(Response, site, model, R2) %>%
+    pivot_wider(names_from = model, values_from = R2)
 }) %>%
-  mutate(
-    Response       = factor(Response, levels = response_order),
-    No_Interaction = round(No_Interaction, 2),
-    Interaction    = round(Interaction, 2)
-  ) %>%
-  rename(AIC_No_Interaction = No_Interaction, AIC_Interaction = Interaction)
+  rename(R2_No_Interaction = No_Interaction, R2_Interaction = Interaction) %>%
+  mutate(Response = factor(Response, levels = response_order))
 
-combined_table <- supplement_table %>%
+std_fmt_tbl <- std_table %>%
+  mutate(
+    TempC_std_fmt  = fmt_est(TempC_std, TempC_p),
+    log10Q_std_fmt = fmt_est(log10Q_std, log10Q_p),
+    TempC_p_fmt    = fmt_p(TempC_p),
+    log10Q_p_fmt   = fmt_p(log10Q_p)
+  ) %>%
+  select(Response, site, TempC_std_fmt, TempC_p_fmt, log10Q_std_fmt, log10Q_p_fmt, Favors)
+
+master_table <- supplement_table %>%
+  left_join(std_fmt_tbl, by = c("Response", "site")) %>%
   left_join(aic_all_tbl, by = c("Response", "site")) %>%
   mutate(
     Response  = factor(Response, levels = response_order),
-    AIC_Sig   = ifelse(abs(delta_AIC) >= 2,
-                        paste0("Yes (", ifelse(delta_AIC > 0, "Interaction", "No Interaction"), ")"),
-                        "No")
+    # Best-supported model: use the interaction model's R2 only when AIC
+    # meaningfully favors it (delta_AIC >= 2); otherwise default to the
+    # simpler additive (No Interaction) model's R2.
+    R2_best   = round(ifelse(delta_AIC >= 2, R2_Interaction, R2_No_Interaction), 2),
+    delta_AIC = fmt_delta_aic(delta_AIC)
   ) %>%
   arrange(Response, site) %>%
-  rename(Site = site) %>%
-  select(Response, Site, TempC, log10Q, Sign_Match, Interaction,
-         AIC_No_Interaction, AIC_Interaction, delta_AIC, AIC_Sig)
+  rename(Site = site, TempC_std = TempC_std_fmt, TempC_p = TempC_p_fmt,
+         log10Q_std = log10Q_std_fmt, log10Q_p = log10Q_p_fmt) %>%
+  select(Response, Site, TempC, TempC_std, TempC_p, log10Q, log10Q_std, log10Q_p,
+         Interaction, delta_AIC, R2_best, Favors)
 
-group_bounds <- head(cumsum(as.integer(table(combined_table$Response))), -1)
+group_bounds <- head(cumsum(as.integer(table(master_table$Response))), -1)
 
-combined_table <- combined_table %>%
+master_table <- master_table %>%
   mutate(Response = factor(as.character(Response), levels = response_order))
 
-ft4 <- flextable(combined_table) %>%
+ft_master <- flextable(master_table) %>%
   merge_v(j = "Response") %>%
   valign(j = "Response", valign = "center", part = "body") %>%
+  add_header_row(
+    top       = TRUE,
+    values    = c("Response", "Site", "Temperature Slope (β)", "Discharge Slope (c)",
+                  "Interaction (b)", "ΔAIC", "Pseudo-R² (cor²)", "Favors"),
+    colwidths = c(1, 1, 3, 3, 1, 1, 1, 1)
+  ) %>%
   set_header_labels(
     Response = "Response", Site = "Site",
-    TempC = "Temperature (b)", log10Q = "Discharge (c)",
-    Sign_Match = "Sign Match", Interaction = "Interaction (b)",
-    AIC_No_Interaction = "AIC: No Interaction", AIC_Interaction = "AIC: Interaction",
-    delta_AIC = "ΔAIC", AIC_Sig = "ΔAIC ≥ 2?"
+    TempC = "(b)", TempC_std = "(SD)", TempC_p = "p",
+    log10Q = "(b)", log10Q_std = "(SD)", log10Q_p = "p",
+    Interaction = "Interaction (b)", delta_AIC = "ΔAIC",
+    R2_best = "Pseudo-R² (cor²)", Favors = "Favors"
   ) %>%
+  merge_at(part = "header", i = 1:2, j = 1) %>%
+  merge_at(part = "header", i = 1:2, j = 2) %>%
+  merge_at(part = "header", i = 1:2, j = 9) %>%
+  merge_at(part = "header", i = 1:2, j = 10) %>%
+  merge_at(part = "header", i = 1:2, j = 11) %>%
+  merge_at(part = "header", i = 1:2, j = 12) %>%
+  valign(part = "header", valign = "center") %>%
   bold(j = "Response", part = "body") %>%
-  align(j = c("TempC", "log10Q", "Sign_Match", "Interaction",
-              "AIC_No_Interaction", "AIC_Interaction", "delta_AIC", "AIC_Sig"),
+  align(j = "Response", align = "left", part = "all") %>%
+  align(j = c("Site", "TempC", "TempC_std", "TempC_p", "log10Q", "log10Q_std", "log10Q_p",
+              "Interaction", "delta_AIC", "R2_best", "Favors"),
         align = "center", part = "body") %>%
-  width(j = "Response", width = 1.7) %>%
-  width(j = "Site", width = 0.45) %>%
-  width(j = c("TempC", "log10Q", "Interaction"), width = 0.95) %>%
-  width(j = "Sign_Match", width = 0.8) %>%
-  width(j = c("AIC_No_Interaction", "AIC_Interaction"), width = 0.95) %>%
+  fontsize(size = 9, part = "all") %>%
+  width(j = "Response", width = 1.5) %>%
+  width(j = "Site", width = 0.4) %>%
+  width(j = c("TempC", "TempC_std", "log10Q", "log10Q_std"), width = 0.55) %>%
+  width(j = c("TempC_p", "log10Q_p"), width = 0.55) %>%
+  width(j = "Interaction", width = 0.75) %>%
   width(j = "delta_AIC", width = 0.65) %>%
-  width(j = "AIC_Sig", width = 1.2) %>%
+  width(j = "R2_best", width = 0.9) %>%
+  width(j = "Favors", width = 0.55) %>%
   hline(i = group_bounds, part = "body", border = fp_border(width = 1))
 
-ft4 <- style_ft(ft4,
-  "Table S4. Main effects of temperature and discharge alongside their interaction (GLS with AR(1) residuals), and the AIC comparison of additive (No Interaction) vs. interaction models, per site.",
+ft_master <- style_ft(ft_master,
+  "Table S. Temperature and discharge effects on CO2 flux pathways: joint-model slopes (raw and standardized, with p-values), interaction term, AIC comparison, and best-supported-model fit (pseudo-R²), by response and site.",
   paste0(
-    "Note. All models fit via generalized least squares with a continuous-time AR(1) residual correlation structure (nlme::corCAR1) to account for ",
-    "temporal autocorrelation in the daily flux series (see lmm_outline_synthesis.R for the residual diagnostics motivating this). ",
-    "Temperature (b) and Discharge (c) are the raw coefficients from the additive (No Interaction) model; c is the log-log discharge slope ",
-    "(see Table S2), not a beta. * indicates p < 0.05 for that term's own coefficient. Sign Match indicates whether temperature's and discharge's ",
-    "main-effect coefficients share the same sign. Lower AIC indicates better fit for that site. delta_AIC = AIC(No Interaction) - AIC(Interaction); ",
-    "positive values favor the interaction model. ΔAIC ≥ 2? = whether the AIC difference meets the standard rule-of-thumb threshold ",
-    "(Burnham & Anderson 2002) for meaningfully better fit; \"Yes\" is labeled with which model that favors, \"No\" means the two models are ",
-    "statistically indistinguishable by AIC at that site."
+    "Note. Flux = CO2 flux (g C m⁻² day⁻¹); Q = discharge (L s⁻¹); Internal/External refer to the CO2 flux pathway (CO2 flux total = Internal + ",
+    "External); Internal Contribution (%) = internal's share of total CO2 flux. All models fit via generalized least squares with a continuous-time ",
+    "AR(1) residual correlation structure (nlme::corCAR1) to account for temporal autocorrelation in the daily flux series (see ",
+    "lmm_outline_synthesis.R for the residual diagnostics motivating this). Temperature Slope (β) and Discharge Slope (c) are the raw partial ",
+    "coefficients from the joint (No Interaction) model log10(flux) ~ TempC + log10(Q), each controlling for the other predictor; c is not a beta, ",
+    "it is the exponent of the log-log discharge (C-Q) rating-curve relationship. (SD) columns are the same coefficients standardized (raw slope x ",
+    "SD[predictor] / SD[response]) so Temperature and Discharge are directly comparable in magnitude; p columns give that term's exact p-value ",
+    "(<0.001 shown for anything smaller). * on Temperature/Discharge/Interaction indicates p < 0.05 for that term's own coefficient. ",
+    "Interaction (b) = the TempC:log10Q coefficient from the interaction model. Lower AIC indicates better fit. ΔAIC = AIC(No Interaction) - ",
+    "AIC(Interaction); positive values favor the interaction model; * marks |delta_AIC| >= 2, the standard rule-of-thumb threshold (Burnham & ",
+    "Anderson 2002) for a meaningful difference. Pseudo-R² (cor²) = squared Pearson correlation between fitted and observed values — NOT an ",
+    "RSS-based OLS R² (GLS's correlated residuals break that decomposition), just how well predictions track the data. It is taken from the ",
+    "interaction model when delta_AIC meaningfully favors it (starred, positive), and from the simpler additive (No Interaction) model otherwise. ",
+    "Favors = predictor (Temp or Q) with the larger absolute standardized slope."
   )
-)
+) %>%
+  fontsize(size = 8, part = "footer")
 
 
 # ── Print (renders in RStudio Viewer / knitted output) ───────────────────────
-ft2
-ft4
+ft_master
 
-#── Save as Word documents (paste-ready, formatting preserved) ───────────────
-save_as_docx(ft2, path = "05_Figures/Table_pathway_comparison_GLS.docx")
-save_as_docx(ft4, path = "05_Figures/Table_main_effects_aic_GLS.docx")
+#── Save as Word document (paste-ready, formatting preserved) ────────────────
+save_as_docx(ft_master, path = "05_Figures/Table_GLS_master.docx")
