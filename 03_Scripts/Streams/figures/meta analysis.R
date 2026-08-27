@@ -279,7 +279,8 @@ spatio.data<-bind_rows(pubs%>%filter(Citation != "This Paper"), int.ext.summary)
     pct_internal=(internal.mn/(internal.mn+external.mn))*100,
     pct_internal=if_else(pct_internal<0, 0, pct_internal),
     pct_internal=if_else(pct_internal>100, 100, pct_internal),
-  )
+  )%>%
+  mutate(precip_cm_yr=ifelse(precip_cm_yr>300, NA, precip_cm_yr))
 
 pathway_trend_theme <- list(
   scale_color_manual(name = "Pathway", values = c("black", "red")),
@@ -296,13 +297,8 @@ build_pathway_trend_plot <- function(predictor, x_lab, plot_title,
                                       exclude_external_label = "Horgby",
                                       log_x = FALSE) {
 
-  # log_x = TRUE plots/fits on a log10 x-axis instead of the raw predictor --
-  # for a variable like discharge that spans several orders of magnitude, a
-  # linear x-scale/fit would be dominated by a couple of high-Q sites the
-  # same way Horgby dominates External on a linear y-scale. stat_poly_line/
-  # stat_poly_eq pick this transform up automatically from scale_x_log10(),
-  # the same way they already pick up scale_y_log10() from pathway_trend_theme.
-  data_long <- spatio.data %>%
+
+data_long <- spatio.data %>%
     filter(!is.na(.data[[predictor]]), !is.na(pct_internal)) %>%
     { if (log_x) filter(., .data[[predictor]] > 0) else . } %>%
     pivot_longer(cols = c(internal.mn, external.mn),
@@ -387,8 +383,7 @@ plot_grid(p_flux_vs_temp, p_flux_vs_rain, p_flux_vs_pH, p_flux_vs_Q)
 
 
 #boxplots###############
-# df_final is built by the spatiotempo analysis script; source it if this
-# session hasn't run it yet (it also rebuilds the stats tables + docx).
+
 if (!exists("df_final")) source("03_Scripts/Streams/analysis/metaanalysis_spatiotempo_analysis.R")
 
 df_long<-df_final%>%
@@ -406,36 +401,23 @@ df_long<-df_final%>%
     pathway = factor(pathway, levels = c("Internal.Mean", "External.Mean"))
   )
 
+plot_grid(
 
 ggplot(df_long, aes(x = Source_Water_Brief, y = flux, fill = pathway)) +
   geom_boxplot(position = position_dodge(width = 0.75)) +
   geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.75),
              shape = 1, size = 1.2, color = "grey30", alpha = 0.6) +
   theme_classic(base_size = 13) +
-  theme(axis.text = element_text(size = 11), legend.position = 'none')
-
-ggplot(df_long, aes(x = Biome_Category, y = flux, fill = pathway)) +
-  geom_boxplot(position = position_dodge(width = 0.75)) +
-  geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.75),
-             shape = 1, size = 1.2, color = "grey30", alpha = 0.6) +
-  theme_classic(base_size = 13) +
-  theme(axis.text = element_text(size = 11), legend.position = "bottom")+
+  theme(axis.text = element_text(size = 11), legend.position = 'none')+
   scale_y_log10()
-
-
-
-ggplot(df_final, aes(x = Biome_Category, y = Internal.Contrib)) +
-  geom_boxplot(position = position_dodge(width = 0.75)) +
-  geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.75),
-             shape = 1, size = 1.2, color = "grey30", alpha = 0.6) +
-  theme_classic(base_size = 13) +
-  theme(axis.text = element_text(size = 11), legend.position = "bottom")
-
+,
 
 ggplot(df_final, aes(x = Source_Water_Brief, y = Internal.Contrib)) +
   geom_boxplot(position = position_dodge(width = 0.75)) +
   geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.75),
              shape = 1, size = 1.2, color = "grey30", alpha = 0.6) +
   theme_classic(base_size = 13) +
-  theme(axis.text = element_text(size = 11), legend.position = "bottom")#+
-  #scale_y_log10()
+  theme(axis.text = element_text(size = 11), legend.position = "bottom"),#+
+  #scale_y_log10(),
+ncol=1
+)
