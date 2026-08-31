@@ -263,6 +263,33 @@ cat("\n")
 # compared directly to infer which variable has the bigger influence — the
 # same kind of inference you're pulling from the Bayesian credible interval
 # magnitudes in "multivariate model.R".
+#
+# Rules for the "Favors" column:
+#   1. A slope that is not significant (p >= favors_alpha) is treated as
+#      exactly 0 — an effect we cannot distinguish from no effect should not
+#      be allowed to win the comparison.
+#   2. The comparison is on the ABSOLUTE standardized slope; direction is read
+#      off the signed coefficient elsewhere in the table, not from this column.
+#   3. If the two absolute values are within favors_tie_tol of each other the
+#      site is called "Tied". If BOTH slopes were zeroed as non-significant it
+#      is called "Neither" — a tie at zero is not evidence for either predictor.
+favors_alpha   <- 0.05   # significance cut-off used by rule 1
+favors_tie_tol <- 0.05   # tie window = 5 percentage points on the SD-per-SD scale
+
+favors_effective <- function(std, p) {
+  ifelse(is.na(std) | is.na(p) | p >= favors_alpha, 0, abs(std))
+}
+
+favors_call <- function(t_std, t_p, q_std, q_p) {
+  t_eff <- favors_effective(t_std, t_p)
+  q_eff <- favors_effective(q_std, q_p)
+  case_when(
+    t_eff == 0 & q_eff == 0              ~ "Neither",
+    abs(t_eff - q_eff) <= favors_tie_tol ~ "Tied",
+    t_eff > q_eff                        ~ "TempC",
+    TRUE                                 ~ "Q"
+  )
+}
 
 build_std_row <- function(resp_name) {
   temp_std <- results[[resp_name]]$effects %>%
@@ -279,7 +306,7 @@ build_std_row <- function(resp_name) {
     mutate(
       Response = response_labels[[resp_name]],
       site     = factor(site, levels = site_order),
-      Favors   = ifelse(abs(TempC_std) > abs(log10Q_std), "TempC", "Q")
+      Favors   = favors_call(TempC_std, TempC_p, log10Q_std, log10Q_p)
     ) %>%
     arrange(site) %>%
     select(Response, site, TempC_std, TempC_p, log10Q_std, log10Q_p, Favors)
@@ -311,9 +338,8 @@ cat("\n")
 
 response_order <- unname(response_labels[responses])
 
-style_ft <- function(ft, title, footnote) {
+style_ft <- function(ft, footnote) {
   ft %>%
-    add_header_lines(title) %>%
     font(fontname = "Times New Roman", part = "all") %>%
     fontsize(size = 10, part = "all") %>%
     bold(part = "header") %>%
@@ -360,9 +386,15 @@ std_fmt_tbl <- std_table %>%
   ) %>%
   select(Response, site, TempC_std_fmt, TempC_p_fmt, log10Q_std_fmt, log10Q_p_fmt, Favors)
 
-master_table <- supplement_table %>%
+# Raw significance flags (p < 0.05) for TempC and log10Q, kept separately so
+# they can drive cell shading in ft_master without becoming visible columns.
+sig_lookup <- std_table %>%
+  transmute(Response, site, TempC_sig = TempC_p < favors_alpha, log10Q_sig = log10Q_p < favors_alpha)
+
+master_table_full <- supplement_table %>%
   left_join(std_fmt_tbl, by = c("Response", "site")) %>%
   left_join(aic_all_tbl, by = c("Response", "site")) %>%
+  left_join(sig_lookup, by = c("Response", "site")) %>%
   mutate(
     Response  = factor(Response, levels = response_order),
     # Best-supported model: use the interaction model's R2 only when AIC
@@ -373,26 +405,34 @@ master_table <- supplement_table %>%
   ) %>%
   arrange(Response, site) %>%
   rename(Site = site, TempC_std = TempC_std_fmt, TempC_p = TempC_p_fmt,
-         log10Q_std = log10Q_std_fmt, log10Q_p = log10Q_p_fmt) %>%
+         log10Q_std = log10Q_std_fmt, log10Q_p = log10Q_p_fmt)
+
+group_bounds <- head(cumsum(as.integer(table(master_table_full$Response))), -1)
+
+# Row indices (in this exact order) where the TempC / log10Q term is
+# significant — used below to shade the (b)/(SD)/p triplet for that term.
+sig_temp_rows <- which(master_table_full$TempC_sig)
+sig_q_rows    <- which(master_table_full$log10Q_sig)
+
+# Drop the "log10()" wrapper from the row labels — the header notes that the
+# flux pathways are log10-transformed instead.
+master_table <- master_table_full %>%
+  mutate(Response = factor(gsub("^log10\\((.+)\\)$", "\\1", as.character(Response)),
+                            levels = gsub("^log10\\((.+)\\)$", "\\1", response_order))) %>%
   select(Response, Site, TempC, TempC_std, TempC_p, log10Q, log10Q_std, log10Q_p,
          Interaction, delta_AIC, R2_best, Favors)
-
-group_bounds <- head(cumsum(as.integer(table(master_table$Response))), -1)
-
-master_table <- master_table %>%
-  mutate(Response = factor(as.character(Response), levels = response_order))
 
 ft_master <- flextable(master_table) %>%
   merge_v(j = "Response") %>%
   valign(j = "Response", valign = "center", part = "body") %>%
   add_header_row(
     top       = TRUE,
-    values    = c("Response", "Site", "Temperature Slope (β)", "Discharge Slope (c)",
+    values    = c("Response (flux pathways log10)", "Site", "Temperature Slope (β)", "Discharge Slope (c)",
                   "Interaction (b)", "ΔAIC", "Pseudo-R² (cor²)", "Favors"),
     colwidths = c(1, 1, 3, 3, 1, 1, 1, 1)
   ) %>%
   set_header_labels(
-    Response = "Response", Site = "Site",
+    Response = "Response (flux pathways log10)", Site = "Site",
     TempC = "(b)", TempC_std = "(SD)", TempC_p = "p",
     log10Q = "(b)", log10Q_std = "(SD)", log10Q_p = "p",
     Interaction = "Interaction (b)", delta_AIC = "ΔAIC",
@@ -418,29 +458,15 @@ ft_master <- flextable(master_table) %>%
   width(j = "Interaction", width = 0.75) %>%
   width(j = "delta_AIC", width = 0.65) %>%
   width(j = "R2_best", width = 0.9) %>%
-  width(j = "Favors", width = 0.55) %>%
-  hline(i = group_bounds, part = "body", border = fp_border(width = 1))
-
-ft_master <- style_ft(ft_master,
-  "Table S. Temperature and discharge effects on CO2 flux pathways: joint-model slopes (raw and standardized, with p-values), interaction term, AIC comparison, and best-supported-model fit (pseudo-R²), by response and site.",
-  paste0(
-    "Note. Flux = CO2 flux (g C m⁻² day⁻¹); Q = discharge (L s⁻¹); Internal/External refer to the CO2 flux pathway (CO2 flux total = Internal + ",
-    "External); Internal Contribution (%) = internal's share of total CO2 flux. All models fit via generalized least squares with a continuous-time ",
-    "AR(1) residual correlation structure (nlme::corCAR1) to account for temporal autocorrelation in the daily flux series (see ",
-    "lmm_outline_synthesis.R for the residual diagnostics motivating this). Temperature Slope (β) and Discharge Slope (c) are the raw partial ",
-    "coefficients from the joint (No Interaction) model log10(flux) ~ TempC + log10(Q), each controlling for the other predictor; c is not a beta, ",
-    "it is the exponent of the log-log discharge (C-Q) rating-curve relationship. (SD) columns are the same coefficients standardized (raw slope x ",
-    "SD[predictor] / SD[response]) so Temperature and Discharge are directly comparable in magnitude; p columns give that term's exact p-value ",
-    "(<0.001 shown for anything smaller). * on Temperature/Discharge/Interaction indicates p < 0.05 for that term's own coefficient. ",
-    "Interaction (b) = the TempC:log10Q coefficient from the interaction model. Lower AIC indicates better fit. ΔAIC = AIC(No Interaction) - ",
-    "AIC(Interaction); positive values favor the interaction model; * marks |delta_AIC| >= 2, the standard rule-of-thumb threshold (Burnham & ",
-    "Anderson 2002) for a meaningful difference. Pseudo-R² (cor²) = squared Pearson correlation between fitted and observed values — NOT an ",
-    "RSS-based OLS R² (GLS's correlated residuals break that decomposition), just how well predictions track the data. It is taken from the ",
-    "interaction model when delta_AIC meaningfully favors it (starred, positive), and from the simpler additive (No Interaction) model otherwise. ",
-    "Favors = predictor (Temp or Q) with the larger absolute standardized slope."
-  )
-) %>%
-  fontsize(size = 8, part = "footer")
+  width(j = "Favors", width = 0.75) %>%
+  hline(i = group_bounds, part = "body", border = fp_border(width = 1)) %>%
+  # Highlight the (b)/(SD)/p triplet for whichever term (TempC or log10Q) is
+  # significant (p < 0.05) at that site, so a significant relationship is
+  # visible at a glance instead of only carrying a small "*".
+  bg(i = sig_temp_rows, j = c("TempC", "TempC_std", "TempC_p"), bg = "#FFF3B0", part = "body") %>%
+  bold(i = sig_temp_rows, j = c("TempC", "TempC_std", "TempC_p"), bold = TRUE, part = "body") %>%
+  bg(i = sig_q_rows, j = c("log10Q", "log10Q_std", "log10Q_p"), bg = "#FFF3B0", part = "body") %>%
+  bold(i = sig_q_rows, j = c("log10Q", "log10Q_std", "log10Q_p"), bold = TRUE, part = "body")
 
 
 # ── Print (renders in RStudio Viewer / knitted output) ───────────────────────
