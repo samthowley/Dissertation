@@ -10,12 +10,12 @@ combined_title <- ggdraw() +
 
 citation_legend_shared <- get_legend(
   p_site_map +
-    guides(size = "none", fill = guide_legend(nrow = 3, override.aes = list(size = 4))) +
+    guides(size = "none", fill = guide_legend(ncol = 4, override.aes = list(size = 6))) +
     theme(
       legend.position = "bottom",
-      legend.text     = element_text(size = 11),
-      legend.title    = element_text(size = 12, face = "bold"),
-      legend.key.size = unit(0.6, "cm"),
+      legend.text     = element_text(size = 14),
+      legend.title    = element_text(size = 15, face = "bold"),
+      legend.key.size = unit(0.85, "cm"),
       legend.key      = element_blank()
     )
 )
@@ -28,9 +28,9 @@ size_legend_map <- get_legend(
            size = guide_legend(direction = "vertical", title.position = "top")) +
     theme(
       legend.position = "bottom",
-      legend.text     = element_text(size = 10.5),
-      legend.title    = element_text(size = 11, face = "bold"),
-      legend.key.size = unit(0.55, "cm"),
+      legend.text     = element_text(size = 13),
+      legend.title    = element_text(size = 14, face = "bold"),
+      legend.key.size = unit(0.75, "cm"),
       legend.key      = element_blank()
     )
 )
@@ -53,7 +53,7 @@ map_row <- plot_grid(
   panels,
   citation_legend_shared,
   ncol = 1,
-  rel_heights = c(0.05, 0.7, 0.5, 0.18)
+  rel_heights = c(0.05, 0.7, 0.5, 0.3)
 ) +
   theme(plot.background = element_rect(fill = "white", color = NA)))
 

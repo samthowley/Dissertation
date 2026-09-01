@@ -220,9 +220,9 @@ fig_title <- ggdraw() +
 band_legend <- get_legend(
   p_violin + theme(
     legend.position = "bottom",
-    legend.text     = element_text(size = 11.5),
+    legend.text     = element_text(size = 14),
     legend.title    = element_blank(),
-    legend.key.size = unit(0.65, "cm"),
+    legend.key.size = unit(0.85, "cm"),
     legend.key      = element_blank()
   )
 )
