@@ -4,6 +4,7 @@ library(sf)
 library(maps)
 library(dataRetrieval)
 library(concaveman)
+library(readxl)
 
 # ─── Figure: Global Map of Meta-Analysis Study Site Locations ───────────────
 
@@ -21,39 +22,23 @@ hotchkiss_hull <- concaveman(
   as.data.frame() %>%
   setNames(c("lon", "lat"))
 
-# APPROXIMATE coordinates, catchment/study-area level (not exact sampling
-site_coords <- tribble(
-  ~Citation,                    ~lat,    ~lon,
-  "(Aho et al., 2021)",          41.90,  -72.90,  # Connecticut River Watershed, NW CT
-  "(Bernal et al., 2022)",       41.75,    2.50,  # La Tordera catchment, Catalonia, Spain
-  "(Carter et al., 2022)",       35.97,  -79.05,  # New Hope Creek, Duke Forest, NC
-  "(Demars, 2019)",              57.92,   -2.55,  # Glensaugh research station, Aberdeenshire, Scotland, UK
-  "(Diamond et al., 2025)",      47.60,    2.60,  # Loire River at Dampierre, France
-  "(Duvert et al., 2019)",      -13.50,  131.30,  # Daly/Howard River, Northern Territory, AUS
-  "(Gomez-Gener et al., 2016)",  42.15,    2.75,  # Fluvia River network, Catalonia, NE Spain
-  "(Gong et al., 2021)",         31.30,  119.40,  # Tianmu Lake catchment, Zhejiang/Jiangsu, China
-  "(Horgby et al., 2019)",       46.25,    7.10,  # Vallon de Nant, Swiss Alps
-  "(Khadka et al., 2014)",       29.85,  -82.60,  # Santa Fe River watershed, north-central FL
-  "(Kirk & Cohen, 2023)",        29.90,  -82.50,  # Santa Fe River network, north-central FL
-  "(Lupon et al., 2019)",        64.21,   19.77,  # Krycklan catchment, near Umea, Sweden
-  "(Marzolf et al., 2022)",      10.43,  -83.99,  # La Selva Biological Station, Costa Rica
-  "(Moustapha et al., 2022)",     3.50,   11.50,  # Nyong watershed, Cameroon
-  "(Nguyen et al., 2025)",       47.60,    2.60,  # Loire River at Dampierre, France (same site as Diamond)
-  "(Rexroade et al., 2026)",    -13.13,  130.79,  # Litchfield National Park, Northern Territory, AUS
-  "(Rocher-Ros et al., 2019)",   68.35,   18.82,  # Miellajokka catchment, near Abisko, Sweden
-  "(Solano et al., 2023)",      -12.87,  131.12,  # Manton Creek, near Darwin, NT, AUS
-  "(Taillardat et al., 2022)",   50.52,  -63.20,  # La Romaine watershed, Quebec, Canada
-  "(Wang et al., 2021)",         38.28,  109.73   # Hailiutu River, Yulin City, Shaanxi, China
-)
+# site_coords (Citation -> approximate lat/long): single source of truth,
+# also used by the meta-analysis MLM scripts -- see site_coords_lookup.R.
+source("03_Scripts/Streams/figures/site_coords_lookup.R")
 
-this_paper_coords <- st_read("01_Raw_data/Ch1 Pub Map/sites.shp", quiet = TRUE) %>%
+this_paper_sites <- st_read("01_Raw_data/Ch1 Pub Map/sites.shp", quiet = TRUE) %>%
   st_transform(4326) %>%
+  st_drop_geometry()
+
+this_paper_coords <- this_paper_sites %>%
   filter(as.character(Site_ID) %in% c("5", "6", "9", "13")) %>%
-  st_drop_geometry() %>%
   transmute(Citation = "This Paper", lat = Latitude, lon = Longitude)
 
-lit_reach_counts <- read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv", show_col_types = FALSE) %>%
-  count(Citation, name = "n_reaches")
+meta_data <- read_excel("01_Raw_data/meta_analysis_v3.xlsx", sheet = "Data")
+
+lit_reach_counts <- meta_data %>%
+  group_by(Citation) %>%
+  summarise(n_reaches = sum(n_reaches, na.rm = TRUE), .groups = "drop")
 
 map_points <- lit_reach_counts %>%
   left_join(site_coords, by = "Citation") %>%
@@ -76,6 +61,22 @@ map_points <- map_points %>%
 
 n_lit_papers <- n_distinct(lit_reach_counts$Citation)
 n_lit_reaches <- sum(lit_reach_counts$n_reaches)
+
+# ─── CSV: approximate latitude for every individual site ───────────────────
+# One row per Site_ID (literature reach or This Paper site), carrying the
+# Citation-level approximate coordinate from site_coords -- or, for This
+# Paper, the site's real surveyed coordinate from the sites shapefile.
+site_lat_lon <- meta_data %>%
+  distinct(Citation, Site_ID) %>%
+  left_join(site_coords, by = "Citation") %>%
+  bind_rows(
+    this_paper_sites %>%
+      transmute(Citation = "This Paper", Site_ID = as.character(Site_ID),
+                lat = Latitude, lon = Longitude)
+  ) %>%
+  arrange(Citation, Site_ID)
+
+write_csv(site_lat_lon, "01_Raw_data/meta_analysis_site_lat_lon.csv")
 
 # Shared Citation -> color palette (same assignment used by meta analysis.R's
 # figures), so a paper's dot color here matches its color everywhere else.

@@ -64,9 +64,9 @@ interp_df <- interp_df %>%
   select(-logQ)
 
 
-pubs<-read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv")%>%
-  select(Citation, Location, Biome, Source, Discharge_m3s, CO2_flux_gCm2day, Internal_Pathway_gCm2day, External_Pathway_gCm2day,
-         pH, Temperature_C, Mean_Annual_Precipitation_cm_yr, Source_Water_Brief)%>%
+pubs<-read_excel("01_Raw_data/meta_analysis_v3.xlsx", sheet = "Data")%>%
+  select(Citation, Biome, Source = Site_ID, Discharge_m3s, CO2_flux_gCm2day, Internal_Pathway_gCm2day, External_Pathway_gCm2day,
+         pH, Temperature_C, Mean_Annual_Precipitation_cm_yr, Source_Water_Brief = Source_Water)%>%
   rename(
     discharge_m3_s = Discharge_m3s,
     CO2flux.mn = CO2_flux_gCm2day,
@@ -75,7 +75,7 @@ pubs<-read_csv("01_Raw_data/meta_analysis_extraction_GENERATED_v2.csv")%>%
     temp_C = Temperature_C,
     precip_cm_yr = Mean_Annual_Precipitation_cm_yr
   )%>%
-  mutate(across(5:11, as.numeric))%>%
+  mutate(across(c(discharge_m3_s, CO2flux.mn, internal.mn, external.mn, pH, temp_C, precip_cm_yr), as.numeric))%>%
   filter(!is.na(internal.mn))%>%
   full_join(int.ext.summary)%>%
    mutate( pct_internal = (internal.mn / CO2flux.mn) * 100) %>%
