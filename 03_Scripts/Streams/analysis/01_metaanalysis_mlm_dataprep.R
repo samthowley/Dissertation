@@ -89,6 +89,20 @@ print(boundary_rows %>% count(Internal_Pct_of_Flux, name = "n_rows"))
 meta <- meta %>%
   mutate(logit_pct_internal = car::logit(Internal_Pct_of_Flux / 100))
 
+# ── Response variables: asinh(Internal_Pathway_gCm2day), asinh(External_Pathway_gCm2day) ──
+# Internal_Pathway_gCm2day and External_Pathway_gCm2day can be <= 0 (net
+# autotrophic sites, or a negative External residual -- see Table 8 in
+# metaanalysis_spatiotempo_analysis.R for the full accounting), where a plain
+# log is undefined. asinh(x) = log(x + sqrt(x^2 + 1)) behaves like a log
+# transform for large |x| but is defined at zero and for negative values too,
+# so no rows need excluding (see metaanalysis_mlm_prelim_checks.R step 3 for
+# the distribution check that motivated this choice over the raw scale).
+meta <- meta %>%
+  mutate(
+    asinh_internal_pathway = asinh(Internal_Pathway_gCm2day),
+    asinh_external_pathway = asinh(External_Pathway_gCm2day)
+  )
+
 # ── Z-score the five continuous predictors (raw + z_ versions both kept) ───
 predictor_cols <- c("Temperature_C", "abs_latitude", "pH",
                      "Mean_Annual_Precipitation_cm_yr", "Discharge_m3s")

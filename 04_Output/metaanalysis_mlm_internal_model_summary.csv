@@ -1,0 +1,4 @@
+term,estimate,SE,z,p,CI_lower,CI_upper,pseudo_r2
+Intercept,0.957,0.141,6.7869,0,0.6807,1.2334,0.0273
+Temperature (z),-0.2511,0.1862,-1.3485,0.1775,-0.6161,0.1139,0.0273
+Mean annual precipitation (z),0.2093,0.1514,1.3822,0.1669,-0.0875,0.5061,0.0273

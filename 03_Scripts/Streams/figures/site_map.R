@@ -62,21 +62,6 @@ map_points <- map_points %>%
 n_lit_papers <- n_distinct(lit_reach_counts$Citation)
 n_lit_reaches <- sum(lit_reach_counts$n_reaches)
 
-# ─── CSV: approximate latitude for every individual site ───────────────────
-# One row per Site_ID (literature reach or This Paper site), carrying the
-# Citation-level approximate coordinate from site_coords -- or, for This
-# Paper, the site's real surveyed coordinate from the sites shapefile.
-site_lat_lon <- meta_data %>%
-  distinct(Citation, Site_ID) %>%
-  left_join(site_coords, by = "Citation") %>%
-  bind_rows(
-    this_paper_sites %>%
-      transmute(Citation = "This Paper", Site_ID = as.character(Site_ID),
-                lat = Latitude, lon = Longitude)
-  ) %>%
-  arrange(Citation, Site_ID)
-
-write_csv(site_lat_lon, "01_Raw_data/meta_analysis_site_lat_lon.csv")
 
 # Shared Citation -> color palette (same assignment used by meta analysis.R's
 # figures), so a paper's dot color here matches its color everywhere else.
