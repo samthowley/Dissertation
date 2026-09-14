@@ -90,6 +90,6 @@ world_map <- map_data("world")
     axis.ticks    = element_blank(),
     axis.line     = element_blank(),
     plot.title    = element_text(size = 14, face = "bold", hjust = 0.5),
-    legend.position = "right",
-    legend.text   = element_text(size = 9)
+    legend.position = "left",
+    legend.text   = element_text(size = 8)
   ))

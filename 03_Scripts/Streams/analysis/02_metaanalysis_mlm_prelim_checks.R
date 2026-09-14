@@ -51,7 +51,7 @@ cat("Predictor(s) with VIF > 5: ", if (length(high_vif) == 0) "none." else paste
 # =============================================================================
 
 response_vars <- c("CO2_flux_gCm2day", "Internal_Pathway_gCm2day",
-                    "External_Pathway_gCm2day", "Internal_Pct_of_Flux", "logit_pct_internal")
+                    "External_Pathway_gCm2day", "Internal_Pct_of_Flux")
 
 dist_diag <- map_dfr(response_vars, function(v) {
   x <- meta[[v]]
@@ -83,8 +83,8 @@ par(op)
 # =============================================================================
 
 transform_spec <- tibble(
-  variable  = c("CO2_flux_gCm2day", "Internal_Pathway_gCm2day", "External_Pathway_gCm2day"),
-  transform = c("log10", "asinh", "asinh")
+  variable  = c("CO2_flux_gCm2day", "Internal_Pathway_gCm2day", "External_Pathway_gCm2day", "logit_pct_internal"),
+  transform = c("log10", "asinh", "asinh", "log10")
 )
 
 

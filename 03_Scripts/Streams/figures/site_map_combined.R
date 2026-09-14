@@ -5,7 +5,7 @@ source("03_Scripts/Streams/figures/site_map.R")
 combined_title <- ggdraw() +
   draw_label(
     expression("Internal Pathway Contribution to Total Stream"~CO[2]~"Flux"),
-    size = 19, fontface = "bold"
+    size = 23, fontface = "bold"
   )
 
 citation_legend_shared <- get_legend(
@@ -53,13 +53,13 @@ map_row <- plot_grid(
   panels,
   citation_legend_shared,
   ncol = 1,
-  rel_heights = c(0.05, 0.7, 0.5, 0.3)
+  rel_heights = c(0.05, 0.45, 0.4, 0.35)
 ) +
   theme(plot.background = element_rect(fill = "white", color = NA)))
 
 ggsave(
   "05_Figures/Figure_MetaAnalysis_SiteMap_InternalPathway.jpg",
   plot = p_map_violin_combined,
-  width = 15, height = 12.5, units = "in", dpi = 300
+  width = 15, height = 15, units = "in", dpi = 300
 )
 

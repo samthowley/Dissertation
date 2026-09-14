@@ -1,20 +1,4 @@
 
-# ── Coefficient-ranking alternative to the backward-elimination models ─────
-# Simpler counterpart to 03_metaanalysis_mlm_backwards_elimination.R: instead
-# of eliminating predictors step by step (AIC/LRT-driven), fit each full
-# 4-predictor model ONCE and rank predictors directly by standardized
-# coefficient size, judging "statistically real" via each predictor's own
-# individual p-value (not QM, not an LRT, not AIC comparison). Meant to run
-# side by side with that script for comparison -- this script does not touch
-# or depend on it.
-#
-# Three response variables are modeled here, same predictor set / weights /
-# random-effects structure throughout -- only the outcome changes:
-#   - logit_pct_internal:     internal/external SPLIT (% of flux internal)
-#   - asinh_internal_pathway: internal pathway flux MAGNITUDE
-#   - asinh_external_pathway: external pathway flux MAGNITUDE
-# See 01_metaanalysis_mlm_dataprep.R for both transforms.
-
 source("03_Scripts/Streams/analysis/01_metaanalysis_mlm_dataprep.R")
 library(metafor)
 library(flextable)
@@ -29,29 +13,12 @@ predictor_labels <- c(
 all_predictors <- names(predictor_labels)
 
 response_specs <- list(
-  list(key = "pct_internal",  label = "Internal % of flux (split)", response = "logit_pct_internal"),
-  list(key = "internal_flux", label = "Internal pathway flux",      response = "asinh_internal_pathway"),
-  list(key = "external_flux", label = "External pathway flux",      response = "asinh_external_pathway")
+  list(key = "pct_internal",  label = "Internal % of Total CO2 flux",             response = "logit_pct_internal"),
+  list(key = "internal_flux", label = "Internal pathway flux (C g/m²/day)",       response = "asinh_internal_pathway"),
+  list(key = "external_flux", label = "External pathway flux (C g/m²/day)",       response = "asinh_external_pathway")
 )
 
-# Fits one model for one response variable: full 4-predictor model + a
-# matching intercept-only null model (both REML, both on the same
-# complete-case subset), then ranks predictors by |standardized estimate|.
-#
-# NOTE: magnitude and significance are different things. A predictor's
-# p-value depends on its estimate size RELATIVE TO its own standard error,
-# not on magnitude alone -- a large coefficient with a large SE can still be
-# non-significant, and a small coefficient with a small SE can still be
-# significant. Ranking by abs_estimate answers "which predictor moves the
-# outcome most per SD", not "which predictor do we trust most" -- don't read
-# "biggest" as "most trustworthy".
-#
-# Temperature_C and Mean_Annual_Precipitation_cm_yr are correlated at r=0.40
-# (Script 1 correlation check -- not a VIF-flagged problem, but non-trivial).
-# In each joint model below, that correlation can modestly shrink or inflate
-# either predictor's apparent significance relative to testing it alone.
-# Expected multiple-regression behavior, not a bug -- flagged here so it
-# isn't misread as something wrong with the rankings below.
+
 fit_one <- function(spec) {
   # Complete-case subset for THIS response -- each response has its own
   # missingness (e.g. asinh_external_pathway adds 1 NA beyond the 4
@@ -117,11 +84,11 @@ fit_one <- function(spec) {
   list(spec = spec, model = model, ranking = ranking, pseudo_r2 = pseudo_r2)
 }
 
-results <- map(response_specs, fit_one)
-names(results) <- map_chr(response_specs, "key")
+results <- purrr::map(response_specs, fit_one)
+names(results) <- purrr::map_chr(response_specs, "key")
 
 # ── Combined CSV: all three models' rankings stacked, with a `model` column ─
-ranking_all <- map2_dfr(response_specs, results, function(spec, r) {
+ranking_all <- purrr::map2_dfr(response_specs, results, function(spec, r) {
   r$ranking %>% mutate(model = spec$label, .before = 1)
 })
 
@@ -147,6 +114,19 @@ base_ft_style <- function(ft) {
 fmt_p <- function(p) ifelse(p < 0.001, "<0.001", sprintf("%.3f", p))
 sig_stars <- function(p) case_when(p < 0.001 ~ "***", p < 0.01 ~ "**", p < 0.05 ~ "*", p < 0.1 ~ ".", TRUE ~ "")
 
+# Definition for Pseudo R2 -- attached as a footnote rather than assumed,
+# since it means something specific here, not the general textbook R^2.
+PSEUDO_R2_NOTE <-
+  "Pseudo R² = 1 − (Σσ²_model / Σσ²_null): summed random-effects variance components (σ², one per level of the random-effects structure) in this model vs. in an intercept-only null model with the SAME random-effects structure and data. This is the Nakagawa/Cheung-style meta-analytic pseudo R² -- it measures how much of the total between-study/between-row heterogeneity the fixed effects explain, NOT an OLS R² (there is no residual/error variance being partitioned)."
+
+add_stat_footnote <- function(ft, lines) {
+  ft %>%
+    add_footer_lines(values = lines) %>%
+    fontsize(size = 7, part = "footer") %>%
+    italic(part = "footer") %>%
+    align(align = "left", part = "footer")
+}
+
 # ── Table A: ranked coefficients for all 3 models, one flextable ───────────
 # Rows are in a fixed predictor order (each model's own within-model rank is
 # shown as its "Rank" column, since the three models don't necessarily agree
@@ -162,7 +142,7 @@ wide_data <- wide_data %>% select(-term)
 
 header_df <- tibble(
   col_keys = names(wide_data),
-  line1 = c("", rep(map_chr(response_specs, "label"), each = 3)),
+  line1 = c("", rep(purrr::map_chr(response_specs, "label"), each = 3)),
   line2 = c("Predictor", rep(c("Rank", "Slope", "p"), times = length(response_specs)))
 )
 
@@ -177,7 +157,7 @@ ft_a <- flextable(wide_data, col_keys = header_df$col_keys) %>%
   width(j = 2:ncol(wide_data), width = 0.65)
 
 # ── Table B: general model statistics, one row per model ───────────────────
-tbl_b_data <- map2_dfr(response_specs, results, function(spec, r) {
+tbl_b_data <- purrr::map2_dfr(response_specs, results, function(spec, r) {
   fs <- fitstats(r$model)
   tibble(
     Model = spec$label,
@@ -199,7 +179,8 @@ ft_b <- flextable(tbl_b_data) %>%
   align(j = 1, align = "left", part = "all") %>%
   align(j = 2:ncol(tbl_b_data), align = "center", part = "all") %>%
   width(j = 1, width = 2.2) %>%
-  width(j = 2:ncol(tbl_b_data), width = 0.9)
+  width(j = 2:ncol(tbl_b_data), width = 0.9) %>%
+  add_stat_footnote(PSEUDO_R2_NOTE)
 
 tables_out_path <- "05_Figures/Table_metaanalysis_mlm_coefficient_ranking.docx"
 save_as_docx(ft_a, ft_b, path = tables_out_path)

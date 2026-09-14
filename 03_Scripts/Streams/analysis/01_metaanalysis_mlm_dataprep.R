@@ -1,10 +1,4 @@
 
-# ── Shared data prep for the internal/external CO2 partitioning MLM ────────
-# Not meant to be run on its own -- sourced automatically by 02_...prelim_checks.R
-# and 03_...model.R (run one of those, in that numeric order) so both scripts
-# see identical data. Edit here, not in either downstream script. Produces
-# `meta`, the row-per-site dataframe both scripts build on.
-
 library(tidyverse)
 library(readxl)
 library(car)      # car::logit()
@@ -36,11 +30,6 @@ if (nrow(unmatched_sites) > 0) {
 }
 
 # ── Row removal: outlier n_reaches ──────────────────────────────────────────
-# R180 (Rasilo et al., 2017) reports n_reaches = 43, a single study-wide
-# aggregate across all 43 streams -- more than 4x the next-highest row (10)
-# and would dominate the n_reaches weighting used in the model script.
-# NOTE: this is Rasilo et al. (2017)'s ONLY row in the dataset, so removing it
-# drops that citation from the analysis entirely, not just down-weights it.
 dropped_row <- meta_joined %>% filter(n_reaches == 43)
 cat("\nDropping", nrow(dropped_row), "row(s) with n_reaches == 43 (see comment above):\n")
 print(dropped_row %>% select(Row_ID, Citation, Site_ID, n_reaches))

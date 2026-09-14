@@ -287,7 +287,9 @@ pathway_trend_theme <- list(
   scale_shape_manual(name = "Source", values = c("Literature" = 16, "This Study" = 8)),
   scale_size_manual(name = "Source", values = c("Literature" = 2.5, "This Study" = 3.5)),
   theme_classic(base_size = 13),
-  theme(plot.title = element_text(size = 15, hjust = 0.5)),
+  theme(plot.title = element_text(size = 10, hjust = 0.5),
+        axis.title = element_text(size = 10),
+        legend.position = "none"),
   scale_y_log10()
 )
 
@@ -317,11 +319,6 @@ data_long <- spatio.data %>%
   stats_internal <- data_long %>% filter(pathway == "Internal")
   stats_external <- data_long %>% filter(pathway == "External", !Citation %in% exclude_external)
 
-  # Prefix labels ("Internal:", "External (excl. Horgby):") -- stat_poly_eq
-  # supplies the equation (which includes the slope)/R2/p portion itself, in
-  # the same style as temp_temperature/temp_Q in temporal.R. Prefixes must be
-  # wrapped in explicit quotes so they parse as plotmath string constants
-  # (parse = TRUE) rather than bare, invalid expression syntax.
   prefix_internal <- paste0("'Internal: '~")
   prefix_external <- paste0("'External",
                              if (length(exclude_external)) paste0(" (excl. ", exclude_external_label, ")") else "",
@@ -331,18 +328,18 @@ data_long <- spatio.data %>%
 
   p <- ggplot(data_long, aes(x = .data[[predictor]], y = flux, color = pathway,
                               shape = study_source, size = study_source)) +
-    geom_point(alpha = 0.85, stroke = 1) +
+    geom_point(alpha = 0.85, stroke = 0.4) +
     stat_poly_line(data = trend_internal, formula = poly_formula, se = FALSE, linewidth = 0.8,
                    aes(shape = NULL, size = NULL)) +
     stat_poly_line(data = trend_external, formula = poly_formula, se = FALSE, linewidth = 0.8,
                    aes(shape = NULL, size = NULL)) +
     stat_poly_eq(data = stats_internal, formula = poly_formula, parse = TRUE,
-                 size = 4, label.x = "right", label.y = 0.07,
+                 size = 3, label.x = "right", label.y = 0.07,
                  aes(shape = NULL, size = NULL,
                      label = paste0(prefix_internal, after_stat(eq.label), "~'; '~",
                                     after_stat(rr.label), "~'; '~", after_stat(p.value.label)))) +
     stat_poly_eq(data = stats_external, formula = poly_formula, parse = TRUE,
-                 size = 4, label.x = "right", label.y = 0.03,
+                 size = 3, label.x = "right", label.y = 0.01,
                  aes(shape = NULL, size = NULL,
                      label = paste0(prefix_external, after_stat(eq.label), "~'; '~",
                                     after_stat(rr.label), "~'; '~", after_stat(p.value.label)))) +
@@ -379,46 +376,78 @@ data_long <- spatio.data %>%
 ))
 
 
-plot_grid(p_flux_vs_temp, p_flux_vs_rain, p_flux_vs_pH, p_flux_vs_Q)
+plot_grid(p_flux_vs_temp, p_flux_vs_rain, p_flux_vs_pH, p_flux_vs_Q, ncol=1)
 
 
-#boxplots###############
+# ─── Figure: Internal % Contribution vs. Temperature / Precipitation / pH / Discharge ───###########
+build_pct_internal_scatter <- function(predictor, x_lab, plot_title, log_x = FALSE) {
 
-if (!exists("df_final")) source("03_Scripts/Streams/analysis/metaanalysis_spatiotempo_analysis.R")
+  data_pts <- spatio.data %>%
+    mutate(
+      temp_C       = coalesce(temp_C, TempC),
+      precip_cm_yr = coalesce(precip_cm_yr, Mean_Annual_Precipitation_cm_yr)
+    ) %>%
+    filter(!is.na(.data[[predictor]]), !is.na(pct_internal)) %>%
+    { if (log_x) filter(., .data[[predictor]] > 0) else . } %>%
+    mutate(study_source = if_else(Citation == "This Paper", "This Study", "Literature"))
 
-df_long<-df_final%>%
-  rename(External.Mean=External_Pathway_gCm2day,
-         Internal.Mean=Internal_Pathway_gCm2day)%>%
-  pivot_longer(
-    cols = c('External.Mean','Internal.Mean'),
-    names_to = 'pathway',
-    values_to='flux'
-  )%>%
-  mutate(
-    Source_Water_Brief = factor(Source_Water_Brief,
-                                levels = c("Groundwater-fed", "Wetland seepage", "Mixed",
-                                           "Surface runoff", "Glacial/snow melt", "Regulated flow")),
-    pathway = factor(pathway, levels = c("Internal.Mean", "External.Mean"))
+  fit_data <- if (log_x) mutate(data_pts, .fit_x = log10(.data[[predictor]])) else data_pts
+  fit_predictor <- if (log_x) ".fit_x" else predictor
+  fit <- lm(reformulate(fit_predictor, "pct_internal"), data = fit_data)
+  fit_p <- summary(fit)$coefficients[2, 4]
+  fit_subtitle <- sprintf(
+    "y = %.3g + %.3g %s;  R² = %.2f;  P = %s",
+    coef(fit)[1], coef(fit)[2], if (log_x) "log10(x)" else "x", summary(fit)$r.squared,
+    if (fit_p < 0.001) "< 0.001" else sprintf("%.3f", fit_p)
   )
 
-plot_grid(
+  p <- ggplot(data_pts, aes(x = .data[[predictor]], y = pct_internal,
+                             shape = study_source, size = study_source)) +
+    geom_rect(aes(xmin = -Inf, xmax = Inf, ymin = 10, ymax = 19,
+                  fill = "Hotchkiss et al. (2015)\nglobal estimate (10–19%)"),
+              color = "#5B8DB8", linewidth = 0.4, alpha = 0.45, inherit.aes = FALSE) +
+    scale_fill_manual(name = NULL,
+                      values = c("Hotchkiss et al. (2015)\nglobal estimate (10–19%)" = "#A8CCE0")) +
+    geom_point(alpha = 0.85, stroke = 1, color = "black") +
+    stat_poly_line(formula = y ~ x, se = FALSE, linewidth = 0.8, color = "black",
+                   aes(shape = NULL, size = NULL)) +
+    scale_shape_manual(name = "Source", values = c("Literature" = 16, "This Study" = 8)) +
+    scale_size_manual(name = "Source", values = c("Literature" = 2.5, "This Study" = 3.5)) +
+    labs(x = x_lab, y = "Internal pathway contribution (%)", title = plot_title, subtitle = fit_subtitle) +
+    theme_classic(base_size = 13) +
+    theme(plot.title = element_text(size = 10, hjust = 0.5),
+          plot.subtitle = element_text(size = 10, hjust = 0.5),
+          axis.title = element_text(size = 10),
+          legend.position = "none")
 
-ggplot(df_long, aes(x = Source_Water_Brief, y = flux, fill = pathway)) +
-  geom_boxplot(position = position_dodge(width = 0.75)) +
-  geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.75),
-             shape = 1, size = 1.2, color = "grey30", alpha = 0.6) +
-  theme_classic(base_size = 13) +
-  theme(axis.text = element_text(size = 11), legend.position = 'none')+
-  scale_y_log10()
-,
+  if (log_x) p <- p + scale_x_log10()
+  p
+}
 
-ggplot(df_final, aes(x = Source_Water_Brief, y = Internal.Contrib)) +
-  geom_boxplot(position = position_dodge(width = 0.75)) +
-  geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.75),
-             shape = 1, size = 1.2, color = "grey30", alpha = 0.6) +
-  theme_classic(base_size = 13) +
-  theme(axis.text = element_text(size = 11), legend.position = "bottom"),#+
-  #scale_y_log10(),
-ncol=1
-)
+(p_pct_vs_temp <- build_pct_internal_scatter(
+  predictor  = "temp_C",
+  x_lab      = expression("Mean Reach Temperature ("*degree*C*")"),
+  plot_title = "Internal % Contribution vs. Temperature"
+))
+
+(p_pct_vs_rain <- build_pct_internal_scatter(
+  predictor  = "precip_cm_yr",
+  x_lab      = "Mean Annual Precipitation (cm/yr)",
+  plot_title = "Internal % Contribution vs. Precipitation"
+))
+
+(p_pct_vs_pH <- build_pct_internal_scatter(
+  predictor  = "pH",
+  x_lab      = "pH",
+  plot_title = "Internal % Contribution vs. pH"
+))
+
+(p_pct_vs_Q <- build_pct_internal_scatter(
+  predictor  = "discharge_m3_s",
+  x_lab      = expression("Discharge (m"^3~s^-1*")"),
+  plot_title = "Internal % Contribution vs. Discharge",
+  log_x      = TRUE
+))
+
+plot_grid(p_pct_vs_temp, p_pct_vs_rain, p_pct_vs_pH, p_pct_vs_Q, ncol=1)
 

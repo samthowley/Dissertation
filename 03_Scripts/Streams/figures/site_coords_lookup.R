@@ -31,6 +31,7 @@ site_coords <- tibble::tribble(
   "(Nguyen et al., 2025)",          47.60,    2.60,  # Loire River at Dampierre, France
   "(Oviedo-Vargas et al., 2015)",   10.43,  -83.99,  # La Selva Biological Station, Costa Rica
   "(Piatka et al., 2024)",          47.70,   11.50,  # Haselbach, ~50 km S of Munich, Bavaria, Germany
+  "(Pu et al., 2017)",              24.86,  109.33,  # Guancun Stream, Guangxi, SW China
   "(Rasilo et al., 2017)",          50.45,  -66.70,  # Côte-Nord boreal streams, Québec, Canada
   "(Rexroade et al., 2026)",       -13.13,  130.79,  # Litchfield National Park, Northern Territory, AUS
   "(Rocher-Ros et al., 2020)",      68.35,   18.82,  # Miellajokka catchment, near Abisko, Sweden
