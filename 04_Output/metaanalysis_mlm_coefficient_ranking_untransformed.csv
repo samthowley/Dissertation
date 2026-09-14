@@ -1,0 +1,13 @@
+model,term,predictor,estimate,se,z,p,abs_estimate,rank,significant,pseudo_r2
+Internal % of Total CO2 flux (untransformed),z_Temperature_C,Temperature (z),-11.938135550564844,7.478663669704559,-1.5962926102594013,0.11042347919066439,11.938135550564844,1,FALSE,0.0802
+Internal % of Total CO2 flux (untransformed),z_Discharge_m3s,Discharge (z),-5.7293797336713705,5.0278068689222835,-1.139538546932983,0.2544786002316367,5.7293797336713705,2,FALSE,0.0802
+Internal % of Total CO2 flux (untransformed),z_Mean_Annual_Precipitation_cm_yr,Mean annual precipitation (z),3.805082371087649,7.162930875653941,0.5312186362178546,0.595267280116953,3.805082371087649,3,FALSE,0.0802
+Internal % of Total CO2 flux (untransformed),z_pH,pH (z),-3.103167379414941,6.637051051989697,-0.46755213348624974,0.6401049020666605,3.103167379414941,4,FALSE,0.0802
+"Internal pathway flux (C g/m²/day, untransformed)",z_pH,pH (z),-0.47461636462468737,0.30256215620940796,-1.5686573977751468,0.1167277903828175,0.47461636462468737,1,FALSE,-0.0018
+"Internal pathway flux (C g/m²/day, untransformed)",z_Mean_Annual_Precipitation_cm_yr,Mean annual precipitation (z),-0.35758458791804,0.35431662262613817,-1.0092232909302425,0.31286755902461744,0.35758458791804,2,FALSE,-0.0018
+"Internal pathway flux (C g/m²/day, untransformed)",z_Discharge_m3s,Discharge (z),-0.1267994419869669,0.2895952878759815,-0.4378505013564602,0.6614946594333683,0.1267994419869669,3,FALSE,-0.0018
+"Internal pathway flux (C g/m²/day, untransformed)",z_Temperature_C,Temperature (z),0.018899538032829656,0.3824812295015258,0.04941298180164489,0.9605901828186474,0.018899538032829656,4,FALSE,-0.0018
+"External pathway flux (C g/m²/day, untransformed)",z_Temperature_C,Temperature (z),1.1522960534673066,0.7564174455137517,1.5233599651904879,0.1276686723284258,1.1522960534673066,1,FALSE,0.0326
+"External pathway flux (C g/m²/day, untransformed)",z_Discharge_m3s,Discharge (z),1.108785726208774,0.49281037982848885,2.2499236452662803,0.0244537926717852,1.108785726208774,2,TRUE,0.0326
+"External pathway flux (C g/m²/day, untransformed)",z_Mean_Annual_Precipitation_cm_yr,Mean annual precipitation (z),-0.8136547015096581,0.7297651133037014,-1.1149542320900794,0.2648700349661938,0.8136547015096581,3,FALSE,0.0326
+"External pathway flux (C g/m²/day, untransformed)",z_pH,pH (z),-0.7310857124212912,0.6867563511250584,-1.0645488916463772,0.2870801183176221,0.7310857124212912,4,FALSE,0.0326

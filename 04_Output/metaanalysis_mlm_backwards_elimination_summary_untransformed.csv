@@ -1,0 +1,6 @@
+model,term,estimate,SE,z,p,CI_lower,CI_upper,pseudo_r2
+"External pathway flux (C g/m²/day, untransformed)",Intercept,3.0525,0.6432,4.7461,0,1.792,4.3131,0.0326
+"External pathway flux (C g/m²/day, untransformed)",Temperature (z),1.1523,0.7564,1.5234,0.1277,-0.3303,2.6348,0.0326
+"External pathway flux (C g/m²/day, untransformed)",pH (z),-0.7311,0.6868,-1.0645,0.2871,-2.0771,0.6149,0.0326
+"External pathway flux (C g/m²/day, untransformed)",Mean annual precipitation (z),-0.8137,0.7298,-1.115,0.2649,-2.244,0.6167,0.0326
+"External pathway flux (C g/m²/day, untransformed)",Discharge (z),1.1088,0.4928,2.2499,0.0245,0.1429,2.0747,0.0326
